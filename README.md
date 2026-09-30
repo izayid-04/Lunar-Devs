@@ -12,7 +12,8 @@ test qui valide la chaîne front ↔ API ↔ hébergement avant le top départ.
 
 - [Next.js 16](https://nextjs.org) (App Router, TypeScript)
 - [Tailwind CSS 4](https://tailwindcss.com)
-- Serveur de production personnalisé (`server.js`), compatible
+- Serveur de production personnalisé (`server.cjs`, CommonJS pur — requis
+  par Passenger, voir `docs/DEPLOIEMENT.md`), compatible
   [Phusion Passenger](https://www.phusionpassenger.com/) pour l'hébergement
   cPanel/Hodifly de l'événement
 - API séparée : [NestJS](https://nestjs.com) (dépôt distinct), consommée via
@@ -32,7 +33,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 
 ```bash
 pnpm build
-NEXT_PUBLIC_API_URL=<url-api> node server.js
+NEXT_PUBLIC_API_URL=<url-api> node server.cjs
 ```
 
 ## Page `/status`
