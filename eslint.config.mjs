@@ -12,9 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Passenger's entry point: plain CommonJS, not run through the Next.js
-    // compiler, so it isn't linted against the app's TS/module rules.
-    "server.cjs",
   ]),
 ]);
 

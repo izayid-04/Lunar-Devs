@@ -12,10 +12,9 @@ test qui valide la chaîne front ↔ API ↔ hébergement avant le top départ.
 
 - [Next.js 16](https://nextjs.org) (App Router, TypeScript)
 - [Tailwind CSS 4](https://tailwindcss.com)
-- Serveur de production personnalisé (`server.cjs`, CommonJS pur — requis
-  par Passenger, voir `docs/DEPLOIEMENT.md`), compatible
-  [Phusion Passenger](https://www.phusionpassenger.com/) pour l'hébergement
-  cPanel/Hodifly de l'événement
+- Déployé sur cPanel/Hodifly en mode `next start` standard (mode
+  `standalone` généré automatiquement par Hodifly — pas de serveur
+  personnalisé côté front, voir `docs/DEPLOIEMENT.md`)
 - API séparée : [NestJS](https://nestjs.com) (dépôt distinct), consommée via
   `NEXT_PUBLIC_API_URL`
 
@@ -33,7 +32,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 
 ```bash
 pnpm build
-NEXT_PUBLIC_API_URL=<url-api> node server.cjs
+NEXT_PUBLIC_API_URL=<url-api> pnpm start
 ```
 
 ## Page `/status`
@@ -46,9 +45,9 @@ Une seule page suffit à vérifier tout le pipeline de déploiement :
 
 ## Déploiement
 
-Toute la configuration Hodifly (type d'application, variables d'environnement,
-pourquoi un serveur personnalisé plutôt que `output: 'standalone'`) et la
-procédure de test post-déploiement sont documentées dans
+Toute la configuration Hodifly (type d'application, mode `standalone`
+imposé par la plateforme, variables d'environnement) et la procédure de
+test post-déploiement sont documentées dans
 [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md).
 
 ## Éco-conception

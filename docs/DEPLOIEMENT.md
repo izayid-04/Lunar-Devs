@@ -12,7 +12,9 @@ l'hébergement de l'événement, et pour vérifier que le déploiement fonctionn
   - Framework détecté : Next.js.
   - Type d'application : **Node (Passenger)**, Node **24**.
   - Commande de build : `npm run build`.
-  - Fichier de démarrage : **`server.cjs`** à la racine du projet.
+  - Fichier de démarrage : **`server.js`**, généré automatiquement par
+    Next.js (mode `standalone`, imposé par Hodifly) — pas de serveur
+    personnalisé côté front, voir section suivante.
 - **Variables d'environnement** : définies dans l'interface Hodifly, lues via
   `process.env` (jamais de fichier `.env` committé — voir plus bas).
 - **Domaine du front** : https://lunardevs.lescomores.webcup.hodi.cloud
@@ -21,38 +23,44 @@ l'hébergement de l'événement, et pour vérifier que le déploiement fonctionn
 - **Jury** : note aussi l'éco-conception (Ecoindex) — pages légères, peu de
   requêtes, pas de bibliothèques lourdes inutiles.
 
-## Pourquoi un `server.cjs` personnalisé (et pas `output: 'standalone'`)
+## Mode standalone imposé par Hodifly (pas de serveur personnalisé côté front)
 
-Passenger a besoin d'un fichier d'entrée unique (`server.cjs`) qu'il exécute
-lui-même en lui injectant `PORT`. Next.js propose deux façons d'obtenir un
-serveur de production :
+Next.js propose deux façons d'obtenir un serveur de production :
 
-1. **`output: 'standalone'`** dans `next.config.ts` : Next génère lui-même un
-   `server.js` minimal dans `.next/standalone/`, pensé pour être copié seul
-   (sans `node_modules`) vers un conteneur.
-2. **Serveur personnalisé** : on écrit notre propre `server.cjs` à la racine,
-   qui appelle l'API programmatique de Next (`next()` + `app.prepare()`).
+1. **`output: 'standalone'`** : Next génère lui-même un `server.js` minimal
+   (dans `.next/standalone/` en local), pensé pour être déployé seul, avec
+   un `node_modules` réduit et le `package.json`.
+2. **Serveur personnalisé** : on écrit son propre fichier d'entrée qui
+   appelle l'API programmatique de Next (`next()` + `app.prepare()`).
 
-**Ces deux approches sont incompatibles entre elles** (la documentation
-Next.js le précise explicitement : en mode standalone, les fichiers d'un
-serveur personnalisé ne sont pas tracés). Comme Hodifly exige un
-`server.cjs` précis à la racine et fait tourner `npm install` /
-`npm run build` sur place (donc `node_modules` est présent), on utilise
-l'option 2 : `server.cjs` est un serveur personnalisé classique, et
-`next.config.ts` **ne** doit **pas** définir `output: 'standalone'`.
+**Ces deux approches sont incompatibles entre elles** (en mode standalone,
+les fichiers d'un serveur personnalisé ne sont pas tracés par Next).
 
-`server.cjs` est volontairement écrit en CommonJS pur (`require`, pas
-`import`, aucun top-level await), et porte l'extension `.cjs` pour le
-garantir sans ambiguïté quel que soit `"type"` dans `package.json`.
-Passenger le charge avec `require()` : voir la section « Piège Passenger +
-ESM » plus bas pour la raison précise.
+On a d'abord essayé l'option 2 avec un `server.cjs` personnalisé à la
+racine (voir historique du projet). **Ça ne fonctionne pas sur Hodifly** :
+Hodifly force le mode standalone pour tout front Next.js qu'il détecte —
+le dossier réellement déployé ne contient que le `server.js` généré par
+Next, `.next/`, un `node_modules` réduit et `package.json`. Notre
+`server.cjs` n'est jamais copié dans ce dossier, d'où l'erreur observée en
+déploiement :
 
-Il lit :
-- `process.env.PORT` (injecté par Passenger, défaut `3000` en local),
-- `process.env.HOSTNAME` (défaut `0.0.0.0`),
-- `process.env.NODE_ENV` (mode dev seulement si explicitement
-  `"development"` ; sinon toujours production, y compris si la variable est
-  absente).
+```
+Cannot find module '.../current/server.cjs'
+```
+
+**La bonne approche, côté front, est donc l'option 1 : ne rien faire de
+spécial.** Pas de fichier `server.*` à la racine du dépôt, pas de script
+`start` custom : Hodifly gère lui-même la génération et le lancement du
+serveur standalone. `package.json` garde le script `start` standard
+(`next start`), utilisé uniquement pour tester un build de production en
+local — Hodifly, lui, démarre directement le `server.js` qu'il a généré,
+qui lit déjà `process.env.PORT` par convention Next.js.
+
+⚠️ Ne pas ajouter `output: 'standalone'` dans `next.config.ts` "pour
+anticiper" : Hodifly l'impose déjà de son côté à la construction, et le
+dupliquer ici n'apporte rien à ce qu'on vérifie en local avec
+`next build` / `next start` (qui utilisent le build classique, pas
+`.next/standalone/`).
 
 ## Configuration à saisir dans Hodifly
 
@@ -62,8 +70,8 @@ Il lit :
 | Version Node                | 24                                                              |
 | Dépôt / branche              | ce dépôt GitHub, branche `main`                                 |
 | Commande de build            | `npm run build`                                                 |
-| Fichier de démarrage         | `server.cjs`                                                     |
-| Répertoire racine            | racine du dépôt (là où se trouve `server.cjs`)                   |
+| Fichier de démarrage         | `server.js` (généré par Next en mode standalone — géré par Hodifly, rien à créer dans le dépôt) |
+| Répertoire racine            | racine du dépôt (là où se trouve `package.json`)                 |
 
 Variables d'environnement à définir dans Hodifly (pas dans Git) :
 
@@ -84,42 +92,38 @@ actuellement). À vérifier avec un premier déploiement de test ; si besoin,
 soit générer et committer un `package-lock.json`, soit voir si Hodifly permet
 de choisir `pnpm` comme gestionnaire de paquets.
 
-## Piège Passenger + ESM
+## Piège Passenger + ESM (concerne l'API NestJS, pas ce dépôt front)
 
-Rencontré concrètement en déployant l'API NestJS sur Hodifly, donc à éviter
-absolument côté front aussi :
+Ce piège a été rencontré en déployant l'**API NestJS** (dépôt séparé) sur
+Hodifly — il ne s'applique pas à ce front, noté ici pour mémoire d'équipe.
 
-Passenger démarre le fichier de démarrage avec `require()`, jamais avec
-`import`. Si ce fichier est (ou charge, même indirectement) un module ESM
-contenant un **top-level await**, Node 24 plante immédiatement au démarrage
-avec :
+Passenger démarre le fichier de démarrage d'une application Node avec
+`require()`, jamais avec `import`. Si ce fichier est (ou charge, même
+indirectement) un module ESM contenant un **top-level await**, Node 24
+plante immédiatement au démarrage avec :
 
 ```
 Error [ERR_REQUIRE_ASYNC_MODULE]: require() cannot be used on an ESM graph
 with top-level await
 ```
 
-`NODE_ENV=production` ou un `next.config.ts` correct **ne protègent pas**
-de ce piège — c'est une histoire de format de module (CJS vs ESM) et de
-présence d'un `await` au niveau racine d'un fichier, indépendante de
-l'environnement d'exécution.
+`NODE_ENV=production` ou une config correcte **ne protègent pas** de ce
+piège — c'est une histoire de format de module (CJS vs ESM) et de présence
+d'un `await` au niveau racine d'un fichier, indépendante de l'environnement
+d'exécution. Sur l'API, la solution a été un `server.cjs` racine en
+CommonJS pur (`require`, aucun top-level await), qui charge l'application
+NestJS proprement.
 
-Sur l'API, la solution a été un `server.cjs` racine en CommonJS pur. Côté
-front, on applique la même règle :
+**Pourquoi le front n'est pas concerné** : ce dépôt n'a plus de fichier de
+démarrage personnalisé. Le `server.js` que Hodifly exécute est celui généré
+automatiquement par Next.js en mode standalone — un fichier simple, sans
+top-level await, que Next maintient lui-même. On ne le commite pas et on ne
+le modifie pas.
 
-- le fichier de démarrage s'appelle **`server.cjs`** (pas `.js`, pour lever
-  toute ambiguïté sur le format, quel que soit `"type"` dans
-  `package.json`),
-- il n'utilise que `require(...)` (jamais `import`),
-- il ne contient **aucun `await` au niveau racine du fichier** — le
-  démarrage async de Next (`app.prepare()`) est enchaîné avec
-  `.then(...)/.catch(...)`, jamais avec un `await app.prepare()` en dehors
-  d'une fonction.
-
-Si une dépendance ajoutée plus tard à `server.cjs` s'avère être un paquet
-« ESM-only » avec top-level await, il faut soit trouver une alternative
-CommonJS, soit l'appeler depuis du code qui s'exécute après le démarrage du
-serveur HTTP (pas depuis le corps du fichier chargé par `require()`).
+Si un jour ce front redevient concerné (par ex. si on doit réintroduire un
+serveur personnalisé), la même règle que côté API s'appliquerait : fichier
+`.cjs`, uniquement `require(...)`, et `app.prepare()` enchaîné avec
+`.then(...)/.catch(...)` plutôt qu'un `await` au niveau racine.
 
 ## Variables d'environnement en local
 
@@ -156,15 +160,14 @@ domaine du front.
 
 ```bash
 npm run build
-node -e "require('./server.cjs')"
+npm run start   # next start — utilise NEXT_PUBLIC_API_URL déjà injectée au build
 ```
 
-`node -e "require('./server.cjs')"` reproduit exactement la façon dont
-Passenger démarre l'application (via `require()`, pas via `node
-server.cjs` en ligne de commande) — c'est le test qui aurait détecté le
-piège ESM/top-level await décrit plus haut. Alternative équivalente pour
-un usage courant : `npm run start` (utilise `NEXT_PUBLIC_API_URL` déjà
-injectée au build).
+Ce n'est pas exactement le serveur standalone que Hodifly génère et
+exécute en production (`next start` utilise le build classique, pas
+`.next/standalone/`), mais ça suffit pour vérifier que le build passe et
+que la page `/status` se comporte correctement — la façon dont le serveur
+est démarré en production est entièrement gérée par Hodifly.
 
 Puis ouvrir `http://localhost:3000/status` et vérifier :
 - la date de build affichée correspond bien au moment du `npm run build`,
