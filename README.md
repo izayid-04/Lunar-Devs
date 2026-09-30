@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lunar Devs
 
-## Getting Started
+Squelette technique pour le **Webcup Comores** (hackathon 24h, 3-4 octobre
+2026) — équipe **Lunar Devs**.
 
-First, run the development server:
+Le règlement de l'événement interdit de coder l'application du sujet avant
+le lancement du hackathon. Ce dépôt ne contient donc **volontairement pas**
+d'application : juste un socle Next.js prêt à déployer, avec une page de
+test qui valide la chaîne front ↔ API ↔ hébergement avant le top départ.
+
+## Stack
+
+- [Next.js 16](https://nextjs.org) (App Router, TypeScript)
+- [Tailwind CSS 4](https://tailwindcss.com)
+- Serveur de production personnalisé (`server.js`), compatible
+  [Phusion Passenger](https://www.phusionpassenger.com/) pour l'hébergement
+  cPanel/Hodifly de l'événement
+- API séparée : [NestJS](https://nestjs.com) (dépôt distinct), consommée via
+  `NEXT_PUBLIC_API_URL`
+
+## Démarrage
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # renseigner NEXT_PUBLIC_API_URL
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Vérifier un build de production en local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm build
+NEXT_PUBLIC_API_URL=<url-api> node server.js
+```
 
-## Learn More
+## Page `/status`
 
-To learn more about Next.js, take a look at the following resources:
+Une seule page suffit à vérifier tout le pipeline de déploiement :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- la date du build actuellement servi,
+- un appel en direct (depuis le navigateur, pour tester le CORS) à
+  `NEXT_PUBLIC_API_URL + "/health"`, avec un statut OK / erreur explicite.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Déploiement
 
-## Deploy on Vercel
+Toute la configuration Hodifly (type d'application, variables d'environnement,
+pourquoi un serveur personnalisé plutôt que `output: 'standalone'`) et la
+procédure de test post-déploiement sont documentées dans
+[`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Éco-conception
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Le projet vise un score Ecoindex correct : pas de dépendance front lourde,
+pas d'image ni de police chargée à distance au runtime, un seul appel réseau
+sur la page de test.
