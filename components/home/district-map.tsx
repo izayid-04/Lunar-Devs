@@ -19,7 +19,8 @@ import {
   Trees,
   Activity,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Info
 } from "lucide-react";
 
 type District = {
@@ -125,7 +126,7 @@ function polar(cx: number, cy: number, r: number, angleDeg: number) {
 
 function sectorPath(index: number, count: number) {
   const step = 360 / count;
-  const a0 = index * step + 2; // small gap for futuristic segmented look
+  const a0 = index * step + 2;
   const a1 = a0 + step - 4;
   const o0 = polar(CX, CY, OUTER_R, a0);
   const o1 = polar(CX, CY, OUTER_R, a1);
@@ -142,143 +143,155 @@ export default function DistrictMap() {
   const selectedOrHovered = hovered !== null ? DISTRICTS[hovered] : DISTRICTS[1];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-4xl mx-auto">
-      {/* Interactive Radial Radar Canvas */}
-      <div className="lg:col-span-7 flex flex-col items-center">
-        <div className="relative size-72 sm:size-84 flex items-center justify-center">
-          {/* Subtle radar sweep line */}
-          <div className="pointer-events-none absolute size-72 sm:size-84 rounded-full border border-dashed border-primary/20 animate-[spin_30s_linear_infinite]" />
+    <div className="mx-auto max-w-5xl">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+        {/* Interactive Radial Radar Canvas */}
+        <div className="md:col-span-6 flex flex-col items-center">
+          <div className="relative size-72 sm:size-84 flex items-center justify-center">
+            {/* Subtle radar sweep line */}
+            <div className="pointer-events-none absolute size-72 sm:size-84 rounded-full border border-dashed border-primary/20 animate-[spin_30s_linear_infinite]" />
 
-          <svg
-            viewBox="0 0 320 320"
-            className="w-full h-full drop-shadow-[0_0_25px_rgba(224,93,56,0.15)]"
-            role="group"
-            aria-label="Carte interactive des quartiers de Nova Terra"
-          >
-            {DISTRICTS.map((district, i) => {
-              const isHovered = hovered === i;
-              return (
-                <motion.path
-                  key={district.name}
-                  d={sectorPath(i, DISTRICTS.length)}
-                  fill={isHovered ? "var(--primary)" : "var(--card)"}
-                  stroke={isHovered ? "var(--primary)" : "var(--border)"}
-                  strokeWidth={1.5}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${district.name} — voir les services`}
-                  className="cursor-pointer outline-none transition-colors duration-200"
-                  onMouseEnter={() => setHovered(i)}
-                  onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
-                  onFocus={() => setHovered(i)}
-                  onBlur={() => setHovered((h) => (h === i ? null : h))}
-                  onClick={() => setActive(district)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setActive(district);
-                    }
-                  }}
-                  initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
-                  whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
-                  whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  style={{
-                    transformOrigin: `${CX}px ${CY}px`,
-                  }}
-                />
-              );
-            })}
+            <svg
+              viewBox="0 0 320 320"
+              className="w-full h-full drop-shadow-[0_0_25px_rgba(224,93,56,0.15)]"
+              role="group"
+              aria-label="Carte interactive des quartiers de Nova Terra"
+            >
+              {DISTRICTS.map((district, i) => {
+                const isHovered = hovered === i;
+                return (
+                  <motion.path
+                    key={district.name}
+                    d={sectorPath(i, DISTRICTS.length)}
+                    fill={isHovered ? "var(--primary)" : "var(--card)"}
+                    stroke={isHovered ? "var(--primary)" : "var(--border)"}
+                    strokeWidth={1.5}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${district.name} — voir les services`}
+                    className="cursor-pointer outline-none transition-colors duration-200"
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
+                    onFocus={() => setHovered(i)}
+                    onBlur={() => setHovered((h) => (h === i ? null : h))}
+                    onClick={() => setActive(district)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setActive(district);
+                      }
+                    }}
+                    initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
+                    whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+                    whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.05 }}
+                    style={{
+                      transformOrigin: `${CX}px ${CY}px`,
+                    }}
+                  />
+                );
+              })}
 
-            {/* Center Core of the City */}
-            <circle
-              cx={CX}
-              cy={CY}
-              r={INNER_R - 6}
-              fill="var(--card)"
-              stroke="var(--primary)"
-              strokeWidth={2}
-              className="filter drop-shadow-md"
-            />
-            <text
-              x={CX}
-              y={CY - 5}
-              textAnchor="middle"
-              className="fill-foreground font-heading font-bold"
-              style={{ fontSize: 13, letterSpacing: "0.05em" }}
-            >
-              NOVA
-            </text>
-            <text
-              x={CX}
-              y={CY + 12}
-              textAnchor="middle"
-              className="fill-primary font-mono font-semibold"
-              style={{ fontSize: 9, letterSpacing: "0.2em" }}
-            >
-              TERRA
-            </text>
-          </svg>
+              {/* Center Core of the City */}
+              <circle
+                cx={CX}
+                cy={CY}
+                r={INNER_R - 6}
+                fill="var(--card)"
+                stroke="var(--primary)"
+                strokeWidth={2}
+                className="filter drop-shadow-md"
+              />
+              <text
+                x={CX}
+                y={CY - 5}
+                textAnchor="middle"
+                className="fill-foreground font-heading font-bold"
+                style={{ fontSize: 13, letterSpacing: "0.05em" }}
+              >
+                NOVA
+              </text>
+              <text
+                x={CX}
+                y={CY + 12}
+                textAnchor="middle"
+                className="fill-primary font-mono font-semibold"
+                style={{ fontSize: 9, letterSpacing: "0.2em" }}
+              >
+                TERRA
+              </text>
+            </svg>
+          </div>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground font-mono">
+            {hovered !== null
+              ? `Secteur ciblé : ${DISTRICTS[hovered].name}`
+              : "Survolez un quadrant pour inspecter le secteur"}
+          </p>
         </div>
 
-        <p className="mt-3 text-center text-xs text-muted-foreground font-mono">
-          {hovered !== null
-            ? `Secteur sélectionné : ${DISTRICTS[hovered].name}`
-            : "Survolez un quadrant pour inspecter le secteur"}
-        </p>
-      </div>
-
-      {/* Real-time Sector Telemetry Card */}
-      <div className="lg:col-span-5">
-        <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-md transition-all">
-          <div className="flex items-center justify-between mb-3">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <selectedOrHovered.icon className="size-4" />
-            </span>
-            <Badge variant="outline" className="border-primary/40 text-primary text-[10px]">
-              {selectedOrHovered.pressure}
-            </Badge>
-          </div>
-
-          <h3 className="text-lg font-bold text-foreground">
-            {selectedOrHovered.name}
-          </h3>
-          <p className="text-xs text-primary font-medium mt-0.5">
-            {selectedOrHovered.tagline}
-          </p>
-
-          <p className="text-xs text-muted-foreground mt-3 font-mono">
-            Population estimée : <strong className="text-foreground">{selectedOrHovered.population}</strong>
-          </p>
-
-          <div className="mt-4 border-t border-border/60 pt-3 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Infrastructures Clés :
-            </p>
-            {selectedOrHovered.services.map((svc, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className="mt-1 size-1 rounded-full bg-primary shrink-0" />
-                <span>{svc}</span>
+        {/* Real-time Sector Telemetry Card - Perfectly contained and responsive */}
+        <div className="md:col-span-6 w-full">
+          <div className="w-full rounded-2xl border border-border/80 bg-card p-6 shadow-md transition-all flex flex-col justify-between overflow-hidden">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <selectedOrHovered.icon className="size-4" />
+                </span>
+                <Badge variant="outline" className="border-primary/40 text-primary text-[10px]">
+                  {selectedOrHovered.pressure}
+                </Badge>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-6 flex gap-2">
-            <Button
-              size="sm"
-              variant="default"
-              className="w-full text-xs gap-1.5"
-              onClick={() => setActive(selectedOrHovered)}
-            >
-              Détails complets
-            </Button>
-            <Button size="sm" variant="outline" asChild className="text-xs">
-              <Link href="/districts">
-                Tous les dômes
-                <ArrowRight className="size-3 ml-1" />
-              </Link>
-            </Button>
+              <h3 className="text-xl font-bold text-foreground tracking-tight">
+                {selectedOrHovered.name}
+              </h3>
+              <p className="text-xs text-primary font-medium mt-0.5">
+                {selectedOrHovered.tagline}
+              </p>
+
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs font-mono text-muted-foreground">
+                <span>Population :</span>
+                <strong className="text-foreground">{selectedOrHovered.population}</strong>
+              </div>
+
+              <div className="mt-4 border-t border-border/60 pt-3 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Infrastructures & Services :
+                </p>
+                {selectedOrHovered.services.map((svc, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="leading-snug">{svc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action buttons with flex-col on small screens, flex-row with flex-1 on larger */}
+            <div className="mt-6 flex flex-col sm:flex-row items-stretch gap-2.5 pt-4 border-t border-border/60">
+              <Button
+                size="sm"
+                variant="default"
+                className="flex-1 text-xs gap-1.5 cursor-pointer"
+                onClick={() => setActive(selectedOrHovered)}
+              >
+                <Info className="size-3.5" />
+                Détails complets
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                asChild
+                className="flex-1 text-xs gap-1.5 cursor-pointer"
+              >
+                <Link href="/districts">
+                  Tous les dômes
+                  <ArrowRight className="size-3" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
