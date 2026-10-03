@@ -33,6 +33,7 @@ import {
 import { Radio, CheckCircle, Clock, RotateCw, RefreshCw } from "lucide-react";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<MessageStatus, string> = {
   nouveau: "Nouveau",
@@ -223,23 +224,37 @@ function AgentContent() {
                   Cliquez sur le statut d&apos;une ligne pour le faire progresser.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1">
-                {TABS.map((t) => (
-                  <Button
-                    key={t}
-                    size="sm"
-                    variant={tab === t ? "secondary" : "ghost"}
-                    onClick={() => setTab(t)}
-                    className="text-xs gap-1.5"
-                  >
-                    {TAB_LABEL[t]}
-                    {t !== "all" && counts && (
-                      <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                        {counts[t]}
-                      </Badge>
-                    )}
-                  </Button>
-                ))}
+              <div className="flex items-center gap-1.5 p-1 rounded-lg bg-muted/50 border border-border/60">
+                {TABS.map((t) => {
+                  const isActive = tab === t;
+                  return (
+                    <Button
+                      key={t}
+                      size="sm"
+                      variant={isActive ? "default" : "ghost"}
+                      onClick={() => setTab(t)}
+                      className={cn(
+                        "text-xs gap-1.5 h-8 font-medium transition-all",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                      )}
+                    >
+                      {TAB_LABEL[t]}
+                      {t !== "all" && counts && (
+                        <Badge
+                          variant={isActive ? "outline" : "secondary"}
+                          className={cn(
+                            "h-4 px-1.5 text-[10px]",
+                            isActive && "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground"
+                          )}
+                        >
+                          {counts[t]}
+                        </Badge>
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </CardHeader>

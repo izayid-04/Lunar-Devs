@@ -9,6 +9,7 @@ import {
   createAlert,
   patchAlert,
   terminateAlert,
+  deleteAlert,
   generateAiAlertRecommendations,
   type Alert,
   type AlertSeverity,
@@ -58,6 +59,7 @@ import {
   StopCircle,
   AlertTriangle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
@@ -251,6 +253,20 @@ function AgentAlertesContent() {
     }
   }
 
+  async function handleDelete(a: Alert) {
+    if (!token || user?.role !== "admin") return;
+    if (!confirm(`Supprimer définitivement l'alerte « ${a.title} » du registre ?`)) return;
+    try {
+      await deleteAlert(token, a.id);
+      toast.success("Alerte définitivement supprimée (Privilège Admin).");
+      loadAlerts();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Impossible de supprimer l'alerte."
+      );
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -362,6 +378,20 @@ function AgentAlertesContent() {
                             <StopCircle className="size-3.5" />
                           )}
                           Clôturer
+                        </Button>
+                      )}
+
+                      {user?.role === "admin" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(a)}
+                          className="gap-1 text-xs text-destructive hover:bg-destructive/10"
+                          aria-label={`Supprimer définitivement l'alerte ${a.title}`}
+                          title="Supprimer (Privilège Admin)"
+                        >
+                          <Trash2 className="size-3.5" />
+                          <span className="hidden sm:inline">Supprimer</span>
                         </Button>
                       )}
                     </div>

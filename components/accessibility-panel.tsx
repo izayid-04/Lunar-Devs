@@ -103,14 +103,14 @@ export default function AccessibilityPanel() {
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => setTextSize(opt.key)}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 p-2.5 transition-all cursor-pointer ${
                       isSelected
-                        ? "border-primary bg-primary/10 text-primary font-semibold shadow-sm"
-                        : "border-border/80 bg-card hover:bg-muted text-muted-foreground"
+                        ? "border-primary bg-primary/15 text-primary font-bold shadow-sm ring-1 ring-primary/30"
+                        : "border-border bg-muted/40 hover:bg-muted hover:border-foreground/20 text-muted-foreground"
                     }`}
                   >
-                    <span className="text-sm font-bold">{opt.sizeDesc}</span>
-                    <span className="text-[11px]">{opt.label}</span>
+                    <span className="text-sm font-extrabold">{opt.sizeDesc}</span>
+                    <span className="text-[11px] font-medium">{opt.label}</span>
                   </button>
                 );
               })}
@@ -119,13 +119,13 @@ export default function AccessibilityPanel() {
 
           {/* 2. Contraste Élevé (F23) */}
           <div className="space-y-2 border-t border-border/60 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+            <div className="flex items-center justify-between gap-6">
+              <div className="space-y-1 pr-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   <SunMoon className="size-3.5 text-primary" aria-hidden="true" />
                   Mode Contraste Élevé
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Renforce le contraste des textes et épaissit les bordures pour une lisibilité maximale (norme WCAG AAA).
                 </p>
               </div>
@@ -136,12 +136,14 @@ export default function AccessibilityPanel() {
                 aria-checked={highContrast}
                 aria-label="Activer ou désactiver le mode contraste élevé"
                 onClick={toggleHighContrast}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  highContrast ? "bg-primary" : "bg-muted"
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  highContrast
+                    ? "border-primary bg-primary"
+                    : "border-border bg-input hover:bg-muted"
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
                     highContrast ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -151,13 +153,13 @@ export default function AccessibilityPanel() {
 
           {/* 3. Réduction des Animations (prefers-reduced-motion) */}
           <div className="space-y-2 border-t border-border/60 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+            <div className="flex items-center justify-between gap-6">
+              <div className="space-y-1 pr-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   <ZapOff className="size-3.5 text-primary" aria-hidden="true" />
                   Réduire les animations
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Désactive les mouvements, transitions et effets 3D continus pour limiter la fatigue visuelle.
                 </p>
               </div>
@@ -168,12 +170,14 @@ export default function AccessibilityPanel() {
                 aria-checked={reducedMotion}
                 aria-label="Activer ou désactiver la réduction des animations"
                 onClick={toggleReducedMotion}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  reducedMotion ? "bg-primary" : "bg-muted"
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  reducedMotion
+                    ? "border-primary bg-primary"
+                    : "border-border bg-input hover:bg-muted"
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
                     reducedMotion ? "translate-x-5" : "translate-x-0"
                   }`}
                 />

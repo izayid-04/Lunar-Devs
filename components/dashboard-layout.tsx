@@ -22,6 +22,9 @@ import ModeToggle from "@/components/mode-toggle"
 import AccessibilityPanel from "@/components/accessibility-panel"
 import NotificationBell from "@/components/notification-bell"
 import AlertBanner from "@/components/alert-banner"
+import { useAuth } from "@/lib/auth-context"
+import { Badge } from "@/components/ui/badge"
+import { ShieldCheck, Radio, User } from "lucide-react"
 
 const SEGMENT_LABEL: Record<string, string> = {
   dashboard: "Vue d'ensemble",
@@ -49,6 +52,33 @@ export default function DashboardLayout({
   roles?: ("citizen" | "agent" | "admin")[]
 }) {
   const segments = useBreadcrumbSegments()
+  const { user } = useAuth()
+
+  const roleBadge = user?.role === "admin" ? (
+    <Badge
+      variant="outline"
+      className="hidden sm:inline-flex items-center gap-1 border-destructive/50 bg-destructive/10 text-destructive text-[11px] font-semibold"
+    >
+      <ShieldCheck className="size-3" aria-hidden="true" />
+      <span>Admin</span>
+    </Badge>
+  ) : user?.role === "agent" ? (
+    <Badge
+      variant="outline"
+      className="hidden sm:inline-flex items-center gap-1 border-primary/50 bg-primary/10 text-primary text-[11px] font-semibold"
+    >
+      <Radio className="size-3" aria-hidden="true" />
+      <span>Agent</span>
+    </Badge>
+  ) : user?.role === "citizen" ? (
+    <Badge
+      variant="outline"
+      className="hidden sm:inline-flex items-center gap-1 border-border text-muted-foreground text-[11px]"
+    >
+      <User className="size-3" aria-hidden="true" />
+      <span>Citoyen</span>
+    </Badge>
+  ) : null
 
   return (
     <Protected roles={roles}>
@@ -82,10 +112,13 @@ export default function DashboardLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
-            <div className="flex items-center gap-1">
-              <NotificationBell />
-              <AccessibilityPanel />
-              <ModeToggle />
+            <div className="flex items-center gap-2">
+              {roleBadge}
+              <div className="flex items-center gap-1">
+                <NotificationBell />
+                <AccessibilityPanel />
+                <ModeToggle />
+              </div>
             </div>
           </header>
           <AlertBanner scope="dashboard" />

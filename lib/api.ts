@@ -476,3 +476,19 @@ export async function markNotificationAsRead(token: string, id: number): Promise
   }
   return res.json();
 }
+
+// --- Sécurité & Administration (F37) ---
+
+export type TargetedAccount = {
+  email: string;
+  failedAttemptsCount: number;
+  lastFailedAt: string;
+};
+
+export async function fetchTargetedAccounts(token: string): Promise<TargetedAccount[]> {
+  const res = await authFetch("/agent/security/targeted-accounts", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les comptes ciblés."));
+  }
+  return res.json();
+}

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import {
   Zap,
   Wind,
@@ -17,7 +18,13 @@ import {
   Flame,
   CheckCircle2,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Megaphone,
+  AlertTriangle,
+  FileText,
+  UserCheck
 } from "lucide-react"
 import AccessibleTerm from "@/components/ui/accessible-term"
 
@@ -83,6 +90,148 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Module Métier & Raccourcis selon le Rôle */}
+      {user?.role === "admin" && (
+        <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-destructive/20">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-5 text-destructive" />
+              <div>
+                <h2 className="text-base font-bold text-foreground">Console de Haute Administration</h2>
+                <p className="text-xs text-muted-foreground">Privilèges suprêmes : audit de sécurité, gestion des agents et du registre.</p>
+              </div>
+            </div>
+            <Badge variant="destructive" className="w-fit text-xs">Accès Niveau 3</Badge>
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              href="/admin"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="size-4 text-destructive" />
+                <span className="text-xs font-semibold">Console Admin & Audit</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/agent/alertes"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="size-4 text-destructive" />
+                <span className="text-xs font-semibold">Gestion & Suppression Alertes</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/agent"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Radio className="size-4 text-destructive" />
+                <span className="text-xs font-semibold">Supervision des Demandes</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {user?.role === "agent" && (
+        <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-primary/20">
+            <div className="flex items-center gap-2">
+              <Radio className="size-5 text-primary" />
+              <div>
+                <h2 className="text-base font-bold text-foreground">Poste Opérationnel Municipal</h2>
+                <p className="text-xs text-muted-foreground">Outils agents : traitement des signalements, publication d&apos;annonces et d&apos;alertes d&apos;urgence.</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="w-fit text-xs border-primary/40 text-primary">Agent de garde</Badge>
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              href="/agent"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Traiter les Demandes</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/agent/annonces"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Megaphone className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Créer une Annonce</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/agent/alertes"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Diffuser une Alerte (IA)</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {user?.role === "citizen" && (
+        <div className="mt-6 rounded-xl border border-border bg-card/60 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <UserCheck className="size-5 text-primary" />
+              <div>
+                <h2 className="text-base font-bold text-foreground">Services aux Citoyens</h2>
+                <p className="text-xs text-muted-foreground">Accédez rapidement à vos démarches, à l&apos;annuaire municipal et à vos signalements.</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="w-fit text-xs">Espace Habitant</Badge>
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              href="/espace"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Mes Démarches & Suivi</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/districts"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Annuaire des Services</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/alertes"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Vigilance & Alertes</span>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* KPI Stats Cards */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -13,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   OrbitIcon,
@@ -26,41 +25,112 @@ import {
   AlertTriangleIcon,
 } from "lucide-react"
 
+import { usePathname } from "next/navigation"
+
 type NavItem = {
   title: string
   url: string
   icon?: React.ReactNode
-  items?: { title: string; url: string }[]
+  isActive?: boolean
+  items?: { title: string; url: string; isActive?: boolean }[]
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
-  const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const pathname = usePathname()
 
-  const navMainItems: NavItem[] = [
-    { title: "Vue d'ensemble", url: "/dashboard", icon: <LayoutDashboardIcon className="size-4" /> },
-    { title: "Mon espace", url: "/espace", icon: <UserIcon className="size-4" /> },
-    { title: "Services", url: "/districts", icon: <CompassIcon className="size-4" /> },
-    { title: "Annonces", url: "/annonces", icon: <MegaphoneIcon className="size-4" /> },
-    { title: "Alertes", url: "/alertes", icon: <AlertTriangleIcon className="size-4" /> },
-  ]
+  const isStaff = user?.role === "agent" || user?.role === "admin"
 
-  if (user?.role === "agent" || user?.role === "admin") {
-    navMainItems.push({
-      title: "Espace agent",
-      url: "/agent",
-      icon: <RadioIcon className="size-4" />,
-      items: [
-        { title: "Journal des demandes", url: "/agent" },
-        { title: "Annonces municipales", url: "/agent/annonces" },
-        { title: "Alertes municipales", url: "/agent/alertes" },
-      ],
-    })
-  }
+  const navMainItems: NavItem[] = isStaff
+    ? [
+        {
+          title: "Vue d'ensemble",
+          url: "/dashboard",
+          icon: <LayoutDashboardIcon className="size-4" />,
+          isActive: pathname === "/dashboard",
+        },
+        {
+          title: "Espace agent",
+          url: "/agent",
+          icon: <RadioIcon className="size-4" />,
+          isActive: pathname.startsWith("/agent"),
+          items: [
+            {
+              title: "Journal des demandes",
+              url: "/agent",
+              isActive: pathname === "/agent",
+            },
+            {
+              title: "Gestion des annonces",
+              url: "/agent/annonces",
+              isActive: pathname.startsWith("/agent/annonces"),
+            },
+            {
+              title: "Gestion des alertes",
+              url: "/agent/alertes",
+              isActive: pathname.startsWith("/agent/alertes"),
+            },
+          ],
+        },
+        {
+          title: "Mon profil citoyen",
+          url: "/espace",
+          icon: <UserIcon className="size-4" />,
+          isActive: pathname === "/espace",
+        },
+        {
+          title: "Annuaire des services",
+          url: "/districts",
+          icon: <CompassIcon className="size-4" />,
+          isActive: pathname.startsWith("/districts") || pathname.startsWith("/services"),
+        },
+        {
+          title: "Portail des alertes",
+          url: "/alertes",
+          icon: <AlertTriangleIcon className="size-4" />,
+          isActive: pathname.startsWith("/alertes"),
+        },
+      ]
+    : [
+        {
+          title: "Vue d'ensemble",
+          url: "/dashboard",
+          icon: <LayoutDashboardIcon className="size-4" />,
+          isActive: pathname === "/dashboard",
+        },
+        {
+          title: "Mon espace citoyen",
+          url: "/espace",
+          icon: <UserIcon className="size-4" />,
+          isActive: pathname === "/espace",
+        },
+        {
+          title: "Services municipaux",
+          url: "/districts",
+          icon: <CompassIcon className="size-4" />,
+          isActive: pathname.startsWith("/districts") || pathname.startsWith("/services"),
+        },
+        {
+          title: "Annonces",
+          url: "/annonces",
+          icon: <MegaphoneIcon className="size-4" />,
+          isActive: pathname.startsWith("/annonces"),
+        },
+        {
+          title: "Alertes",
+          url: "/alertes",
+          icon: <AlertTriangleIcon className="size-4" />,
+          isActive: pathname.startsWith("/alertes"),
+        },
+      ]
 
   if (user?.role === "admin") {
-    navMainItems.push({ title: "Administration", url: "/admin", icon: <ShieldCheckIcon className="size-4" /> })
+    navMainItems.push({
+      title: "Administration",
+      url: "/admin",
+      icon: <ShieldCheckIcon className="size-4" />,
+      isActive: pathname.startsWith("/admin"),
+    })
   }
 
   return (
@@ -68,10 +138,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Nova Terra">
-              <Link href="/" className="flex items-center">
-                <OrbitIcon className="size-5 text-primary shrink-0" />
-                {!isCollapsed && <span className="font-semibold truncate">Nova Terra</span>}
+            <SidebarMenuButton size="default" asChild tooltip="Nova Terra">
+              <Link href="/" className="flex items-center gap-2">
+                <OrbitIcon className="size-4 text-primary shrink-0" />
+                <span className="font-semibold truncate group-data-[collapsible=icon]:hidden">Nova Terra</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
