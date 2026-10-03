@@ -134,6 +134,7 @@ export default function ConnexionForm() {
                     src="/nova-terra-planet.webp"
                     alt="Planète Nova Terra"
                     fill
+                    loading="lazy"
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                     sizes="64px"
                   />

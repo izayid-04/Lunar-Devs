@@ -128,7 +128,7 @@ export default function InscriptionPage() {
                 Rejoignez les citoyens de la cité planétaire
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-                Créez votre compte en moins d&apos;une minute pour obtenir votre accès résidentiel, déclarer vos demandes municipales et bénéficier des services de nos six dômes.
+                Créez votre compte en moins d&apos;une minute pour obtenir votre accès résidentiel, déclarer vos demandes municipales et bénéficier des services de Nova Terra.
               </p>
             </div>
 
@@ -140,6 +140,7 @@ export default function InscriptionPage() {
                     src="/dome-alpha.webp"
                     alt="Vue du Dôme Alpha de Nova Terra"
                     fill
+                    loading="lazy"
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                     sizes="64px"
                   />

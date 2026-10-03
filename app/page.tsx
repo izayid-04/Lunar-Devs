@@ -1,11 +1,21 @@
+import dynamic from "next/dynamic";
 import Hero from "@/components/home/hero";
 import QuickAccess from "@/components/home/quick-access";
-import PlanetShowcase from "@/components/home/planet-showcase";
 import CitizenPrivileges from "@/components/home/citizen-privileges";
 import DistrictMap from "@/components/home/district-map";
 import HowItWorks from "@/components/home/how-it-works";
 import Reveal from "@/components/home/reveal";
 import ClosingCta from "@/components/home/closing-cta";
+
+// F58 + F61 : Import dynamique différé pour le module PlanetShowcase (Globe 3D et images)
+const PlanetShowcase = dynamic(() => import("@/components/home/planet-showcase"), {
+  ssr: true,
+  loading: () => (
+    <div className="w-full py-24 flex items-center justify-center text-sm text-muted-foreground animate-pulse">
+      Chargement de la cartographie stellaire…
+    </div>
+  ),
+});
 
 export default function Home() {
   return (

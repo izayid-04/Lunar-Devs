@@ -93,7 +93,7 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
 
       <div className="mt-4 flex flex-wrap gap-3">
         <AppointmentBooking service={service} />
-        <ContactServiceButton serviceName={service.name} />
+        <ContactServiceButton service={service} />
       </div>
 
       <Card className="mt-8">

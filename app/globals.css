@@ -343,3 +343,27 @@ body {
 .VIpgJd-ZVi9od-ORHb-OEVmcd {
   display: none !important;
 }
+
+/* --- Mode Léger / Sobriété Numérique & Éco-conception (F59, F62) --- */
+.light-eco-mode {
+  /* Supprimer les effets lourds GPU */
+  --backdrop-blur: none !important;
+}
+
+.light-eco-mode * {
+  animation: none !important;
+  transition: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Masquer les images décoratives et fonds complexes en mode léger */
+.light-eco-mode [data-eco-decorative],
+.light-eco-mode .eco-decorative-image {
+  display: none !important;
+}
+
+/* Désactiver les canvas 3D lourds en mode léger */
+.light-eco-mode canvas {
+  display: none !important;
+}

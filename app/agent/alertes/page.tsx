@@ -43,6 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -574,25 +575,25 @@ function AgentAlertesContent() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="startsAt">Date de début</Label>
-                <Input
+                <DateTimePicker
                   id="startsAt"
-                  type="datetime-local"
                   value={draft.startsAt}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, startsAt: e.target.value }))
+                  onChange={(val) =>
+                    setDraft((d) => ({ ...d, startsAt: val }))
                   }
+                  placeholder="Choisir date de début"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="expiresAt">Date d&apos;expiration prévue</Label>
-                <Input
+                <DateTimePicker
                   id="expiresAt"
-                  type="datetime-local"
                   value={draft.expiresAt}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, expiresAt: e.target.value }))
+                  onChange={(val) =>
+                    setDraft((d) => ({ ...d, expiresAt: val }))
                   }
+                  placeholder="Choisir date d'expiration"
                 />
               </div>
             </div>

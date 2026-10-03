@@ -2,12 +2,24 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import InteractiveGlobe, { MarkerLocation } from "@/components/ui/interactive-globe";
+import dynamic from "next/dynamic";
+import { useAccessibility } from "@/lib/accessibility-context";
 import { fetchServices, type Service } from "@/lib/api";
+import { type MarkerLocation } from "@/components/ui/interactive-globe";
+
+// F58 + F61 : Import dynamique du globe 3D lourd (cobe / WebGL)
+const InteractiveGlobe = dynamic(() => import("@/components/ui/interactive-globe"), {
+  ssr: false,
+  loading: () => (
+    <div className="size-full flex items-center justify-center rounded-full bg-primary/5 border border-primary/20 text-xs text-muted-foreground animate-pulse">
+      Initialisation du globe…
+    </div>
+  ),
+});
 import {
   Sparkles,
   ArrowRight,
@@ -65,6 +77,7 @@ type DistrictCard = {
 };
 
 export default function PlanetShowcase() {
+  const { lightMode, reducedMotion } = useAccessibility();
   const [services, setServices] = useState<Service[] | null>(null);
   const [selectedCityIndex, setSelectedCityIndex] = useState<number>(0);
 
@@ -157,18 +170,35 @@ export default function PlanetShowcase() {
               {currentCity.services.length === 1 ? "" : "s"} municipal{currentCity.services.length === 1 ? "" : "aux"}.
             </div>
             <div className="relative size-[290px] sm:size-[360px] md:size-[400px] flex items-center justify-center">
-              <InteractiveGlobe
-                className="w-full h-full"
-                markers={globeMarkers}
-                selectedIndex={selectedCityIndex}
-                onSelectMarker={(idx) => setSelectedCityIndex(idx)}
-              />
+              {!lightMode && !reducedMotion ? (
+                <InteractiveGlobe
+                  className="w-full h-full"
+                  markers={globeMarkers}
+                  selectedIndex={selectedCityIndex}
+                  onSelectMarker={(idx) => setSelectedCityIndex(idx)}
+                />
+              ) : (
+                <div className="size-[260px] sm:size-[300px] rounded-full border-2 border-primary/30 bg-primary/5 flex flex-col items-center justify-center p-6 text-center shadow-inner">
+                  <div className="size-4 rounded-full bg-primary animate-none mb-3" />
+                  <span className="font-mono text-xs font-semibold uppercase text-primary tracking-wider">
+                    Mode Sobre • Représentation 2D
+                  </span>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Secteur actif : <strong className="text-foreground">{currentCity.name}</strong>
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                    {currentCity.coordinates[0]}°N • {currentCity.coordinates[1]}°E
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
-              <RotateCcw className="size-3.5 text-primary animate-spin" style={{ animationDuration: "12s" }} aria-hidden="true" />
-              <span>Cliquez sur un point lumineux ou glissez le globe</span>
-            </div>
+            {!lightMode && !reducedMotion && (
+              <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                <RotateCcw className="size-3.5 text-primary animate-spin" style={{ animationDuration: "12s" }} aria-hidden="true" />
+                <span>Cliquez sur un point lumineux ou glissez le globe</span>
+              </div>
+            )}
           </div>
 
           {/* City Visual Display & Live Telemetry Panel */}
@@ -183,16 +213,22 @@ export default function PlanetShowcase() {
                 className="space-y-6"
               >
                 {/* City Photographic Showcase */}
-                <div className="relative h-56 sm:h-72 w-full rounded-2xl overflow-hidden border border-border group">
-                  <Image
-                    src={currentCity.image}
-                    alt={currentCity.imageAlt}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent" />
+                <div className="relative h-56 sm:h-72 w-full rounded-2xl overflow-hidden border border-border group bg-muted/40">
+                  {!lightMode ? (
+                    <Image
+                      src={currentCity.image}
+                      alt={currentCity.imageAlt}
+                      fill
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center p-4 text-center bg-card">
+                      <span className="font-mono text-sm text-muted-foreground">Vue schématique : {currentCity.name}</span>
+                    </div>
+                  )}
+                  <div data-eco-decorative className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent" />
 
                   {/* Telemetry live tag */}
                   <div className="absolute top-3.5 left-3.5 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1 backdrop-blur-md text-[11px] text-white">

@@ -43,9 +43,15 @@ import {
   ChevronRight,
   Edit3,
   Check,
+  KeyRound,
+  Lock,
+  Printer,
+  Compass,
+  ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  changePassword,
   fetchMyMessages,
   fetchMySecurity,
   fetchMyPrivacyInquiries,
@@ -175,6 +181,14 @@ function EspaceContent() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Modification du mot de passe (D03, F37)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Les demandes, rendez-vous et inquiétudes RGPD sont des routes réservées
   // au rôle citoyen (403 pour agent/admin) — on ne les appelle ni ne les
@@ -365,6 +379,270 @@ function EspaceContent() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setPasswordError(null);
+
+    if (!currentPassword) {
+      setPasswordError("Veuillez renseigner votre mot de passe actuel.");
+      return;
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 72) {
+      setPasswordError("Le nouveau mot de passe doit comporter entre 8 et 72 caractères.");
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 1 lettre majuscule.");
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 1 chiffre.");
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setPasswordError("Le nouveau mot de passe doit être différent du mot de passe actuel.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("La confirmation ne correspond pas au nouveau mot de passe.");
+      return;
+    }
+
+    setPasswordSubmitting(true);
+    try {
+      const res = await changePassword(token, {
+        currentPassword,
+        newPassword,
+      });
+      toast.success(res.message || "Mot de passe modifié avec succès !");
+      setPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPasswordError(null);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Impossible de modifier votre mot de passe.");
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  }
+
+  // F56 : Récapitulatif de mes demandes (imprimable / PDF)
+  function handlePrintRequestsSummary() {
+    if (!messages) return;
+
+    const total = messages.length;
+    const countNouveau = messages.filter((m) => m.status === "nouveau").length;
+    const countEnCours = messages.filter((m) => m.status === "en_cours").length;
+    const countTraite = messages.filter((m) => m.status === "traite").length;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Veuillez autoriser les fenêtres pop-up pour imprimer le récapitulatif.");
+      return;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Récapitulatif des démarches — ${user?.firstName} ${user?.lastName}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px; color: #111; }
+    h1 { font-size: 24px; margin-bottom: 4px; color: #ea580c; }
+    .header-info { font-size: 13px; color: #666; margin-bottom: 24px; border-bottom: 2px solid #eee; padding-bottom: 12px; }
+    .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+    .stat-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-num { font-size: 20px; font-weight: bold; margin-bottom: 4px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; color: #666; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+    th { background: #f4f4f5; text-align: left; padding: 8px 10px; border-bottom: 2px solid #ddd; }
+    td { padding: 8px 10px; border-bottom: 1px solid #eee; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+    .badge-nouveau { background: #eff6ff; color: #2563eb; }
+    .badge-en_cours { background: #fffbeb; color: #d97706; }
+    .badge-traite { background: #f0fdf4; color: #16a34a; }
+    .footer { margin-top: 40px; font-size: 11px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 12px; }
+    @media print { button { display: none; } body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <h1>Nova Terra — Récapitulatif officiel de mes demandes</h1>
+  <div class="header-info">
+    <strong>Citoyen :</strong> ${user?.firstName} ${user?.lastName} (${user?.email})<br />
+    <strong>Quartier :</strong> ${user?.district || "Non assigné"} | <strong>Généré le :</strong> ${new Date().toLocaleString("fr-FR")}
+  </div>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-num">${total}</div>
+      <div class="stat-label">Total Démarches</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:#2563eb;">${countNouveau}</div>
+      <div class="stat-label">Nouvelles</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:#d97706;">${countEnCours}</div>
+      <div class="stat-label">En cours</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" style="color:#16a34a;">${countTraite}</div>
+      <div class="stat-label">Traitées</div>
+    </div>
+  </div>
+
+  <h3>Registre des demandes déposées</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Réf.</th>
+        <th>Date</th>
+        <th>Type & Catégorie</th>
+        <th>Objet</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${messages.map((m) => `
+        <tr>
+          <td style="font-family: monospace; font-weight: bold;">${m.reference}</td>
+          <td>${new Date(m.createdAt).toLocaleDateString("fr-FR")}</td>
+          <td>${m.type === "signalement" ? "Signalement" : "Question"} (${m.category})</td>
+          <td><strong>${m.subject}</strong><br/><span style="color:#555;">${m.body.slice(0, 90)}${m.body.length > 90 ? "…" : ""}</span></td>
+          <td>
+            <span class="badge badge-${m.status}">
+              ${m.status === "traite" ? "Traitée" : m.status === "en_cours" ? "En cours" : "Nouvelle"}
+            </span>
+          </td>
+        </tr>
+      `).join("")}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Document délivré par les services numériques de Nova Terra • Destination des démarches administratives.
+  </div>
+  <script>
+    window.onload = function() { window.print(); };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  // F55 : Télécharger mes données personnelles (profil, demandes, RDV, RGPD, connexions)
+  function handleExportUserData() {
+    const report = `# DOSSIER CITOYEN PERSONNEL — NOVA TERRA
+Généré le : ${new Date().toLocaleString("fr-FR")}
+Source officielle : Services Municipaux de la Colonie Nova Terra (F55)
+
+================================================================================
+1. PROFIL DE L'HABITANT
+================================================================================
+Identifiant   : ${user?.id}
+Nom & Prénom  : ${user?.lastName?.toUpperCase()}, ${user?.firstName}
+Email         : ${user?.email}
+Rôle          : ${user?.role}
+Quartier      : ${user?.district || "Non assigné"}
+Langue        : ${user?.preferredLanguage === "en" ? "Anglais (EN)" : "Français (FR)"}
+Vulnérabilité : ${user?.isVulnerable ? "OUI (Priorité d'assistance & alertes ciblées)" : "Non"}
+Date de compte: ${new Date(user?.createdAt || "").toLocaleString("fr-FR")}
+
+================================================================================
+2. SÉCURITÉ & CONNEXIONS (F37)
+================================================================================
+Dernière connexion enregistrée : ${security?.lastLoginAt ? new Date(security.lastLoginAt).toLocaleString("fr-FR") : "Aucune"}
+Échecs de connexion récents    : ${security?.recentFailures?.length || 0} tentative(s)
+${(security?.recentFailures || [])
+  .map(
+    (f, i) =>
+      `  [${i + 1}] Date: ${new Date(f.date).toLocaleString("fr-FR")} | IP: ${f.ip || "Non renseignée"}`
+  )
+  .join("\n")}
+
+================================================================================
+3. REGISTRE DES DÉMARCHES & SIGNALEMENTS (${messages?.length || 0}) (F22, F25)
+================================================================================
+${(messages || [])
+  .map(
+    (m, i) =>
+      `--------------------------------------------------------------------------------
+Demande #${i + 1}
+Référence  : ${m.reference}
+Type       : ${m.type === "signalement" ? "Signalement d'incident" : "Question citoyenne"}
+Catégorie  : ${m.category}
+Statut     : ${m.status.toUpperCase()}
+Date       : ${new Date(m.createdAt).toLocaleString("fr-FR")}
+${m.district ? `Quartier   : ${m.district}\n` : ""}${m.preciseLocation ? `Lieu exact : ${m.preciseLocation}\n` : ""}Objet      : ${m.subject}
+Description:
+${m.body}
+`
+  )
+  .join("\n")}
+
+================================================================================
+4. RENDEZ-VOUS MUNICIPAUX (${appointments?.length || 0}) (F39)
+================================================================================
+${(appointments || [])
+  .map(
+    (a, i) =>
+      `--------------------------------------------------------------------------------
+Rendez-vous #${i + 1}
+Service : ${a.service?.name || "Service municipal"}
+Statut  : ${a.status === "confirme" ? "CONFIRMÉ" : "ANNULÉ"}
+Créneau : ${new Date(a.startsAt).toLocaleString("fr-FR")}
+Lieu    : ${a.location || "Standard municipal"}
+Motif   : ${a.reason || "Audience municipale"}
+Pièces  : ${a.requiredDocuments || "Aucune pièce spécifique demandée"}
+`
+  )
+  .join("\n")}
+
+================================================================================
+5. REQUÊTES RGPD & DONNÉES PERSONNELLES (${privacyInquiries?.length || 0}) (F51)
+================================================================================
+${(privacyInquiries || [])
+  .map(
+    (pi, i) =>
+      `--------------------------------------------------------------------------------
+Requête #${i + 1}
+Référence : ${pi.reference}
+Objet     : ${pi.subject}
+Statut    : ${pi.status.toUpperCase()}
+Date      : ${new Date(pi.createdAt).toLocaleString("fr-FR")}
+Contenu   : ${pi.description}
+${pi.responseNote ? `Réponse DPO : ${pi.responseNote}\n` : ""}
+`
+  )
+  .join("\n")}
+
+================================================================================
+FIN DU DOSSIER PERSONNEL DE DONNÉES
+Ce document regroupe l'intégralité de vos informations selon le Règlement Général
+sur la Protection des Données et les protocoles de transparence de Nova Terra.
+`;
+
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mes-donnees-nova-terra-${user?.firstName?.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Dossier complet de données téléchargé avec succès.");
   }
 
   return (
@@ -671,6 +949,159 @@ function EspaceContent() {
         </Card>
       )}
 
+      {/* Liste de démarrage pour un nouveau citoyen (D12, F35) */}
+      {isCitizen && (
+        <Card className="mt-6 border-primary/30 bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ListChecks className="size-5 text-primary" />
+                <div>
+                  <CardTitle className="text-base font-bold">
+                    Guide de démarrage du nouveau citoyen
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Accomplissez ces 3 étapes essentielles pour profiter pleinement des services de Nova Terra.
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-primary/40 text-primary font-mono text-xs">
+                {[user.profileCompleted, true, (messages && messages.length > 0)].filter(Boolean).length} / 3 terminées
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Étape 1 : Compléter son profil */}
+              <div
+                className={`flex flex-col justify-between p-3.5 rounded-lg border transition-all ${
+                  user.profileCompleted
+                    ? "border-success/40 bg-success/5"
+                    : "border-primary/40 bg-primary/5"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Étape 1
+                    </span>
+                    {user.profileCompleted ? (
+                      <Badge variant="outline" className="border-success/40 text-success bg-success/10 text-[10px] gap-1">
+                        <Check className="size-3" />
+                        Complété
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-[10px]">
+                        À faire
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Compléter mon profil</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Indiquez votre quartier et votre langue pour adapter vos alertes et services.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-border/60">
+                  {user.profileCompleted ? (
+                    <span className="text-xs text-success font-medium flex items-center gap-1.5">
+                      <Check className="size-3.5" />
+                      Quartier : {user.district}
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs gap-1.5"
+                      onClick={() => setProfileDialogOpen(true)}
+                    >
+                      <UserCog className="size-3.5" />
+                      Renseigner mon profil
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Étape 2 : Explorer l'annuaire des services */}
+              <div className="flex flex-col justify-between p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Étape 2
+                    </span>
+                    <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
+                      Découverte
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Trouver un service municipal</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Découvrez les 5 quartiers, leurs équipements et les créneaux de rendez-vous.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-border/60">
+                  <Button asChild variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5">
+                    <Link href="/districts">
+                      <Compass className="size-3.5 text-primary" />
+                      Consulter l&apos;annuaire ↗
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Étape 3 : Envoyer une première demande */}
+              <div
+                className={`flex flex-col justify-between p-3.5 rounded-lg border transition-all ${
+                  messages && messages.length > 0
+                    ? "border-success/40 bg-success/5"
+                    : "border-border bg-card"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Étape 3
+                    </span>
+                    {messages && messages.length > 0 ? (
+                      <Badge variant="outline" className="border-success/40 text-success bg-success/10 text-[10px] gap-1">
+                        <Check className="size-3" />
+                        Envoyée
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
+                        À faire
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Déposer une demande ou un signalement</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Posez une question à la mairie ou signalez un incident sur la voirie.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-border/60">
+                  {messages && messages.length > 0 ? (
+                    <span className="text-xs text-success font-medium flex items-center gap-1.5">
+                      <Check className="size-3.5" />
+                      {messages.length} démarche{messages.length > 1 ? "s" : ""} en cours
+                    </span>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs gap-1.5"
+                      onClick={() => {
+                        resetForm();
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Send className="size-3.5 text-primary" />
+                      Déposer une demande
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -853,16 +1284,40 @@ function EspaceContent() {
 
             {isCitizen && (
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <span className="text-sm font-semibold flex items-center gap-2">
                   <FileText className="size-4 text-primary" />
                   Mes demandes
                 </span>
-                {messages && (
-                  <span className="text-xs text-muted-foreground">
-                    {messages.length} message{messages.length === 1 ? "" : "s"}
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {messages && messages.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrintRequestsSummary}
+                      className="h-7 text-xs gap-1.5"
+                      title="Imprimer ou enregistrer en PDF le récapitulatif officiel"
+                    >
+                      <Printer className="size-3.5 text-primary" />
+                      Récapitulatif des demandes (PDF)
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportUserData}
+                    className="h-7 text-xs gap-1.5"
+                    title="Télécharger l'intégralité de mes données (F55)"
+                  >
+                    <Download className="size-3.5 text-primary" />
+                    Télécharger mes données
+                  </Button>
+                  {messages && (
+                    <span className="text-xs text-muted-foreground hidden sm:inline ml-1">
+                      {messages.length} message{messages.length === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {messagesError && <p className="text-sm text-destructive">{messagesError}</p>}
@@ -1135,6 +1590,124 @@ function EspaceContent() {
                   )}
                 </>
               )}
+
+              {/* Formulaire de modification de mot de passe (D03, F37) */}
+              <div className="pt-2 border-t border-border">
+                <Dialog
+                  open={passwordDialogOpen}
+                  onOpenChange={(open) => {
+                    setPasswordDialogOpen(open);
+                    if (!open) {
+                      setCurrentPassword("");
+                      setNewPassword("");
+                      setConfirmNewPassword("");
+                      setPasswordError(null);
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
+                      <KeyRound className="size-3.5 text-primary" />
+                      Changer mon mot de passe
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Lock className="size-5 text-primary" />
+                        Changer mon mot de passe
+                      </DialogTitle>
+                      <DialogDescription>
+                        Mettez à jour vos identifiants pour sécuriser l&apos;accès à votre espace Nova Terra.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Rappel des règles avant validation */}
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs space-y-1 text-muted-foreground">
+                      <p className="font-semibold text-foreground">Exigences de sécurité :</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        <li className={newPassword.length >= 8 && newPassword.length <= 72 ? "text-success font-medium" : ""}>
+                          8 à 72 caractères
+                        </li>
+                        <li className={/[A-Z]/.test(newPassword) ? "text-success font-medium" : ""}>
+                          Au moins une lettre majuscule
+                        </li>
+                        <li className={/[0-9]/.test(newPassword) ? "text-success font-medium" : ""}>
+                          Au moins un chiffre
+                        </li>
+                        <li className={newPassword && currentPassword && newPassword !== currentPassword ? "text-success font-medium" : ""}>
+                          Différent du mot de passe actuel
+                        </li>
+                      </ul>
+                    </div>
+
+                    <form onSubmit={handleChangePassword} className="space-y-3.5 pt-1">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          autoComplete="current-password"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          autoComplete="new-password"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="confirmNewPassword">Confirmer le nouveau mot de passe</Label>
+                        <Input
+                          id="confirmNewPassword"
+                          type="password"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          autoComplete="new-password"
+                          required
+                        />
+                      </div>
+
+                      {passwordError && (
+                        <div
+                          role="alert"
+                          className="rounded-md bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive flex items-start gap-2"
+                        >
+                          <ShieldAlert className="size-4 shrink-0 mt-0.5" />
+                          <span>{passwordError}</span>
+                        </div>
+                      )}
+
+                      <DialogFooter className="pt-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setPasswordDialogOpen(false)}
+                          disabled={passwordSubmitting}
+                        >
+                          Annuler
+                        </Button>
+                        <Button type="submit" disabled={passwordSubmitting} className="gap-2">
+                          {passwordSubmitting ? "Modification…" : "Valider le mot de passe"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardContent>
           </Card>
 

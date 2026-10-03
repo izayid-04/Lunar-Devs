@@ -21,7 +21,7 @@ const CITIZEN_PERKS = [
     icon: TrainFront,
     title: "Navettes Maglev Gratuites",
     subtitle: "Réseau Inter-Dômes",
-    desc: "Déplacez-vous à haute vitesse entre les six dômes de la colonie avec vos crédits de transport mensuels illimités.",
+    desc: "Déplacez-vous à haute vitesse entre les différents quartiers de Nova Terra avec vos crédits de transport mensuels illimités.",
     badge: "Mobilité 100% Décarbonée",
   },
   {

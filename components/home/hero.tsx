@@ -33,8 +33,8 @@ export default function Hero() {
       <SpaceDustTraffic />
 
       {/* Halos d'ambiance spatiale */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[650px] rounded-full bg-primary/10 blur-[140px]" />
-      <div className="pointer-events-none absolute top-1/2 right-10 size-80 rounded-full bg-success/5 blur-[100px]" />
+      <div data-eco-decorative className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[650px] rounded-full bg-primary/10 blur-[140px]" />
+      <div data-eco-decorative className="pointer-events-none absolute top-1/2 right-10 size-80 rounded-full bg-success/5 blur-[100px]" />
 
       <motion.div style={{ opacity: textOpacity }} className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <motion.div
@@ -55,9 +55,9 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl leading-[1.15] py-1"
         >
-          Bienvenue dans la Cité des{" "}
+          Bienvenue à{" "}
           <span className="bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent">
-            Six Dômes
+            Nova Terra
           </span>
         </motion.h1>
 

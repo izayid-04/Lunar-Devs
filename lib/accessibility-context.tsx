@@ -13,6 +13,9 @@ interface AccessibilityContextType {
   reducedMotion: boolean;
   setReducedMotion: (enabled: boolean) => void;
   toggleReducedMotion: () => void;
+  lightMode: boolean;
+  setLightMode: (enabled: boolean) => void;
+  toggleLightMode: () => void;
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
@@ -21,6 +24,7 @@ const STORAGE_KEYS = {
   TEXT_SIZE: "novaterra.a11y.text-size",
   HIGH_CONTRAST: "novaterra.a11y.high-contrast",
   REDUCED_MOTION: "novaterra.a11y.reduced-motion",
+  LIGHT_MODE: "novaterra.a11y.light-mode",
 };
 
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
@@ -49,6 +53,22 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
       const saved = localStorage.getItem(STORAGE_KEYS.REDUCED_MOTION);
       if (saved !== null) return saved === "true";
       return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch {}
+    return false;
+  });
+
+  // F59 + F62 : Mode léger (sobriété numérique, connexion lente ou save-data)
+  const [lightMode, setLightModeState] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LIGHT_MODE);
+      if (saved !== null) return saved === "true";
+      // Détection automatique : connexion lente (2g, slow-2g) ou saveData activé
+      const nav = navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } };
+      if (nav.connection) {
+        if (nav.connection.saveData === true) return true;
+        if (nav.connection.effectiveType === "2g" || nav.connection.effectiveType === "slow-2g") return true;
+      }
     } catch {}
     return false;
   });
@@ -83,13 +103,25 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     try {
       localStorage.setItem(STORAGE_KEYS.REDUCED_MOTION, String(reducedMotion));
     } catch {}
-  }, [textSize, highContrast, reducedMotion]);
+
+    // D. Mode léger (F59 + F62)
+    if (lightMode) {
+      root.classList.add("light-eco-mode");
+    } else {
+      root.classList.remove("light-eco-mode");
+    }
+    try {
+      localStorage.setItem(STORAGE_KEYS.LIGHT_MODE, String(lightMode));
+    } catch {}
+  }, [textSize, highContrast, reducedMotion, lightMode]);
 
   const setTextSize = (size: TextSize) => setTextSizeState(size);
   const setHighContrast = (enabled: boolean) => setHighContrastState(enabled);
   const toggleHighContrast = () => setHighContrastState((prev) => !prev);
   const setReducedMotion = (enabled: boolean) => setReducedMotionState(enabled);
   const toggleReducedMotion = () => setReducedMotionState((prev) => !prev);
+  const setLightMode = (enabled: boolean) => setLightModeState(enabled);
+  const toggleLightMode = () => setLightModeState((prev) => !prev);
 
   return (
     <AccessibilityContext.Provider
@@ -102,6 +134,9 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
         reducedMotion,
         setReducedMotion,
         toggleReducedMotion,
+        lightMode,
+        setLightMode,
+        toggleLightMode,
       }}
     >
       {children}

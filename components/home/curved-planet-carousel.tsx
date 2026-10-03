@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, ArrowRight, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchServices, type Service, type ServiceAvailability } from "@/lib/api";
+import { useAccessibility } from "@/lib/accessibility-context";
 
 export interface ZoneSlide {
   id: string;
@@ -91,6 +92,7 @@ function buildZones(services: Service[]): ZoneSlide[] {
 }
 
 export default function CurvedPlanetCarousel() {
+  const { lightMode, reducedMotion } = useAccessibility();
   const [services, setServices] = useState<Service[]>([]);
   const ZONES = useMemo(() => buildZones(services), [services]);
   // Doublon pour boucle infinie transparente (seamless marquee)
@@ -102,15 +104,19 @@ export default function CurvedPlanetCarousel() {
     fetchServices().then(setServices).catch(() => setServices([]));
   }, []);
 
-  // Respecte la préférence système : pas de défilement automatique si
-  // l'utilisateur a demandé moins de mouvement.
+  // Respecte la préférence système ou le mode accessibilité : pas de défilement automatique si
+  // l'utilisateur a demandé moins de mouvement ou le mode léger
   useEffect(() => {
+    if (reducedMotion || lightMode) {
+      Promise.resolve().then(() => setPaused(true));
+      return;
+    }
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     Promise.resolve().then(() => setPaused(mq.matches));
     const onChange = (e: MediaQueryListEvent) => setPaused(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, []);
+  }, [reducedMotion, lightMode]);
 
   return (
     <section
@@ -191,17 +197,24 @@ export default function CurvedPlanetCarousel() {
               onFocus={() => setActiveZone(zone)}
               className="curved-card group relative w-[320px] sm:w-[420px] md:w-[480px] aspect-[16/10] shrink-0 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-xl cursor-pointer hover:border-primary/60 hover:shadow-[0_20px_50px_-10px_rgba(224,93,56,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <Image
-                src={zone.image}
-                alt={zone.name}
-                fill
-                sizes="(max-width: 768px) 340px, 480px"
-                className="object-cover transition-transform duration-700 ease-out group-hover:scale-108"
-              />
+              {!lightMode ? (
+                <Image
+                  src={zone.image}
+                  alt={zone.name}
+                  fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 340px, 480px"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-108"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-muted/70 flex items-center justify-center p-4 text-center">
+                  <span className="font-mono text-xs text-muted-foreground">{zone.name} • {zone.sectorTag}</span>
+                </div>
+              )}
 
               {/* Gradient ombré cinématique */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-background/30" />
+              <div data-eco-decorative className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent" />
+              <div data-eco-decorative className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-background/30" />
 
               {/* Badges télémétrie */}
               <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">

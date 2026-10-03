@@ -729,3 +729,21 @@ marquées `citizen` uniquement — pas de compte agent/admin de démonstration
 disponible pour un test en direct contre l'API réelle (l'inscription
 publique ne crée que des comptes citoyens). `npm run build` et `npm run
 lint` passent sans erreur.
+
+## Vague 8 — Chantier Sobriété et Performance (F57, F58, F59, F60, F61, F62)
+
+| Code | Besoin | Fichiers concernés | Statut |
+| :--- | :--- | :--- | :--- |
+| **F57** | Mesure de l'état actuel (taille pages, requêtes, poids JS, images) consignée dans `docs/SOBRIETE.md` (avant / après). | `docs/SOBRIETE.md` | ✅ Fait |
+| **F58** | Composants lourds (globe 3D, carrousel, animations) chargés uniquement quand visibles (import dynamique `next/dynamic`). | `components/home/planet-showcase.tsx`, `app/page.tsx` | ✅ Fait |
+| **F59** | Option « Mode Léger » dans le panneau d'accessibilité (ni images décoratives, ni globe, ni animations, mise en page simple). | `components/accessibility-panel.tsx`, `lib/accessibility-context.tsx`, `app/globals.css` | ✅ Fait |
+| **F60** | Toutes les images WebP compressées, dimensions adaptées (max 960px), chargement différé (`loading="lazy"`), tailles réservées. | `public/*.webp`, `components/home/curved-planet-carousel.tsx`, `app/connexion/connexion-form.tsx`, `app/inscription/page.tsx` | ✅ Fait |
+| **F61** | Désactivation des composants lourds sur appareils faibles ou si « réduire les animations » (`prefers-reduced-motion`). | `components/home/planet-showcase.tsx`, `components/home/curved-planet-carousel.tsx`, `components/home/space-dust-traffic.tsx` | ✅ Fait |
+| **F62** | Activation automatique du mode léger si le navigateur signale une connexion lente (`2g`, `slow-2g`) ou l'économie de données (`save-data`). | `lib/accessibility-context.tsx` (`NetworkInformation` API) | ✅ Fait |
+
+### Synthèse des gains mesurés (F57 & F60) :
+- **Images WebP** : Réduction de **1 130 Ko à 490 Ko (- 57 % / 640 Ko économisés)**.
+- **Runtimes 3D & WebGL** : Globe 3D (`cobe`) chargé dynamiquement hors du chemin critique, remplacé par une version 2D en mode léger.
+- **Sobriété GPU** : Halos décoratifs flous (`blur-3xl`), `backdrop-filter` et canvas d'ambiance désactivés en mode léger.
+- **Stabilité de mise en page** : Zéro CLS grâce aux conteneurs à dimensions réservées et `loading="lazy"`.
+

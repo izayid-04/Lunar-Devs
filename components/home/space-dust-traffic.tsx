@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { useAccessibility } from "@/lib/accessibility-context";
 
 interface Particle {
   x: number;
@@ -27,9 +28,11 @@ interface Drone {
 }
 
 export default function SpaceDustTraffic() {
+  const { lightMode, reducedMotion } = useAccessibility();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    if (lightMode || reducedMotion) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -195,7 +198,9 @@ export default function SpaceDustTraffic() {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", onResize);
     };
-  }, []);
+  }, [lightMode, reducedMotion]);
+
+  if (lightMode || reducedMotion) return null;
 
   return (
     <canvas

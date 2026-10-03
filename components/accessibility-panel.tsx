@@ -16,6 +16,7 @@ import {
   Type,
   SunMoon,
   ZapOff,
+  Leaf,
   Check,
   RotateCcw,
 } from "lucide-react";
@@ -29,15 +30,18 @@ export default function AccessibilityPanel() {
     toggleHighContrast,
     reducedMotion,
     toggleReducedMotion,
+    lightMode,
+    toggleLightMode,
   } = useAccessibility();
 
   const resetAll = () => {
     setTextSize("normal");
     if (highContrast) toggleHighContrast();
     if (reducedMotion) toggleReducedMotion();
+    if (lightMode) toggleLightMode();
   };
 
-  const isCustomized = textSize !== "normal" || highContrast || reducedMotion;
+  const isCustomized = textSize !== "normal" || highContrast || reducedMotion || lightMode;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -179,6 +183,40 @@ export default function AccessibilityPanel() {
                 <span
                   className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
                     reducedMotion ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* 4. Mode Léger / Éco-conception (F59, F62) */}
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <div className="flex items-center justify-between gap-6">
+              <div className="space-y-1 pr-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Leaf className="size-3.5 text-success" aria-hidden="true" />
+                  Mode Léger (Sobriété & Éco-conception)
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Supprime les images décoratives, le globe 3D et les animations lourdes. Économise les données et la batterie tout en conservant 100% des informations et démarches.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={lightMode}
+                aria-label="Activer ou désactiver le mode léger"
+                onClick={toggleLightMode}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  lightMode
+                    ? "border-success bg-success"
+                    : "border-border bg-input hover:bg-muted"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    lightMode ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>

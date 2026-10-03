@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Siren } from "lucide-react";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { AvailabilityBadge } from "@/components/services/availability-badge";
+import AvailabilityManager from "@/components/services/availability-manager";
+import { useAuth } from "@/lib/auth-context";
 import {
   Select,
   SelectContent,
@@ -31,6 +33,8 @@ const CATEGORY_LABEL: Record<ServiceCategory, string> = {
 };
 
 function DistrictsContentInner() {
+  const { user } = useAuth();
+  const isStaff = user?.role === "agent" || user?.role === "admin";
   const searchParams = useSearchParams();
   const [services, setServices] = useState<Service[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -190,11 +194,14 @@ function DistrictsContentInner() {
                 <h2>{districtName}</h2>
                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {items.map((s) => (
-                    <Link key={s.id} href={`/services/${s.slug}`}>
-                      <Card className={`h-full transition-colors hover:border-primary/50 ${s.featured ? "border-primary/40" : ""}`}>
-                        <CardContent className="p-5">
+                    <Card
+                      key={s.id}
+                      className={`h-full flex flex-col justify-between transition-colors hover:border-primary/50 ${s.featured ? "border-primary/40" : ""}`}
+                    >
+                      <CardContent className="p-5 flex-1 flex flex-col">
+                        <Link href={`/services/${s.slug}`} className="flex-1 block">
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold">{s.name}</h3>
+                            <h3 className="font-semibold text-foreground hover:text-primary transition-colors">{s.name}</h3>
                             <AvailabilityBadge availability={s.availability} />
                           </div>
                           <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
@@ -215,9 +222,15 @@ function DistrictsContentInner() {
                               )}
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    </Link>
+                        </Link>
+                        {isStaff && (
+                          <div className="mt-4 border-t border-border/60 pt-3 flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-medium text-muted-foreground">Gestion état :</span>
+                            <AvailabilityManager service={s} />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </div>

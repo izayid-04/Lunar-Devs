@@ -51,10 +51,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const CATEGORIES = ["Municipal", "Travaux", "Événement", "Sécurité", "Autre"];
+const CATEGORIES = [
+  { value: "annonce", label: "Municipal (Annonce)" },
+  { value: "travaux", label: "Travaux" },
+  { value: "service", label: "Service public" },
+  { value: "sante", label: "Santé & Urgence" },
+  { value: "evenement", label: "Événement" },
+  { value: "autre", label: "Autre" },
+];
+
+function normalizeCategory(rawCat: string | undefined): string {
+  if (!rawCat) return CATEGORIES[0].value;
+  const lower = rawCat.toLowerCase().trim();
+  const found = CATEGORIES.find(
+    (c) => c.value === lower || c.label.toLowerCase().includes(lower)
+  );
+  return found ? found.value : CATEGORIES[0].value;
+}
 
 type Draft = { title: string; body: string; category: string; isImportant: boolean };
-const EMPTY_DRAFT: Draft = { title: "", body: "", category: CATEGORIES[0], isImportant: false };
+const EMPTY_DRAFT: Draft = { title: "", body: "", category: CATEGORIES[0].value, isImportant: false };
 
 function AgentAnnoncesContent() {
   const { user, token } = useAuth();
@@ -91,7 +107,12 @@ function AgentAnnoncesContent() {
 
   function openEdit(a: Announcement) {
     setEditing(a);
-    setDraft({ title: a.title, body: a.body, category: a.category, isImportant: !!a.isImportant });
+    setDraft({
+      title: a.title,
+      body: a.body,
+      category: normalizeCategory(a.category),
+      isImportant: !!a.isImportant,
+    });
     setDialogOpen(true);
   }
 
@@ -253,8 +274,8 @@ function AgentAnnoncesContent() {
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
