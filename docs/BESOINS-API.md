@@ -5,38 +5,40 @@ le comportement réel en prod diffère de ce qui est décrit, constatés en
 branchant le front. Pas des bugs qu'on peut corriger côté front — à
 remonter au backend.
 
-## ⚠️ Sécurité — `GET /appointments/slots` expose le hash du mot de passe de l'agent
+## ✅ RÉSOLU — Sécurité : `GET /appointments/slots` exposait le hash du mot de passe de l'agent
 
-Testé en prod le 2026-10-03 (`curl
-".../appointments/slots?service=mairie-de-nova-terra"`, endpoint public,
-sans authentification) : chaque créneau renvoie l'objet `agent` complet
-tel que stocké en base, **`passwordHash` inclus** (`"passwordHash":
-"$2b$10$..."`). N'importe qui peut récupérer le hash bcrypt du compte
-agent sans être connecté. À corriger en urgence côté backend (ne
-renvoyer que `id`/`firstName`/`lastName` dans la sérialisation de ce
-endpoint). Le front (`lib/api.ts`, type `AppointmentSlot`) ne déclare et
-n'affiche volontairement que `firstName`/`lastName`, mais le champ
-sensible reste présent dans la réponse HTTP brute tant que le backend
-n'est pas corrigé.
+Constaté en prod le 2026-10-03 : chaque créneau renvoyait l'objet `agent`
+complet, `passwordHash` bcrypt inclus, sur un endpoint public sans
+authentification. **Re-testé le même jour, plus tard** : le backend ne
+renvoie désormais que `id`/`firstName`/`lastName`/`role` dans `agent` —
+corrigé côté API. Gardé ici pour mémoire.
 
-## `GET /services` — champs Bloc 4 absents en prod (F28, F32, F45, F46)
+## ✅ RÉSOLU — `GET /services` : champs Bloc 4 absents en prod (F28, F32, F45, F46)
 
 Le contrat documente `category`, `address`, `latitude`, `longitude`,
-`featured`, `isEmergency` sur chaque service. En prod
-(`https://api.lunardevs.lescomores.webcup.hodi.cloud/services`), **aucun**
-des 8 services réels ne porte ces champs — seuls `availability`,
-`availabilityMessage`, `availableAgainAt`, `alternative` (F38) sont bien
-présents et corrects. Probablement une migration/un seed pas encore
-déployé en prod. Bloque la mise en avant des services (F28), la carte
-avec géolocalisation (F45) et le bouton Urgences (F46) tels que décrits.
+`featured`, `isEmergency` sur chaque service. Constaté absent en prod le
+2026-10-03 (premier passage). **Re-testé le même jour, plus tard** : tous
+ces champs sont désormais présents et corrects sur les 8 services réels
+(ex. Hôpital Étoile du Sud : `featured: true`, `isEmergency: true`,
+`address`, `latitude`/`longitude`). Le tri prioritaire, le filtre
+catégorie et le bouton « Urgences » déjà codés dans
+`app/districts/districts-content.tsx` s'activent donc maintenant
+automatiquement, sans changement front nécessaire.
 
-## `GET /services?emergency=true` — ne répond pas (timeout)
+Note : `latitude`/`longitude` sont renvoyés en chaînes de caractères
+(ex. `"-11.7185000"`), pas en nombres JSON — `lib/api.ts` (`Service`) a
+été corrigé en conséquence (`string` plutôt que `number`). Ces deux
+champs ne sont pour l'instant pas affichés (la fiche service renvoie
+seulement vers le quartier dans `/districts`, pas vers une carte
+géographique précise) — à exploiter dans un futur chantier carte.
 
-Testé directement en prod le 2026-10-03 : la requête ne retourne jamais
-(`curl` tué après authentiquement >2 min sans réponse, pas de 200/erreur).
-`?q=hopital` fonctionne normalement (200). Probablement lié au point
-ci-dessus (filtre sur un champ absent des données). À vérifier côté
-backend avant de brancher le bouton "Urgences" (F46).
+## ✅ RÉSOLU — `GET /services?emergency=true` ne répondait pas (timeout)
+
+Constaté en prod le 2026-10-03 (premier passage) : timeout après plus de
+2 minutes. **Re-testé le même jour, plus tard** : répond normalement
+(`200`, liste filtrée correcte). Le front n'appelle de toute façon
+jamais ce paramètre (filtre `isEmergency` appliqué côté client sur la
+liste déjà chargée, par prudence) — aucun changement nécessaire.
 
 ## Gestion des comptes agents — route manquante (F33/F34, page `/admin`)
 

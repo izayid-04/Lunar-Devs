@@ -3,12 +3,23 @@
 
 export type Role = "citizen" | "agent" | "admin";
 
+export type District =
+  | "Centre-Ville"
+  | "Port Stellaire"
+  | "Quartier des Dunes"
+  | "Hauts de Nova"
+  | "Faubourg Est";
+
 export type Me = {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: Role;
+  district: District | null;
+  preferredLanguage: string | null;
+  isVulnerable: boolean;
+  profileCompleted: boolean;
   createdAt: string;
 };
 
@@ -116,6 +127,37 @@ export async function fetchMe(token: string): Promise<Me> {
   return (await res.json()) as Me;
 }
 
+// --- Profil (D12, F35) et suppression de compte (F33) ---
+
+export async function patchMe(
+  token: string,
+  payload: Partial<{ district: District; preferredLanguage: string; isVulnerable: boolean }>
+): Promise<Me> {
+  const res = await fetch(apiUrl("/me"), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de mettre à jour votre profil."));
+  }
+  return res.json();
+}
+
+export async function deleteMyAccount(token: string, password: string): Promise<void> {
+  const res = await fetch(apiUrl("/me"), {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("Mot de passe incorrect.");
+    }
+    throw new Error(await readErrorMessage(res, "Impossible de supprimer votre compte."));
+  }
+}
+
 function authFetch(path: string, token: string, init: RequestInit = {}): Promise<Response> {
   return fetch(apiUrl(path), {
     ...init,
@@ -129,16 +171,30 @@ function authFetch(path: string, token: string, init: RequestInit = {}): Promise
 // --- Messages des habitants (Bloc 2 — D04, F22) ---
 
 export type MessageStatus = "nouveau" | "en_cours" | "traite";
+export type MessageType = "question" | "signalement";
+
+export type MessageHistoryItem = {
+  id: number;
+  status: MessageStatus;
+  note: string | null;
+  changedAt: string;
+  changedBy?: { id: string; firstName: string; lastName: string } | null;
+};
 
 export type CitizenMessage = {
   id: number;
   reference: string;
+  type?: MessageType;
   subject: string;
   body: string;
   category: string;
+  district?: string;
+  preciseLocation?: string;
   status: MessageStatus;
+  supportCount?: number;
   createdAt: string;
   updatedAt: string;
+  history?: MessageHistoryItem[];
 };
 
 export type MessageAuthor = {
@@ -154,7 +210,14 @@ export type MessageCounts = Record<MessageStatus, number>;
 
 export async function postMessage(
   token: string,
-  payload: { subject: string; body: string; category: string }
+  payload: {
+    type?: MessageType;
+    subject: string;
+    body: string;
+    category: string;
+    district?: District;
+    preciseLocation?: string;
+  }
 ): Promise<CitizenMessage> {
   const res = await authFetch("/messages", token, {
     method: "POST",
@@ -175,11 +238,42 @@ export async function fetchMyMessages(token: string): Promise<CitizenMessage[]> 
   return res.json();
 }
 
+export async function fetchMyMessage(token: string, id: number | string): Promise<CitizenMessage> {
+  const res = await authFetch(`/messages/mine/${id}`, token);
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Cette demande n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer cette demande."));
+  }
+  return res.json();
+}
+
+export async function toggleMessageSupport(
+  token: string,
+  id: number | string
+): Promise<{ supported: boolean; supportCount: number }> {
+  const res = await authFetch(`/messages/${id}/support`, token, { method: "POST" });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Ce message n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible d'enregistrer votre soutien."));
+  }
+  return res.json();
+}
+
 export async function fetchAgentMessages(
   token: string,
-  status?: MessageStatus
+  options?: { status?: MessageStatus; type?: "question" | "signalement"; sort?: "recent" | "supports" } | MessageStatus
 ): Promise<{ messages: AgentMessage[]; counts: MessageCounts }> {
-  const qs = status ? `?status=${status}` : "";
+  let qs = "";
+  if (typeof options === "string") {
+    qs = `?status=${options}`;
+  } else if (options) {
+    const params = new URLSearchParams();
+    if (options.status) params.set("status", options.status);
+    if (options.type) params.set("type", options.type);
+    if (options.sort) params.set("sort", options.sort);
+    const str = params.toString();
+    if (str) qs = `?${str}`;
+  }
   const res = await authFetch(`/agent/messages${qs}`, token);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de récupérer les messages."));
@@ -203,12 +297,21 @@ export async function patchMessageStatus(
   return res.json();
 }
 
-// --- Espace agent + API Webcup (Bloc 3 — D19, F22, D17) ---
+// --- Espace agent + API Webcup (Bloc 3 — D19, F22, D17, F50) ---
+
+export type AgentDashboardMetrics = {
+  byCategory?: Record<string, number>;
+  byDistrict?: Record<string, number>;
+  totalSupports?: number;
+  upcomingAppointmentsCount?: number;
+  activeAlertsCount?: number;
+};
 
 export type AgentDashboard = {
   citizensCount: number;
   messagesByStatus: MessageCounts;
   recentMessages: AgentMessage[];
+  metrics?: AgentDashboardMetrics;
 };
 
 export async function fetchAgentDashboard(token: string): Promise<AgentDashboard> {
@@ -262,8 +365,8 @@ export type Service = {
   horaires: string;
   district: string;
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude: string;
+  longitude: string;
   featured: boolean;
   isEmergency: boolean;
   availability: ServiceAvailability;
@@ -620,6 +723,8 @@ export type Appointment = {
   location?: string;
   service?: { id: number; name: string; slug: string };
   agent?: { id: string; firstName: string; lastName: string } | null;
+  user?: { id: string; firstName: string; lastName: string; email: string };
+  slot?: AppointmentSlot;
   createdAt: string;
 };
 
@@ -914,6 +1019,62 @@ export async function patchAgentPrivacyInquiryStatus(
   });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de mettre à jour cette demande."));
+  }
+  return res.json();
+}
+
+// --- Gestion des citoyens (F34) ---
+
+export type CitizenUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  isActive: boolean;
+  district?: string | null;
+  preferredLanguage?: string | null;
+  isVulnerable?: boolean;
+  profileCompleted?: boolean;
+  createdAt: string;
+};
+
+export type CitizensPaginationResponse = {
+  data: CitizenUser[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export async function fetchAgentCitizens(
+  token: string,
+  options?: { page?: number; limit?: number; q?: string }
+): Promise<CitizensPaginationResponse> {
+  const params = new URLSearchParams();
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.q) params.set("q", options.q);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await authFetch(`/agent/citizens${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger la liste des citoyens."));
+  }
+  return res.json();
+}
+
+export async function patchCitizenStatus(
+  token: string,
+  id: string,
+  isActive: boolean
+): Promise<CitizenUser> {
+  const res = await authFetch(`/agent/citizens/${id}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isActive }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier le statut de ce compte."));
   }
   return res.json();
 }

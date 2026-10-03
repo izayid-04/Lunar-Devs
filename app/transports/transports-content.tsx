@@ -89,9 +89,13 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export default function TransportsContent() {
+export default function TransportsContent({
+  allowManagement = false,
+}: {
+  allowManagement?: boolean;
+}) {
   const { user, token } = useAuth();
-  const isStaff = user?.role === "agent" || user?.role === "admin";
+  const isStaff = allowManagement && (user?.role === "agent" || user?.role === "admin");
 
   const [lines, setLines] = useState<TransportLine[]>([]);
   const [loading, setLoading] = useState(true);

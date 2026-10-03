@@ -482,3 +482,99 @@ Vérifié : `npm run build` et `npm run lint` passent sans erreur
 (y compris un lint `react-hooks/set-state-in-effect` sur le nouveau
 composant de réservation, corrigé avec le même motif `Promise.resolve().then(...)`
 déjà utilisé ailleurs dans le projet).
+
+
+## Chantiers Espace Agents (F50, F34, Rendez-vous de service)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F50** | Indicateurs du tableau de bord agents (`metrics` : soutiens citoyens, RDV à venir, répartition par catégorie et par quartier), tri des signalements par soutiens (`?sort=supports` / F52). | `lib/api.ts`, `app/agent/page.tsx` | ✅ Fait |
+| **F34** | Gestion des citoyens côté agents (`GET /agent/citizens`, recherche `q`, pagination, confirmation modale d'activation/désactivation de compte via `PATCH /agent/citizens/:id/status`). | `lib/api.ts`, `app/agent/citizens/page.tsx`, `components/app-sidebar.tsx` | ✅ Fait |
+| **F39/F40** | Planning et gestion des rendez-vous de service côté agents (`GET /agent/appointments`, filtres confirmés/annulés, export .ics). | `lib/api.ts`, `app/agent/appointments/page.tsx`, `components/app-sidebar.tsx` | ✅ Fait |
+| **Point 4** | Gestion des services par les agents & comptes agents en administration : vérifié dans `docs/API.md` et documenté dans `docs/BESOINS-API.md`. | `docs/BESOINS-API.md` | ✅ Documenté (bloqué API) |
+
+## Chantier Espace Citoyen — suite (F37 citoyen, F49, RDV, D11+F25, F33, D12+F35, F52)
+
+Reprise ciblée côté citoyen uniquement (le tableau de bord/gestion
+agents est traité en parallèle par l'autre agent sur ce même backend —
+voir section précédente), pour éviter les doublons.
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F37 (citoyen)** | Message clair 429/compte verrouillé, dernière connexion + tentatives échouées dans l'espace personnel. | `/connexion`, `/espace`, `lib/api.ts` | ✅ Déjà fait (point 2 ci-dessus), relu et confirmé toujours correct |
+| **F49** | Les liens des notifications de changement de statut mènent à une page qui existe réellement. | `lib/alerts.ts` (`notificationHref`) | ✅ Fait |
+| **F39** | « Mes rendez-vous » dans l'espace citoyen : liste, annulation, export `.ics`. | `app/espace/page.tsx`, `lib/api.ts` | ✅ Fait |
+| **D11 + F25** | Signalement d'incident (quartier + emplacement précis), fiche détail d'une demande avec chronologie de traitement. | `app/espace/page.tsx`, `app/espace/demandes/[id]/page.tsx`, `lib/api.ts` | ✅ Fait |
+| **F33** | Suppression définitive de son propre compte (confirmation par mot de passe). | `app/espace/page.tsx` (zone danger), `lib/api.ts` (`deleteMyAccount`) | ✅ Fait |
+| **D12 + F35** | Complétion du profil (quartier, langue préférée, statut vulnérable) tant que `profileCompleted` est `false`. | `app/espace/page.tsx`, `lib/api.ts` (`patchMe`), `lib/auth-context.tsx` (`refreshUser`) | ✅ Fait |
+| **F52** | Bouton « Soutenir » (toggle) avec compteur sur la fiche d'une demande. | `app/espace/demandes/[id]/page.tsx`, `lib/api.ts` (`toggleMessageSupport`) | ✅ Fait (périmètre limité, voir note) |
+
+**F49** : en lisant le code source du backend (`api-lunar-devs/src/messages/messages.service.ts`,
+`.../notifications.service.ts`), le lien réel envoyé pour une notification
+`demande_statut` est `/messages/mine/:id` (pas `/messages/:id` comme
+pourrait le laisser penser la doc résumée) ; celui d'un rappel de
+rendez-vous est `/appointments/:id` ; celui d'une demande RGPD est
+`/privacy/inquiries/:id`. `notificationHref` traduit maintenant
+`/messages/mine/:id` vers la nouvelle page `/espace/demandes/:id` ; les
+deux autres n'ont pas de fiche dédiée et retombent sur `/espace`, qui les
+affiche déjà (section « Mes rendez-vous » et « Mes demandes de données »).
+
+**Mes rendez-vous** : liste `GET /appointments/mine`, bouton annuler
+(`PATCH /appointments/:id/cancel`, uniquement si `confirme`) et export
+`.ics` (déjà implémenté au point 1 de la liste précédente). Rien à
+réserver depuis cet écran — la réservation se fait depuis la fiche
+service (`/services/[slug]`, déjà fait).
+
+**D11 + F25** : le dialogue « Nouveau message » propose maintenant un
+choix Question / Signalement d'incident. Une question garde les
+catégories libres existantes ; un signalement impose les catégories de
+l'API (`voirie`, `eclairage`, `propreté`, `eau`, `autre`) et exige un
+quartier + un emplacement précis, comme documenté dans `docs/API.md`.
+Chaque ligne de « Mes demandes » renvoie vers `/espace/demandes/[id]`
+(`GET /messages/mine/:id`) qui affiche la chronologie complète
+(`history`) avec icône, statut et note de l'agent à chaque étape.
+
+**F33** : carte « Supprimer mon compte » en zone de danger de `/espace`,
+confirmation par `AlertDialog` + mot de passe actuel
+(`DELETE /me`). En cas de succès : déconnexion locale puis redirection
+vers l'accueil.
+
+**D12 + F35** : bandeau de complétion de profil affiché en haut de
+`/espace` tant que `user.profileCompleted` est `false` (quartier +
+langue préférée obligatoires, case « personne vulnérable » facultative).
+`AuthContext` expose désormais `refreshUser()` pour recharger `/me`
+après un `PATCH` réussi, sans quoi le bandeau resterait affiché après
+coup.
+
+**F52** : la route `POST /messages/:id/support` est câblée sur la fiche
+détail d'une demande (`/espace/demandes/[id]`), avec compteur affiché en
+direct. **Limite de périmètre constatée** : l'API ne fournit aucune route
+permettant à un citoyen de parcourir les signalements *d'un autre*
+citoyen (`GET /messages/mine/:id` est strictement limité à ses propres
+messages, et il n'existe pas de liste publique des signalements). Le
+bouton ne peut donc s'exercer aujourd'hui que sur ses propres demandes,
+ce qui reste une fonctionnalité réelle et correctement câblée mais pas
+l'usage communautaire visé par la fonctionnalité. Non documenté comme
+besoin API séparé : le contrat lui-même ne prévoit pas cette route
+(absence confirmée en relisant `docs/API.md` en entier).
+
+Vérifié de bout en bout contre l'API réelle le 2026-10-03, avec deux
+comptes de test jetables créés puis supprimés à la fin de la
+vérification : inscription → connexion → `POST /messages` (signalement
+avec quartier + emplacement) → `GET /messages/mine/:id` (chronologie
+correcte) → `POST /messages/:id/support` (toggle on puis off, compteur
+exact) → `PATCH /me` (`profileCompleted` passe bien à `true` une fois
+quartier + langue renseignés) → `DELETE /me` (401 avec mauvais mot de
+passe, 200 avec le bon). `npm run build` et `npm run lint` passent sans
+erreur.
+
+**Bonus constaté pendant cette vérification** : les deux écarts
+documentés dans `docs/BESOINS-API.md` pour le chantier Services
+(champs Bloc 4 absents, `emergency=true` qui ne répondait pas) sont
+**résolus côté backend** — re-testés en direct, tout fonctionne
+maintenant. Le type `Service.latitude`/`longitude` a été corrigé
+(`string` plutôt que `number`, l'API renvoie des chaînes). La faille de
+sécurité signalée (hash de mot de passe exposé sur
+`GET /appointments/slots`) est également corrigée côté backend. Les
+trois entrées correspondantes dans `docs/BESOINS-API.md` sont marquées
+résolues plutôt que supprimées, pour garder une trace.

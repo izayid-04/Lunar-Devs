@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Radio, CheckCircle, Clock, RotateCw, RefreshCw } from "lucide-react";
+import { Radio, CheckCircle, Clock, RotateCw, RefreshCw, ThumbsUp, Calendar } from "lucide-react";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -101,6 +101,7 @@ function AgentContent() {
   const [dashboardError, setDashboardError] = useState<string | null>(null);
 
   const [tab, setTab] = useState<MessageStatus | "all">("all");
+  const [sort, setSort] = useState<"recent" | "supports">("recent");
   const [messages, setMessages] = useState<AgentMessage[] | null>(null);
   const [messagesError, setMessagesError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -120,13 +121,16 @@ function AgentContent() {
     if (!token) return;
     setMessages(null);
     setMessagesError(null);
-    fetchAgentMessages(token, tab === "all" ? undefined : tab)
+    fetchAgentMessages(token, {
+      status: tab === "all" ? undefined : tab,
+      sort,
+    })
       .then((res) => {
         setMessages(res.messages);
         setDashboard((prev) => (prev ? { ...prev, messagesByStatus: res.counts } : prev));
       })
       .catch((err: Error) => setMessagesError(err.message));
-  }, [token, tab]);
+  }, [token, tab, sort]);
 
   useEffect(() => {
     Promise.resolve().then(() => loadMessages());
@@ -164,6 +168,7 @@ function AgentContent() {
   if (!user) return null;
 
   const counts = dashboard?.messagesByStatus;
+  const metrics = dashboard?.metrics;
   const pending = counts ? counts.nouveau + counts.en_cours : null;
 
   return (
@@ -178,7 +183,7 @@ function AgentContent() {
           </div>
           <h1 className="mt-1">Journal des demandes — Agent municipal</h1>
           <p className="text-sm text-muted-foreground">
-            Suivi et traitement des messages transmis par les habitants.
+            Suivi, traitement et indicateurs d&apos;activité des services de Nova Terra.
           </p>
         </div>
 
@@ -191,46 +196,158 @@ function AgentContent() {
         <p className="mt-4 text-sm text-destructive">{dashboardError}</p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="p-5 flex flex-col justify-between">
+      {/* Cartes métriques principales (F50) */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nouveaux</span>
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Clock className="size-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <p className="text-3xl font-extrabold tracking-tight text-primary">{counts?.nouveau ?? "…"}</p>
+          <div className="mt-3">
+            <p className="text-2xl font-extrabold tracking-tight text-primary">{counts?.nouveau ?? "…"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">En attente de prise en charge</p>
           </div>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">En cours</span>
-            <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <RotateCw className="size-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <p className="text-3xl font-extrabold tracking-tight text-foreground">{counts?.en_cours ?? "…"}</p>
+          <div className="mt-3">
+            <p className="text-2xl font-extrabold tracking-tight text-foreground">{counts?.en_cours ?? "…"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Dossiers en instruction</p>
           </div>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Traités</span>
-            <div className="flex size-9 items-center justify-center rounded-lg bg-success/15 text-success">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-success/15 text-success">
               <CheckCircle className="size-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <p className="text-3xl font-extrabold tracking-tight text-success">{counts?.traite ?? "…"}</p>
+          <div className="mt-3">
+            <p className="text-2xl font-extrabold tracking-tight text-success">{counts?.traite ?? "…"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Réponses transmises</p>
           </div>
         </Card>
+
+        <Card className="p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Soutiens citoyens</span>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+              <ThumbsUp className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-extrabold tracking-tight text-amber-600">{metrics?.totalSupports ?? 0}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Appuis enregistrés (F52)</p>
+          </div>
+        </Card>
+
+        <Card className="p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV à venir</span>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+              <Calendar className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-extrabold tracking-tight text-blue-600">{metrics?.upcomingAppointmentsCount ?? 0}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Créneaux réservés</p>
+          </div>
+        </Card>
       </div>
+
+      {/* Indicateurs par catégorie et par quartier (F50) */}
+      {metrics && (metrics.byCategory || metrics.byDistrict) && (
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {metrics.byCategory && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                  <span>Signalements par catégorie</span>
+                  <Badge variant="outline" className="text-xs font-normal">
+                    {Object.values(metrics.byCategory).reduce((a, b) => a + b, 0)} total
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Répartition des signalements déposés par les habitants.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.entries(metrics.byCategory).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aucune donnée disponible.</p>
+                ) : (
+                  Object.entries(metrics.byCategory).map(([cat, count]) => {
+                    const total = Object.values(metrics.byCategory || {}).reduce((a, b) => a + b, 0) || 1;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <div key={cat} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium capitalize">{cat}</span>
+                          <span className="text-muted-foreground font-mono">{count} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {metrics.byDistrict && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                  <span>Signalements par quartier</span>
+                  <Badge variant="outline" className="text-xs font-normal">
+                    {Object.values(metrics.byDistrict).reduce((a, b) => a + b, 0)} total
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Localisation géographique des incidents remontés.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.entries(metrics.byDistrict).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aucune donnée disponible.</p>
+                ) : (
+                  Object.entries(metrics.byDistrict).map(([district, count]) => {
+                    const total = Object.values(metrics.byDistrict || {}).reduce((a, b) => a + b, 0) || 1;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <div key={district} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{district}</span>
+                          <span className="text-muted-foreground font-mono">{count} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-amber-500 rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
         <Card>
@@ -242,37 +359,60 @@ function AgentContent() {
                   Cliquez sur le statut d&apos;une ligne pour le faire progresser.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1.5 p-1 rounded-lg bg-muted/50 border border-border/60">
-                {TABS.map((t) => {
-                  const isActive = tab === t;
-                  return (
-                    <Button
-                      key={t}
-                      size="sm"
-                      variant={isActive ? "default" : "ghost"}
-                      onClick={() => setTab(t)}
-                      className={cn(
-                        "text-xs gap-1.5 h-8 font-medium transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                      )}
-                    >
-                      {TAB_LABEL[t]}
-                      {t !== "all" && counts && (
-                        <Badge
-                          variant={isActive ? "outline" : "secondary"}
-                          className={cn(
-                            "h-4 px-1.5 text-[10px]",
-                            isActive && "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground"
-                          )}
-                        >
-                          {counts[t]}
-                        </Badge>
-                      )}
-                    </Button>
-                  );
-                })}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Sélecteur de tri (F50, F52) */}
+                <div className="flex items-center rounded-lg border border-border/60 bg-muted/30 p-0.5 text-xs">
+                  <Button
+                    size="sm"
+                    variant={sort === "recent" ? "default" : "ghost"}
+                    onClick={() => setSort("recent")}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Récents
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sort === "supports" ? "default" : "ghost"}
+                    onClick={() => setSort("supports")}
+                    className="h-7 px-2 text-xs gap-1"
+                  >
+                    <ThumbsUp className="size-3" />
+                    Plus soutenus
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-1.5 p-1 rounded-lg bg-muted/50 border border-border/60">
+                  {TABS.map((t) => {
+                    const isActive = tab === t;
+                    return (
+                      <Button
+                        key={t}
+                        size="sm"
+                        variant={isActive ? "default" : "ghost"}
+                        onClick={() => setTab(t)}
+                        className={cn(
+                          "text-xs gap-1.5 h-8 font-medium transition-all",
+                          isActive
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                        )}
+                      >
+                        {TAB_LABEL[t]}
+                        {t !== "all" && counts && (
+                          <Badge
+                            variant={isActive ? "outline" : "secondary"}
+                            className={cn(
+                              "h-4 px-1.5 text-[10px]",
+                              isActive && "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground"
+                            )}
+                          >
+                            {counts[t]}
+                          </Badge>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -298,6 +438,7 @@ function AgentContent() {
                     <TableHead>Habitant</TableHead>
                     <TableHead>Objet</TableHead>
                     <TableHead className="hidden sm:table-cell">Catégorie</TableHead>
+                    <TableHead className="text-center">Soutiens</TableHead>
                     <TableHead className="text-right">Statut</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -316,9 +457,33 @@ function AgentContent() {
                       <TableCell className="font-medium">
                         {m.author.firstName} {m.author.lastName}
                       </TableCell>
-                      <TableCell className="max-w-56 truncate">{m.subject}</TableCell>
+                      <TableCell className="max-w-56 truncate">
+                        <div className="flex items-center gap-1.5">
+                          {m.type === "signalement" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-amber-500/50 text-amber-600">
+                              Signalement
+                            </Badge>
+                          )}
+                          <span className="truncate">{m.subject}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
                         {m.category}
+                        {m.district && (
+                          <span className="block text-[11px] text-muted-foreground/75">
+                            {m.district}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {typeof m.supportCount === "number" && m.supportCount > 0 ? (
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <ThumbsUp className="size-3 text-amber-500" />
+                            {m.supportCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button

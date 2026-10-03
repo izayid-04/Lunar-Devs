@@ -48,11 +48,15 @@ export function formatDateTime(iso: string): string {
 }
 
 // Les liens de notification renvoyés par l'API pointent vers ses propres
-// routes (/alerts/1, /announcements/2, /appointments/3) : on les traduit en
-// pages existantes du front.
+// routes (/alerts/1, /announcements/2, /messages/mine/3, /appointments/4,
+// /privacy/inquiries/5) : on les traduit en pages existantes du front (F49).
 export function notificationHref(link: string): string {
-  const [, kind, id] = link.split("/");
-  if (kind === "alerts" && id) return `/alertes/${id}`;
-  if (kind === "announcements" && id) return `/annonces/${id}`;
+  const parts = link.split("/").filter(Boolean);
+  const [first, second, third] = parts;
+  if (first === "alerts" && second) return `/alertes/${second}`;
+  if (first === "announcements" && second) return `/annonces/${second}`;
+  if (first === "messages" && second === "mine" && third) return `/espace/demandes/${third}`;
+  // Rendez-vous et demandes RGPD n'ont pas de fiche dédiée : ils sont
+  // listés dans l'espace personnel.
   return "/espace";
 }

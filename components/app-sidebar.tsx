@@ -81,6 +81,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: "/agent/privacy",
               isActive: pathname.startsWith("/agent/privacy"),
             },
+            {
+              title: "Gestion des citoyens",
+              url: "/agent/citizens",
+              isActive: pathname.startsWith("/agent/citizens"),
+            },
+            {
+              title: "Rendez-vous du service",
+              url: "/agent/appointments",
+              isActive: pathname.startsWith("/agent/appointments"),
+            },
           ],
         },
         {
@@ -97,9 +107,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         },
         {
           title: "Transports & Liaisons",
-          url: "/transports",
+          url: "/agent/transports",
           icon: <RocketIcon className="size-4" />,
-          isActive: pathname.startsWith("/transports"),
+          isActive: pathname.startsWith("/agent/transports") || pathname === "/transports",
         },
         {
           title: "Portail des alertes",
