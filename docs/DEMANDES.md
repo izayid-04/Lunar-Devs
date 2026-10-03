@@ -267,3 +267,218 @@ Vérifié contre l'API réelle avec le code exact de `lib/api.ts` :
 `GET /me/security` renvoie bien la dernière connexion et l'historique ;
 un mot de passe incorrect renvoie le message générique attendu (pas de
 fuite d'information).
+
+### Correction prioritaire — D09 : `/dashboard` citoyen, métriques factices retirées
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D09** | Retirer les métriques inventées (énergie, oxygène, dôme…) et les remplacer par de vraies données API. | `app/dashboard/page.tsx`, `lib/api.ts` (ajout du bloc rendez-vous) | ✅ Fait |
+
+Supprimé entièrement : les cartes KPI « Qualité Atmosphérique », « Réseau
+Électrique Fusion », « Dôme et Bouclier Défensif », « Citoyens
+Enregistrés » (chiffres inventés), le bouton factice « Purifier »/état
+`purifying`, le bloc télémétrie « Secteurs Urbains & Surveillance des
+Dômes », et les cartes « transmissions municipales en direct ». Remplacé
+par 4 cartes alimentées par l'API réelle : alertes actives concernant
+l'utilisateur (`GET /alerts/active`), nombre de ses demandes en cours
+(`GET /messages/mine`, filtrées sur `status !== "traite"`), son prochain
+rendez-vous confirmé à venir (`GET /appointments/mine`, trié par date),
+et la dernière annonce publiée (`GET /announcements`). Deux listes
+détaillées sous les cartes : alertes actives (lien vers `/alertes/[id]`,
+pastille de gravité réutilisant `SEVERITY_BADGE` de `lib/alerts.ts`) et
+dernières annonces (lien vers `/annonces/[id]`). Les raccourcis
+par rôle (admin/agent/citoyen) sont conservés mais leurs intitulés
+décoratifs (« Console de Haute Administration », « Poste Opérationnel
+Municipal »…) ont été simplifiés en texte fonctionnel sobre.
+
+Pour ajouter la section « rendez-vous » au tableau de bord, le client
+API a été complété (`AppointmentSlot`, `Appointment`,
+`fetchAppointmentSlots`, `bookAppointment`, `fetchMyAppointments`,
+`cancelAppointment`, `downloadAppointmentIcs`, `fetchAgentAppointments`)
+— nécessaire également pour le chantier Services (point 6 de la liste
+précédente / RDV sur la fiche service).
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur après
+coup (suppression d'un état `error`/`setError` devenu mort suite à la
+réécriture).
+
+### Correction prioritaire — D13 : `/admin` renommée, texte décoratif retiré
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D13** | Retirer tout texte décoratif sans fonction, renommer la page, ne garder que des fonctions réelles réservées à l'admin. | `app/admin/page.tsx`, `docs/BESOINS-API.md` | ✅ Fait (gestion des comptes agents : bloquée côté API, documentée) |
+
+Supprimé : le badge « Privilèges Administrateur Suprême (Niveau 3) », le
+titre « Console d'Administration Municipale », le badge technique
+« HODI-NODE-SOL04 • ACTIF », la carte « Registre des Comptes » avec le
+chiffre inventé « 1 248 », et la carte « Privilèges Exclusifs » qui
+n'affichait qu'un texte statique sans action. La page s'appelle
+maintenant simplement « Administration » et ne contient que deux
+fonctions réelles : le tableau des comptes ciblés par des tentatives de
+connexion suspectes (`components/security/targeted-accounts-card.tsx`,
+F37, déjà présent) et un accès à la suppression définitive d'alerte
+(`DELETE /alerts/:id`, déjà implémentée et correctement restreinte à
+`user.role === "admin"` dans `app/agent/alertes/page.tsx` — pas dupliquée,
+seulement reliée depuis `/admin` pour éviter deux implémentations de la
+même action).
+
+La gestion des comptes **agents** demandée dans la même instruction
+n'est pas réalisable pour l'instant : l'API documente `PATCH
+/agent/citizens/:id/status` mais interdit explicitement de cibler un
+compte agent/admin via cette route (403). Écart documenté dans
+`docs/BESOINS-API.md` ("Gestion des comptes agents — route manquante").
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur.
+
+### Audit — aucune autre page n'affiche de données inventées
+
+Passage en revue de toutes les pages authentifiées (`/agent`,
+`/agent/annonces`, `/agent/alertes`, `/espace`, `/districts`,
+`/services/[slug]`, `/alertes`, `/alertes/[id]`, `/annonces`,
+`/annonces/[id]`, `/status`) par recherche de chiffres/statistiques
+inventés (motifs type « 1 248 », « 98% », badges « Niveau X », mentions
+mock/placeholder/simulé). Aucune autre occurrence trouvée : `/status`
+fait un vrai health-check API, les autres pages n'affichent que des
+données issues des endpoints réels ou des champs de formulaire standards.
+
+Seules des pages **publiques non authentifiées** (page d'accueil `/`,
+page de connexion `/connexion`) conservent du texte d'ambiance
+science-fiction (« Télémétrie Orbitale », « Dôme Alpha », carrousel de
+planètes…) qui fait partie de la direction artistique validée pour le
+thème « ville spatiale » — ce n'est pas une donnée fonctionnelle
+présentée comme réelle (pas de chiffre d'affaires, de compteur
+d'utilisateurs ou de métrique métier), donc non modifié ici pour
+respecter le gel du design. À signaler si ce n'est pas ce qui était
+visé par la vérification.
+
+## Vague F47, F48, F36, F51 — Nouvelles pages & Services Municipaux
+
+### 1. F47 + F48 — Journal d'audit (Espace agents)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F47 / F48** | Historique complet et immuable des actions administratives (« qui a fait quoi, quand, sur quel objet »), filtres par action et entité, pagination et navigation au clavier. | `app/agent/audit-logs/page.tsx`, `lib/api.ts` (`fetchAuditLogs`), `components/app-sidebar.tsx` | ✅ Fait |
+
+- Page dédiée accessible aux agents et administrateurs via le sous-menu de la barre latérale « Historique des actions » (`/agent/audit-logs`).
+- Branchement direct sur `GET /agent/audit-logs` avec filtrage par action (`message_status_updated`, `citizen_account_activated`, etc.) et par entité (`CitizenMessage`, `User`, `MunicipalService`, `Alert`).
+- Traduction en langage clair et badges colorés contrastés avec icônes.
+- Affichage détaillé des notes et métadonnées JSON parsées de manière sécurisée.
+- Pagination complète accessible au clavier (`Précédent` / `Suivant` avec focus visible).
+
+#### Comment tester F47 + F48 :
+1. Se connecter avec un compte `agent` ou `admin`.
+2. Ouvrir le menu latéral > Espace agent > « Historique des actions » (`/agent/audit-logs`).
+3. Vérifier les filtres par type d'action et type d'objet, ainsi que l'actualisation et la pagination.
+
+---
+
+### 2. F36 — Transports Municipaux (Public + Gestion Agent)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F36** | Page publique des transports (lignes, état du trafic en clair avec icône + texte, fréquence, horaires, arrêts, prochains départs, recherche et filtres par mode). Côté agent : mise à jour de l'état d'une ligne (`PATCH /transports/:codeOrId/status`). | `app/transports/page.tsx`, `app/transports/transports-content.tsx`, `lib/api.ts` (`fetchTransports`, `patchTransportStatus`), `components/app-sidebar.tsx`, `components/ui/stacked-circular-footer.tsx` | ✅ Fait |
+
+- Accessible publiquement sur `/transports`, via le pied de page et la barre latérale (navette, bus, tram/maglev, liaison maritime).
+- Recherche instantanée par mot-clé et filtre par mode de transport.
+- Pour chaque ligne : nom, code, état du trafic avec pastille explicite (`Trafic normal`, `Perturbé`, `Interrompu`), message d'information, itinéraire, fréquence, horaires, liste des arrêts et badges des prochains départs.
+- Pour les agents et admins : bouton « Gérer l'état » ouvrant une modale accessible pour mettre à jour le statut et le message d'information via `PATCH /transports/:codeOrId/status`.
+
+#### Comment tester F36 :
+1. Aller sur `/transports` : rechercher une ligne ou filtrer par « Navettes orbitales ».
+2. Se connecter en agent : cliquer sur « Gérer l'état » sur une ligne, basculer en « Perturbé » avec un message explicatif, valider et constater la mise à jour immédiate.
+
+---
+
+### 3. F51 — Données Personnelles & Demandes RGPD (Public + Citoyen + Agent)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F51** | Page publique d'information (« Vos données »), formulaire citoyen d'exercice de droits avec référence RGPD-..., suivi dans l'espace personnel, et traitement côté agents. | `app/donnees-personnelles/page.tsx`, `app/donnees-personnelles/donnees-personnelles-content.tsx`, `app/espace/page.tsx` (`fetchMyPrivacyInquiries`), `app/agent/privacy/page.tsx`, `lib/api.ts` | ✅ Fait |
+
+- Page publique `/donnees-personnelles` exposant simplement les 4 principes de protection des données de Nova Terra (finalité, sécurité, durées de conservation, droits garantis).
+- Formulaire pour citoyen connecté permettant d'émettre une demande (explication, accès, rectification, effacement, opposition) via `POST /privacy/inquiries`.
+- Écran de confirmation avec référence unique (ex. `RGPD-2026-0001`).
+- Suivi de la réponse et du statut dans l'espace personnel `/espace` (section dédiée « Mes demandes de données & RGPD » via `GET /privacy/inquiries/mine`).
+- Espace agent de gestion sur `/agent/privacy` (`GET /agent/privacy/inquiries`) : filtrage par statut, examen de la demande citoyenne et réponse officielle avec note d'explication via `PATCH /agent/privacy/inquiries/:id/status`.
+
+#### Comment tester F51 :
+1. Aller sur `/donnees-personnelles` : consulter les engagements et formuler une demande avec un compte citoyen. Noter la référence `RGPD-...`.
+2. Se rendre sur `/espace` : constater que la demande apparaît avec son statut « En attente ».
+3. Se connecter avec un compte agent et ouvrir `/agent/privacy` : instruire le dossier, rédiger la réponse officielle et passer le statut à « Traité ».
+4. Revenir sur `/espace` avec le citoyen : constater la réponse officielle affichée en direct.
+
+## Chantier regroupé — Page Services (D05, F28, F32, F38, F45, F46, F39)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D05 / F28 / F32 / F38 / F45 / F46 / F39** | Services prioritaires en tête, recherche, filtres catégorie/quartier, bouton « Urgences », badge de disponibilité, fiche détail avec horaires/contact/adresse/carte, alternative si indisponible, « Prendre rendez-vous » et « Contacter ce service ». | `app/districts/districts-content.tsx`, `app/services/[slug]/page.tsx`, `components/services/appointment-booking.tsx`, `app/espace/page.tsx`, `lib/api.ts` | ✅ Fait (partiellement bloqué par des données backend manquantes, voir détail) |
+
+Les demandes précédentes (point 1 « F38 », point 5 « F28+F32 », point 6
+« F39 », point 8 « F45+F46 ») sont regroupées ici en un seul chantier
+cohérent sur la page `/districts` (annuaire des services) et
+`/services/[slug]` (fiche détail), comme demandé.
+
+**Liste `/districts`** :
+- Tri « services prioritaires en tête » dans chaque quartier (`featured`
+  en premier, puis ordre alphabétique) — actif dès que l'API renseignera
+  ce champ (voir `docs/BESOINS-API.md`, actuellement toujours `false`/absent
+  en prod donc sans effet visible pour l'instant).
+- Recherche texte (nom/description) et filtre par quartier : déjà en
+  place, conservés.
+- Filtre par catégorie : **n'apparaît que si au moins un service
+  renvoyé par l'API porte un champ `category`**, pour ne pas proposer un
+  sélecteur qui ne donnerait jamais aucun résultat. Actuellement invisible
+  en prod pour cette même raison (champ absent, voir `docs/BESOINS-API.md`).
+- Bouton « Urgences » : même logique, affiché seulement si au moins un
+  service a `isEmergency: true`. Filtre appliqué **côté client** sur la
+  liste déjà chargée plutôt qu'en rappelant `GET /services?emergency=true`,
+  qui ne répond jamais en prod (timeout déjà documenté) — ça contourne le
+  bug plutôt que d'en dépendre.
+- Badge de disponibilité sur chaque carte (déjà fait au point 1), plus
+  un badge « Service prioritaire » / « Urgence » quand ces champs sont
+  renseignés.
+- Lien `?quartier=...` géré en entrée (utilisé par la fiche détail, voir
+  plus bas).
+
+**Fiche détail `/services/[slug]`** :
+- Horaires, contact : déjà présents.
+- Adresse : affichée seulement si `service.address` est renseigné par
+  l'API (absent en prod actuellement).
+- « Emplacement sur la carte des quartiers » : le badge quartier renvoie
+  vers `/districts?quartier=<quartier>`, qui pré-sélectionne ce quartier
+  dans le filtre de la liste — pas de nouvelle carte géographique
+  construite (les coordonnées `latitude`/`longitude` sont elles aussi
+  absentes en prod, voir `docs/BESOINS-API.md` ; une vraie carte
+  interactive sera ajoutée quand ces données existeront).
+- Badge « Service d'urgence » si `isEmergency`.
+- Alternative si indisponible : déjà fait au point 1 (`AvailabilityDetails`).
+- **« Prendre rendez-vous »** (nouveau, F39/F40) : `components/services/appointment-booking.tsx`.
+  Réservé aux citoyens connectés (l'API renvoie 403 pour les autres
+  rôles). Liste les créneaux disponibles (`GET /appointments/slots`),
+  sélection d'un créneau, motif (obligatoire) + documents à prévoir
+  (facultatif), réservation (`POST /appointments/book/:slotId`), gestion
+  du conflit `409` (créneau pris entre-temps → re-charge la liste),
+  confirmation avec téléchargement `.ics` (`GET /appointments/:id/ics`,
+  déjà implémenté au point 1).
+- **« Contacter ce service »** (nouveau) : renvoie vers `/espace?sujet=...`
+  qui pré-remplit et ouvre directement le formulaire « Nouveau message »
+  avec le nom du service en objet. Pas de champ `serviceId` dans le
+  contrat `POST /messages`, donc pas de lien structurel possible côté
+  API — le pré-remplissage du sujet est la solution la plus honnête.
+
+Vérifié contre l'API réelle (`GET /services`, `GET
+/appointments/slots?service=mairie-de-nova-terra`) le 2026-10-03 :
+confirme à nouveau l'absence des champs `category`/`address`/`latitude`/
+`longitude`/`featured`/`isEmergency` en prod (voir `docs/BESOINS-API.md`).
+Les créneaux de rendez-vous, eux, existent déjà et fonctionnent
+(`isAvailable`, `location`, `agent`). **Trouvé au passage un problème de
+sécurité réel** : `GET /appointments/slots` (endpoint public, sans
+authentification) renvoie l'objet `agent` complet, **hash bcrypt du mot
+de passe inclus**. Documenté en tête de `docs/BESOINS-API.md` — à
+corriger en urgence côté backend ; le front n'affiche que `firstName`/
+`lastName` mais ne peut pas empêcher la fuite dans la réponse HTTP brute.
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur
+(y compris un lint `react-hooks/set-state-in-effect` sur le nouveau
+composant de réservation, corrigé avec le même motif `Promise.resolve().then(...)`
+déjà utilisé ailleurs dans le projet).

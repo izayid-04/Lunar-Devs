@@ -19,6 +19,12 @@ function StackedCircularFooter() {
             <Link href="/districts" className="transition-colors hover:text-primary">
               Districts
             </Link>
+            <Link href="/transports" className="transition-colors hover:text-primary">
+              Transports
+            </Link>
+            <Link href="/donnees-personnelles" className="transition-colors hover:text-primary">
+              Vos données
+            </Link>
             <Link href="/a-propos" className="transition-colors hover:text-primary">
               À propos
             </Link>

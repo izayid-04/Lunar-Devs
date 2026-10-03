@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/dashboard-layout";
 import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
@@ -37,10 +38,12 @@ import { toast } from "sonner";
 import {
   fetchMyMessages,
   fetchMySecurity,
+  fetchMyPrivacyInquiries,
   postMessage,
   type CitizenMessage,
   type MessageStatus,
   type MySecurity,
+  type PrivacyInquiry,
 } from "@/lib/api";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import {
@@ -85,9 +88,12 @@ const BODY_MAX = 5000;
 
 function EspaceContent() {
   const { user, token } = useAuth();
+  const searchParams = useSearchParams();
 
   const [messages, setMessages] = useState<CitizenMessage[] | null>(null);
   const [messagesError, setMessagesError] = useState<string | null>(null);
+
+  const [privacyInquiries, setPrivacyInquiries] = useState<PrivacyInquiry[] | null>(null);
 
   const [security, setSecurity] = useState<MySecurity | null>(null);
   const [securityError, setSecurityError] = useState<string | null>(null);
@@ -108,9 +114,19 @@ function EspaceContent() {
       .catch((err: Error) => setMessagesError(err.message));
   }, [token]);
 
+  const loadPrivacyInquiries = useCallback(() => {
+    if (!token) return;
+    fetchMyPrivacyInquiries(token)
+      .then(setPrivacyInquiries)
+      .catch(() => {});
+  }, [token]);
+
   useEffect(() => {
-    Promise.resolve().then(() => loadMessages());
-  }, [loadMessages]);
+    Promise.resolve().then(() => {
+      loadMessages();
+      loadPrivacyInquiries();
+    });
+  }, [loadMessages, loadPrivacyInquiries]);
 
   useEffect(() => {
     if (!token) return;
@@ -119,6 +135,17 @@ function EspaceContent() {
       .then(setSecurity)
       .catch((err: Error) => setSecurityError(err.message));
   }, [token]);
+
+  // Pré-remplissage depuis le bouton "Contacter ce service" d'une fiche service.
+  useEffect(() => {
+    const prefill = searchParams.get("sujet");
+    if (prefill) {
+      Promise.resolve().then(() => {
+        setSubject(prefill.slice(0, SUBJECT_MAX));
+        setDialogOpen(true);
+      });
+    }
+  }, [searchParams]);
 
   if (!user) return null;
 
@@ -378,6 +405,62 @@ function EspaceContent() {
                 </div>
               )}
             </div>
+
+            {/* Demandes relatives aux données personnelles (F51) */}
+            <div className="mt-8 pt-6 border-t border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Mes demandes de données & RGPD
+                </h3>
+                <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-primary">
+                  <a href="/donnees-personnelles">Nouvelle demande ↗</a>
+                </Button>
+              </div>
+
+              {privacyInquiries && privacyInquiries.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">
+                  Aucune demande relative aux données personnelles en cours.
+                </p>
+              )}
+
+              {privacyInquiries && privacyInquiries.length > 0 && (
+                <div className="space-y-2">
+                  {privacyInquiries.map((pi) => (
+                    <div
+                      key={pi.id}
+                      className="rounded-lg border border-border p-3 text-xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-primary">{pi.reference}</span>
+                        <Badge
+                          variant="outline"
+                          className={
+                            pi.status === "traitee"
+                              ? "border-success/40 text-success bg-success/10 text-[10px]"
+                              : pi.status === "en_cours"
+                              ? "border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px]"
+                              : "border-primary/40 text-primary bg-primary/10 text-[10px]"
+                          }
+                        >
+                          {pi.status === "traitee"
+                            ? "Traitée"
+                            : pi.status === "en_cours"
+                            ? "En cours"
+                            : "En attente"}
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-foreground">{pi.subject}</p>
+                      {pi.responseNote && (
+                        <div className="bg-success/5 border border-success/30 rounded p-2 text-[11px] text-foreground">
+                          <span className="font-semibold text-success block">Réponse DPO :</span>
+                          {pi.responseNote}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -464,7 +547,9 @@ function EspaceContent() {
 export default function EspacePage() {
   return (
     <DashboardLayout>
-      <EspaceContent />
+      <Suspense fallback={null}>
+        <EspaceContent />
+      </Suspense>
     </DashboardLayout>
   );
 }

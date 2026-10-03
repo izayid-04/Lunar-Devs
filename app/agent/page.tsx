@@ -192,26 +192,43 @@ function AgentContent() {
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase text-muted-foreground font-semibold">Nouveaux</p>
-            <p className="text-2xl font-bold mt-1 text-primary">{counts?.nouveau ?? "…"}</p>
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nouveaux</span>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Clock className="size-4" />
+            </div>
           </div>
-          <Clock className="size-6 text-primary/60" />
+          <div className="mt-4">
+            <p className="text-3xl font-extrabold tracking-tight text-primary">{counts?.nouveau ?? "…"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">En attente de prise en charge</p>
+          </div>
         </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase text-muted-foreground font-semibold">En cours</p>
-            <p className="text-2xl font-bold mt-1">{counts?.en_cours ?? "…"}</p>
+
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">En cours</span>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <RotateCw className="size-4" />
+            </div>
           </div>
-          <RotateCw className="size-6 text-muted-foreground" />
+          <div className="mt-4">
+            <p className="text-3xl font-extrabold tracking-tight text-foreground">{counts?.en_cours ?? "…"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Dossiers en instruction</p>
+          </div>
         </Card>
-        <Card className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase text-muted-foreground font-semibold">Traités</p>
-            <p className="text-2xl font-bold mt-1 text-success">{counts?.traite ?? "…"}</p>
+
+        <Card className="p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Traités</span>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-success/15 text-success">
+              <CheckCircle className="size-4" />
+            </div>
           </div>
-          <CheckCircle className="size-6 text-success/60" />
+          <div className="mt-4">
+            <p className="text-3xl font-extrabold tracking-tight text-success">{counts?.traite ?? "…"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Réponses transmises</p>
+          </div>
         </Card>
       </div>
 

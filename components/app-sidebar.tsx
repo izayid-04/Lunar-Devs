@@ -23,6 +23,7 @@ import {
   MegaphoneIcon,
   RadioIcon,
   AlertTriangleIcon,
+  RocketIcon,
 } from "lucide-react"
 
 import { usePathname } from "next/navigation"
@@ -70,6 +71,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: "/agent/alertes",
               isActive: pathname.startsWith("/agent/alertes"),
             },
+            {
+              title: "Historique des actions",
+              url: "/agent/audit-logs",
+              isActive: pathname.startsWith("/agent/audit-logs"),
+            },
+            {
+              title: "Demandes RGPD",
+              url: "/agent/privacy",
+              isActive: pathname.startsWith("/agent/privacy"),
+            },
           ],
         },
         {
@@ -83,6 +94,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/districts",
           icon: <CompassIcon className="size-4" />,
           isActive: pathname.startsWith("/districts") || pathname.startsWith("/services"),
+        },
+        {
+          title: "Transports & Liaisons",
+          url: "/transports",
+          icon: <RocketIcon className="size-4" />,
+          isActive: pathname.startsWith("/transports"),
         },
         {
           title: "Portail des alertes",
@@ -109,6 +126,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/districts",
           icon: <CompassIcon className="size-4" />,
           isActive: pathname.startsWith("/districts") || pathname.startsWith("/services"),
+        },
+        {
+          title: "Transports en commun",
+          url: "/transports",
+          icon: <RocketIcon className="size-4" />,
+          isActive: pathname.startsWith("/transports"),
         },
         {
           title: "Annonces",

@@ -604,6 +604,8 @@ export type AppointmentSlot = {
   startsAt: string;
   endsAt?: string;
   isAvailable: boolean;
+  location?: string;
+  agent?: { firstName: string; lastName: string } | null;
 };
 
 export type AppointmentStatus = "confirme" | "annule";
@@ -615,6 +617,7 @@ export type Appointment = {
   requiredDocuments?: string | null;
   startsAt: string;
   endsAt?: string;
+  location?: string;
   service?: { id: number; name: string; slug: string };
   agent?: { id: string; firstName: string; lastName: string } | null;
   createdAt: string;
@@ -690,6 +693,227 @@ export async function fetchAgentAppointments(token: string, serviceId?: number):
   const res = await authFetch(`/agent/appointments${qs}`, token);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de récupérer les rendez-vous."));
+  }
+  return res.json();
+}
+
+
+// --- Journal d'Audit & Traçabilité Administrative (Chantier 1 — F47, F48) ---
+
+export type AuditLogAction =
+  | "message_status_updated"
+  | "citizen_account_activated"
+  | "citizen_account_deactivated"
+  | "citizen_account_deleted"
+  | "service_availability_updated"
+  | "alert_created"
+  | "alert_updated"
+  | "alert_terminated"
+  | "alert_deleted"
+  | string;
+
+export type AuditLogEntityType =
+  | "CitizenMessage"
+  | "User"
+  | "MunicipalService"
+  | "Alert"
+  | string;
+
+export type AuditLogItem = {
+  id: string;
+  action: AuditLogAction;
+  entityType: AuditLogEntityType;
+  entityId: string;
+  details: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  author: {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: Role;
+  } | null;
+};
+
+export type AuditLogsResponse = {
+  items: AuditLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type AuditLogsFilter = {
+  action?: string;
+  entityType?: string;
+  authorId?: string | number;
+  page?: number;
+  limit?: number;
+};
+
+export async function fetchAuditLogs(
+  token: string,
+  filter?: AuditLogsFilter
+): Promise<AuditLogsResponse> {
+  const params = new URLSearchParams();
+  if (filter?.action) params.set("action", filter.action);
+  if (filter?.entityType) params.set("entityType", filter.entityType);
+  if (filter?.authorId) params.set("authorId", String(filter.authorId));
+  if (filter?.page) params.set("page", String(filter.page));
+  if (filter?.limit) params.set("limit", String(filter.limit));
+
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await authFetch(`/agent/audit-logs${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer le journal d'audit."));
+  }
+  return res.json();
+}
+
+// --- Transports Municipaux (Chantier 2 — F36) ---
+
+export type TransportType = "navette" | "bus" | "tram" | "batelier";
+export type TransportStatus = "normal" | "perturbe" | "interrompu";
+
+export type TransportLine = {
+  id: number;
+  code: string;
+  name: string;
+  type: TransportType;
+  origin: string;
+  destination: string;
+  status: TransportStatus;
+  statusMessage: string;
+  frequency: string;
+  operatingHours: string;
+  stops: string; // JSON array string
+  nextDepartures: string; // JSON array string
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchTransports(filter?: { type?: TransportType; q?: string }): Promise<TransportLine[]> {
+  const params = new URLSearchParams();
+  if (filter?.type) params.set("type", filter.type);
+  if (filter?.q) params.set("q", filter.q);
+
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(apiUrl(`/transports${qs}`));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger les transports."));
+  }
+  return res.json();
+}
+
+export async function fetchTransportDetail(codeOrId: string | number): Promise<TransportLine> {
+  const res = await fetch(apiUrl(`/transports/${codeOrId}`));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Ligne de transport introuvable."));
+  }
+  return res.json();
+}
+
+export async function patchTransportStatus(
+  token: string,
+  codeOrId: string | number,
+  payload: { status: TransportStatus; statusMessage: string }
+): Promise<TransportLine> {
+  const res = await authFetch(`/transports/${codeOrId}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier l'état du transport."));
+  }
+  return res.json();
+}
+
+// --- Protection des Données & Demandes RGPD (Chantier 3 — F51) ---
+
+export type PrivacyInquiryType =
+  | "acces"
+  | "rectification"
+  | "effacement"
+  | "explication"
+  | "opposition"
+  | "autre";
+
+export type PrivacyInquiryStatus = "en_attente" | "en_cours" | "traitee" | "fermee";
+
+export type PrivacyInquiry = {
+  id: number;
+  reference: string;
+  type: PrivacyInquiryType;
+  subject: string;
+  description: string;
+  status: PrivacyInquiryStatus;
+  responseNote: string | null;
+  respondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  citizen?: {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+};
+
+export type CreatePrivacyInquiryPayload = {
+  type: PrivacyInquiryType;
+  subject: string;
+  description: string;
+};
+
+export async function postPrivacyInquiry(
+  token: string,
+  payload: CreatePrivacyInquiryPayload
+): Promise<PrivacyInquiry> {
+  const res = await authFetch("/privacy/inquiries", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de transmettre votre demande relative aux données."));
+  }
+  return res.json();
+}
+
+export async function fetchMyPrivacyInquiries(token: string): Promise<PrivacyInquiry[]> {
+  const res = await authFetch("/privacy/inquiries/mine", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer vos demandes relatives aux données."));
+  }
+  return res.json();
+}
+
+export async function fetchAgentPrivacyInquiries(
+  token: string,
+  status?: PrivacyInquiryStatus
+): Promise<PrivacyInquiry[]> {
+  const qs = status ? `?status=${status}` : "";
+  const res = await authFetch(`/agent/privacy/inquiries${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger les demandes relatives aux données personnelles."));
+  }
+  return res.json();
+}
+
+export async function patchAgentPrivacyInquiryStatus(
+  token: string,
+  id: number,
+  payload: { status: PrivacyInquiryStatus; responseNote: string }
+): Promise<PrivacyInquiry> {
+  const res = await authFetch(`/agent/privacy/inquiries/${id}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de mettre à jour cette demande."));
   }
   return res.json();
 }

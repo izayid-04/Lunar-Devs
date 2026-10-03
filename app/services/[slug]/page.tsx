@@ -11,9 +11,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Clock, Mail, MapPin } from "lucide-react";
+import Link from "next/link";
+import { Clock, Mail, MapPin, Siren, MessageSquare } from "lucide-react";
 import { AvailabilityBadge, AvailabilityDetails } from "@/components/services/availability-badge";
 import AvailabilityManager from "@/components/services/availability-manager";
+import AppointmentBooking from "@/components/services/appointment-booking";
+import { Button } from "@/components/ui/button";
 
 async function getService(slug: string) {
   try {
@@ -60,11 +63,22 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
       </Breadcrumb>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="border-primary/40 text-primary gap-1.5">
-          <MapPin className="size-3" />
-          {service.district}
-        </Badge>
+        <Link href={`/districts?quartier=${encodeURIComponent(service.district)}`}>
+          <Badge
+            variant="outline"
+            className="border-primary/40 text-primary gap-1.5 transition-colors hover:bg-primary/10"
+          >
+            <MapPin className="size-3" />
+            {service.district}
+          </Badge>
+        </Link>
         <AvailabilityBadge availability={service.availability} />
+        {service.isEmergency && (
+          <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 gap-1.5">
+            <Siren className="size-3" />
+            Service d&apos;urgence
+          </Badge>
+        )}
       </div>
       <h1 className="mt-3">{service.name}</h1>
       <p className="mt-3 text-muted-foreground">{service.description}</p>
@@ -75,6 +89,16 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
 
       <div className="mt-4">
         <AvailabilityDetails service={service} />
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <AppointmentBooking service={service} />
+        <Button asChild variant="outline" className="gap-2">
+          <Link href={`/espace?sujet=${encodeURIComponent(`Au sujet de : ${service.name}`)}`}>
+            <MessageSquare className="size-4" />
+            Contacter ce service
+          </Link>
+        </Button>
       </div>
 
       <Card className="mt-8">
@@ -90,6 +114,12 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
               <Clock className="mt-0.5 size-4 text-muted-foreground" />
               <span>{service.horaires}</span>
             </div>
+            {service.address && (
+              <div className="flex items-start gap-2 text-sm sm:col-span-2">
+                <MapPin className="mt-0.5 size-4 text-muted-foreground" />
+                <span>{service.address}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
