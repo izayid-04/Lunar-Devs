@@ -12,11 +12,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
-import { Clock, Mail, MapPin, Siren, MessageSquare } from "lucide-react";
+import { Clock, Mail, MapPin, Siren } from "lucide-react";
 import { AvailabilityBadge, AvailabilityDetails } from "@/components/services/availability-badge";
 import AvailabilityManager from "@/components/services/availability-manager";
 import AppointmentBooking from "@/components/services/appointment-booking";
-import { Button } from "@/components/ui/button";
+import ContactServiceButton from "@/components/services/contact-service-button";
 
 async function getService(slug: string) {
   try {
@@ -93,12 +93,7 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
 
       <div className="mt-4 flex flex-wrap gap-3">
         <AppointmentBooking service={service} />
-        <Button asChild variant="outline" className="gap-2">
-          <Link href={`/espace?sujet=${encodeURIComponent(`Au sujet de : ${service.name}`)}`}>
-            <MessageSquare className="size-4" />
-            Contacter ce service
-          </Link>
-        </Button>
+        <ContactServiceButton serviceName={service.name} />
       </div>
 
       <Card className="mt-8">

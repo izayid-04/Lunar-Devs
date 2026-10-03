@@ -696,3 +696,36 @@ temporairement pour confirmer que `/`, `/districts`, `/services/[slug]`
 et `/espace` répondent bien (`200`, pas d'erreur serveur), puis arrêté —
 aucun outil de capture visuelle n'étant disponible dans cette session
 pour une vérification à l'œil.
+
+## Correction — boutons de dépôt de message visibles par les mauvais rôles
+
+Signalé : un agent ou un admin ouvrant `/espace` voyait le bouton
+« Nouveau message », et sur une fiche service le bouton « Contacter ce
+service » — deux chemins qui finissent sur `POST /messages`, réservé au
+rôle `citizen` (`403 Forbidden` pour les autres). `/espace` chargeait
+aussi sans condition `GET /messages/mine`, `GET /appointments/mine` et
+`GET /privacy/inquiries/mine` (eux aussi réservés au citoyen) pour
+n'importe quel rôle connecté, provoquant 3 appels en échec silencieux à
+chaque ouverture par un agent/admin.
+
+Corrigé dans `app/espace/page.tsx` : un indicateur `isCitizen` (calculé
+depuis `user.role`) empêche maintenant d'appeler ces trois routes et
+masque entièrement les sections « Nouveau message », « Mes demandes »,
+« Mes rendez-vous » et « Mes demandes de données & RGPD » pour les
+rôles agent/admin — ils ne voient plus que leur profil, la sécurité du
+compte et la suppression de compte (ces routes-là sont bien ouvertes à
+tous les rôles d'après `docs/API.md`). Le bouton « Contacter ce
+service » de la fiche service a été extrait dans un nouveau composant
+client (`components/services/contact-service-button.tsx`) qui applique
+la même règle : invite à se connecter si personne n'est connecté,
+invisible pour agent/admin, visible seulement pour un citoyen — même
+logique que `AppointmentBooking` pour la prise de rendez-vous, qui
+gérait déjà correctement ce cas.
+
+Vérifié par lecture du contrat (`docs/API.md`) pour les 4 routes
+concernées (`POST /messages`, `GET /messages/mine`, `GET
+/appointments/mine`, `GET`/`POST /privacy/inquiries...`), toutes bien
+marquées `citizen` uniquement — pas de compte agent/admin de démonstration
+disponible pour un test en direct contre l'API réelle (l'inscription
+publique ne crée que des comptes citoyens). `npm run build` et `npm run
+lint` passent sans erreur.

@@ -167,28 +167,33 @@ function EspaceContent() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Les demandes, rendez-vous et inquiétudes RGPD sont des routes réservées
+  // au rôle citoyen (403 pour agent/admin) — on ne les appelle ni ne les
+  // affiche pour les autres rôles.
+  const isCitizen = user?.role === "citizen";
+
   const loadMessages = useCallback(() => {
-    if (!token) return;
+    if (!token || !isCitizen) return;
     setMessages(null);
     setMessagesError(null);
     fetchMyMessages(token)
       .then(setMessages)
       .catch((err: Error) => setMessagesError(err.message));
-  }, [token]);
+  }, [token, isCitizen]);
 
   const loadPrivacyInquiries = useCallback(() => {
-    if (!token) return;
+    if (!token || !isCitizen) return;
     fetchMyPrivacyInquiries(token)
       .then(setPrivacyInquiries)
       .catch(() => {});
-  }, [token]);
+  }, [token, isCitizen]);
 
   const loadAppointments = useCallback(() => {
-    if (!token) return;
+    if (!token || !isCitizen) return;
     fetchMyAppointments(token)
       .then(setAppointments)
       .catch((err: Error) => setAppointmentsError(err.message));
-  }, [token]);
+  }, [token, isCitizen]);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -209,17 +214,17 @@ function EspaceContent() {
   // Pré-remplissage depuis le bouton "Contacter ce service" d'une fiche service.
   useEffect(() => {
     const prefill = searchParams.get("sujet");
-    if (prefill) {
+    if (prefill && isCitizen) {
       Promise.resolve().then(() => {
         setSubject(prefill.slice(0, SUBJECT_MAX));
         setDialogOpen(true);
       });
     }
-  }, [searchParams]);
+  }, [searchParams, isCitizen]);
 
   if (!user) return null;
 
-  if (messages === null && !messagesError) {
+  if (isCitizen && messages === null && !messagesError) {
     return (
       <div
         role="status"
@@ -341,10 +346,13 @@ function EspaceContent() {
             Mon espace — {user.firstName} {user.lastName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Votre profil et vos messages auprès des services municipaux.
+            {isCitizen
+              ? "Votre profil et vos messages auprès des services municipaux."
+              : "Votre profil et les paramètres de votre compte."}
           </p>
         </div>
 
+        {isCitizen && (
         <Dialog
           open={dialogOpen}
           onOpenChange={(open) => {
@@ -535,6 +543,7 @@ function EspaceContent() {
             )}
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Complétion du profil (D12, F35) */}
@@ -642,6 +651,7 @@ function EspaceContent() {
               </div>
             </div>
 
+            {isCitizen && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold flex items-center gap-2">
@@ -693,8 +703,10 @@ function EspaceContent() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Mes rendez-vous (F39) */}
+            {isCitizen && (
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -808,8 +820,10 @@ function EspaceContent() {
                 );
               })()}
             </div>
+            )}
 
             {/* Demandes relatives aux données personnelles (F51) */}
+            {isCitizen && (
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">
@@ -864,6 +878,7 @@ function EspaceContent() {
                 </div>
               )}
             </div>
+            )}
           </CardContent>
         </Card>
 
