@@ -14,6 +14,7 @@ import {
   UserPlus,
   Compass,
   Megaphone,
+  Siren,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -42,17 +43,27 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
     >
       <item.icon className="size-[18px]" aria-hidden="true" />
       <span
-        role="tooltip"
-        className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 scale-90 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-sm transition-all duration-150 group-hover:scale-100 group-hover:opacity-100"
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 scale-90 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-sm transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100"
       >
         {item.label}
       </span>
     </span>
   );
 
+  // F41 : focus clavier bien visible sur chaque entrée du dock ; le libellé
+  // s'affiche aussi au focus (pas seulement au survol).
+  const focusRing =
+    "group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
   if (item.href) {
     return (
-      <Link href={item.href} aria-label={item.label} className="group">
+      <Link
+        href={item.href}
+        aria-label={item.label}
+        aria-current={active ? "page" : undefined}
+        className={focusRing}
+      >
         {content}
       </Link>
     );
@@ -63,7 +74,7 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
       type="button"
       onClick={item.onClick}
       aria-label={item.label}
-      className="group"
+      className={focusRing}
     >
       {content}
     </button>
@@ -85,16 +96,17 @@ export default function DockNav() {
 
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
-    { href: "/districts", label: "Districts", icon: Compass },
+    { href: "/districts", label: "Services", icon: Compass },
     { href: "/annonces", label: "Annonces", icon: Megaphone },
+    { href: "/alertes", label: "Alertes", icon: Siren },
     { href: "/a-propos", label: "À propos", icon: Info },
   ];
 
   if (!loading) {
     if (user) {
-      items.push({ href: "/dashboard", label: "Cockpit", icon: LayoutDashboard });
+      items.push({ href: "/espace", label: "Mon espace", icon: LayoutDashboard });
       if (user.role === "agent" || user.role === "admin") {
-        items.push({ href: "/agent", label: "Agent", icon: Satellite });
+        items.push({ href: "/agent", label: "Espace agent", icon: Satellite });
       }
       if (user.role === "admin") {
         items.push({ href: "/admin", label: "Admin", icon: ShieldCheck });

@@ -20,14 +20,17 @@ import {
 } from "@/components/ui/sidebar"
 import ModeToggle from "@/components/mode-toggle"
 import AccessibilityPanel from "@/components/accessibility-panel"
+import NotificationBell from "@/components/notification-bell"
+import AlertBanner from "@/components/alert-banner"
 
 const SEGMENT_LABEL: Record<string, string> = {
   dashboard: "Vue d'ensemble",
   espace: "Mon espace",
   agent: "Agent",
   annonces: "Annonces",
+  alertes: "Alertes",
   admin: "Administration",
-}
+};
 
 function useBreadcrumbSegments(): { href: string; label: string }[] {
   const pathname = usePathname()
@@ -80,10 +83,12 @@ export default function DashboardLayout({
               </Breadcrumb>
             </div>
             <div className="flex items-center gap-1">
+              <NotificationBell />
               <AccessibilityPanel />
               <ModeToggle />
             </div>
           </header>
+          <AlertBanner scope="dashboard" />
           <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
         </SidebarInset>
       </SidebarProvider>

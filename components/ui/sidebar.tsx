@@ -268,10 +268,11 @@ function SidebarTrigger({
         onClick?.(event)
         toggleSidebar()
       }}
+      aria-label="Basculer le panneau latéral"
       {...props}
     >
-      <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
+      <PanelLeftIcon aria-hidden="true" />
+      <span className="sr-only">Basculer le panneau latéral</span>
     </Button>
   )
 }

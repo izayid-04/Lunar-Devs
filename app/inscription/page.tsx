@@ -8,12 +8,12 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,10 +89,12 @@ export default function InscriptionPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-6 py-16">
+    <div className="mx-auto w-full max-w-md flex-1 px-6 py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-h2">Créer un compte habitant</CardTitle>
+          <h1 className="font-heading text-h2 font-semibold tracking-tight">
+            Créer un compte habitant
+          </h1>
           <CardDescription>
             Déjà inscrit ?{" "}
             <Link href="/connexion" className="text-primary underline">
@@ -102,9 +104,33 @@ export default function InscriptionPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <p className="text-xs text-muted-foreground">
+              Tous les champs ci-dessous sont <span className="font-semibold text-foreground">obligatoires</span>.
+            </p>
+
+            {Object.keys(errors).length > 0 && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2"
+              >
+                <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">Le formulaire contient des erreurs à corriger :</p>
+                  <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                    {Object.entries(errors).map(([field, err]) => (
+                      <li key={field}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="firstName">Prénom</Label>
+                <Label htmlFor="firstName">
+                  Prénom <span className="text-xs text-muted-foreground font-normal">(obligatoire)</span>
+                </Label>
                 <Input
                   id="firstName"
                   autoComplete="given-name"
@@ -121,7 +147,9 @@ export default function InscriptionPage() {
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lastName">Nom</Label>
+                <Label htmlFor="lastName">
+                  Nom <span className="text-xs text-muted-foreground font-normal">(obligatoire)</span>
+                </Label>
                 <Input
                   id="lastName"
                   autoComplete="family-name"
@@ -132,15 +160,18 @@ export default function InscriptionPage() {
                   onChange={(e) => update("lastName", e.target.value)}
                 />
                 {errors.lastName && (
-                  <p id="lastName-error" role="alert" className="text-sm text-destructive">
-                    {errors.lastName}
+                  <p id="lastName-error" role="alert" className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    <span>{errors.lastName}</span>
                   </p>
                 )}
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">
+                Email <span className="text-xs text-muted-foreground font-normal">(obligatoire)</span>
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -152,14 +183,17 @@ export default function InscriptionPage() {
                 onChange={(e) => update("email", e.target.value)}
               />
               {errors.email && (
-                <p id="email-error" role="alert" className="text-sm text-destructive">
-                  {errors.email}
+                <p id="email-error" role="alert" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.email}</span>
                 </p>
               )}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">
+                Mot de passe <span className="text-xs text-muted-foreground font-normal">(obligatoire, min. 8 car.)</span>
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -171,14 +205,17 @@ export default function InscriptionPage() {
                 onChange={(e) => update("password", e.target.value)}
               />
               {errors.password && (
-                <p id="password-error" role="alert" className="text-sm text-destructive">
-                  {errors.password}
+                <p id="password-error" role="alert" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.password}</span>
                 </p>
               )}
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Label htmlFor="confirmPassword">
+                Confirmer le mot de passe <span className="text-xs text-muted-foreground font-normal">(obligatoire)</span>
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -190,8 +227,9 @@ export default function InscriptionPage() {
                 onChange={(e) => update("confirmPassword", e.target.value)}
               />
               {errors.confirmPassword && (
-                <p id="confirmPassword-error" role="alert" className="text-sm text-destructive">
-                  {errors.confirmPassword}
+                <p id="confirmPassword-error" role="alert" className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.confirmPassword}</span>
                 </p>
               )}
             </div>
@@ -202,6 +240,6 @@ export default function InscriptionPage() {
           </form>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

@@ -193,7 +193,11 @@ function EspaceContent() {
                     Les services municipaux ont bien reçu votre message.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="rounded-lg border border-success/40 bg-success/10 p-4 text-center">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="rounded-lg border border-success/40 bg-success/10 p-4 text-center"
+                >
                   <p className="text-xs text-muted-foreground">Référence</p>
                   <p className="font-mono text-lg font-semibold text-success">
                     {confirmation.reference}
@@ -220,8 +224,14 @@ function EspaceContent() {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-2">
+                  <p className="text-xs text-muted-foreground">
+                    Tous les champs sont <span className="font-semibold text-foreground">obligatoires</span>.
+                  </p>
+
                   <div className="space-y-1.5">
-                    <Label htmlFor="category">Catégorie</Label>
+                    <Label htmlFor="category">
+                      Catégorie <span className="text-muted-foreground font-normal">(obligatoire)</span>
+                    </Label>
                     <Select value={category} onValueChange={setCategory}>
                       <SelectTrigger id="category" className="w-full">
                         <SelectValue placeholder="Sélectionner une catégorie" />
@@ -237,7 +247,9 @@ function EspaceContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="subject">Objet</Label>
+                    <Label htmlFor="subject">
+                      Objet <span className="text-muted-foreground font-normal">(obligatoire, 3-150 caractères)</span>
+                    </Label>
                     <Input
                       id="subject"
                       placeholder="Ex : Lampadaire cassé rue des Étoiles"
@@ -248,7 +260,9 @@ function EspaceContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="body">Message</Label>
+                    <Label htmlFor="body">
+                      Message <span className="text-muted-foreground font-normal">(obligatoire, min. 10 caractères)</span>
+                    </Label>
                     <textarea
                       id="body"
                       placeholder="Décrivez votre demande en détail…"

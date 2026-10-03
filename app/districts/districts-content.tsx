@@ -54,7 +54,7 @@ export default function DistrictsContent() {
   }, [filtered]);
 
   return (
-    <main className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <section className="border-b border-border px-6 py-20 text-center">
         <div className="mx-auto max-w-2xl">
           <Badge variant="outline" className="border-primary/40 text-primary px-3 py-1 text-xs">
@@ -128,6 +128,6 @@ export default function DistrictsContent() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

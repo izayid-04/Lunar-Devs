@@ -40,7 +40,7 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
+    <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -80,6 +80,6 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
           </div>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

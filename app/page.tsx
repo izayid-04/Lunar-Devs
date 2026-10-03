@@ -9,7 +9,7 @@ import ClosingCta from "@/components/home/closing-cta";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <Hero />
 
       <QuickAccess />
@@ -52,6 +52,6 @@ export default function Home() {
           <ClosingCta />
         </Reveal>
       </section>
-    </main>
+    </div>
   );
 }

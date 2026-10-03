@@ -23,6 +23,7 @@ import {
   CompassIcon,
   MegaphoneIcon,
   RadioIcon,
+  AlertTriangleIcon,
 } from "lucide-react"
 
 type NavItem = {
@@ -42,6 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Mon espace", url: "/espace", icon: <UserIcon className="size-4" /> },
     { title: "Services", url: "/districts", icon: <CompassIcon className="size-4" /> },
     { title: "Annonces", url: "/annonces", icon: <MegaphoneIcon className="size-4" /> },
+    { title: "Alertes", url: "/alertes", icon: <AlertTriangleIcon className="size-4" /> },
   ]
 
   if (user?.role === "agent" || user?.role === "admin") {
@@ -52,6 +54,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       items: [
         { title: "Journal des demandes", url: "/agent" },
         { title: "Annonces municipales", url: "/agent/annonces" },
+        { title: "Alertes municipales", url: "/agent/alertes" },
       ],
     })
   }
