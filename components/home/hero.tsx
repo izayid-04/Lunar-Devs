@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import CurvedPlanetCarousel from "@/components/home/curved-planet-carousel";
 import {
   ArrowRight,
-  Globe,
-  Radio,
   Eye
 } from "lucide-react";
 
@@ -24,8 +21,6 @@ export default function Hero() {
     offset: ["start start", "end start"],
   });
 
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0.1]);
 
   return (
@@ -106,60 +101,9 @@ export default function Hero() {
         )}
       </motion.div>
 
-      {/* Visuel Planétaire Phare & Cadre Holographique Immersif */}
-      <div className="relative mx-auto mt-14 max-w-6xl px-4 sm:px-6">
-        <motion.div
-          style={{ y: imageY, scale: imageScale }}
-          className="group relative overflow-hidden rounded-3xl border border-border/80 bg-card shadow-2xl transition-all duration-500 hover:border-primary/50"
-        >
-          {/* L'image générée cinématique de Nova Terra */}
-          <div className="relative aspect-[16/9] w-full overflow-hidden">
-            <Image
-              src="/nova-terra-planet.jpg"
-              alt="Vue orbitale cinématique de la planète Nova Terra et ses biodômes éclairés"
-              fill
-              priority
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-            {/* Dégradé doux sur les bords pour fondre avec le thème */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-background/20" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40" />
-          </div>
-
-          {/* Cartouches Flottants d'Informations Planétaires en Temps Réel */}
-          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex flex-wrap gap-2">
-            <Badge className="bg-background/80 text-foreground backdrop-blur-md border border-border/80 font-mono text-xs gap-1.5 py-1 px-3">
-              <Globe className="size-3.5 text-primary" />
-              COORD: SOL-42 • DÔME ALPHA
-            </Badge>
-            <Badge className="bg-background/80 text-success backdrop-blur-md border border-border/80 text-xs gap-1.5 py-1 px-3">
-              <span className="size-1.5 rounded-full bg-success animate-ping" />
-              BIOSPHERE ACTIVE (1013 hPa)
-            </Badge>
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card/85 p-4 sm:p-5 backdrop-blur-xl shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Radio className="size-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-foreground">
-                  Télémétrie Coloniale en Direct
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  48 920 habitants répartis sous les 6 dômes interconnectés par Maglev.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <Button asChild size="sm" variant="secondary" className="text-xs h-9">
-                <Link href="/districts">Voir la carte détaillée ↗</Link>
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+      {/* Carrousel Incurvé 3D Multizones de la Planète */}
+      <div className="relative mx-auto mt-12 max-w-7xl px-4 sm:px-6">
+        <CurvedPlanetCarousel />
       </div>
     </section>
   );
