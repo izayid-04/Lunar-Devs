@@ -41,6 +41,8 @@ import {
   Trash2,
   UserCog,
   ChevronRight,
+  Edit3,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -161,6 +163,13 @@ function EspaceContent() {
   const [profileLanguage, setProfileLanguage] = useState("fr");
   const [profileVulnerable, setProfileVulnerable] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Édition complète du profil (nom, email, quartier, langue, etc.)
+  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false);
+  const [editDistrict, setEditDistrict] = useState<District>(user?.district || DISTRICTS[0]);
+  const [editLanguage, setEditLanguage] = useState(user?.preferredLanguage || "fr");
+  const [editVulnerable, setEditVulnerable] = useState(user?.isVulnerable || false);
+  const [savingEditProfile, setSavingEditProfile] = useState(false);
 
   // Suppression du compte (F33)
   const [deletePassword, setDeletePassword] = useState("");
@@ -315,6 +324,26 @@ function EspaceContent() {
       toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer votre profil.");
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleSaveEditProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setSavingEditProfile(true);
+    try {
+      await patchMe(token, {
+        district: editDistrict,
+        preferredLanguage: editLanguage.trim() || "fr",
+        isVulnerable: editVulnerable,
+      });
+      await refreshUser();
+      toast.success("Vos modifications de profil ont été enregistrées !");
+      setEditProfileDialogOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de mettre à jour votre profil.");
+    } finally {
+      setSavingEditProfile(false);
     }
   }
 
@@ -588,14 +617,35 @@ function EspaceContent() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="profileLanguage">Langue préférée</Label>
-                    <Input
-                      id="profileLanguage"
-                      value={profileLanguage}
-                      onChange={(e) => setProfileLanguage(e.target.value)}
-                      placeholder="fr"
-                      maxLength={50}
-                    />
+                    <Label htmlFor="profileLanguage">Langue préférée (Interface & Alertes)</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={profileLanguage === "fr" ? "default" : "outline"}
+                        onClick={() => setProfileLanguage("fr")}
+                        className="flex items-center justify-start gap-2.5 h-11 px-3 border"
+                      >
+                        <span className="text-xl">🇫🇷</span>
+                        <div className="text-left">
+                          <p className="text-xs font-semibold leading-tight">Français</p>
+                          <p className="text-[10px] text-muted-foreground leading-tight">FR (Défaut)</p>
+                        </div>
+                        {profileLanguage === "fr" && <Check className="ml-auto size-4" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={profileLanguage === "en" ? "default" : "outline"}
+                        onClick={() => setProfileLanguage("en")}
+                        className="flex items-center justify-start gap-2.5 h-11 px-3 border"
+                      >
+                        <span className="text-xl">🇬🇧</span>
+                        <div className="text-left">
+                          <p className="text-xs font-semibold leading-tight">English</p>
+                          <p className="text-[10px] text-muted-foreground leading-tight">EN</p>
+                        </div>
+                        {profileLanguage === "en" && <Check className="ml-auto size-4" />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -632,22 +682,172 @@ function EspaceContent() {
                 </CardTitle>
                 <CardDescription>Informations de votre compte.</CardDescription>
               </div>
-              <Badge variant="outline" className="border-primary/40 text-primary">
-                {ROLE_LABELS[user.role] ?? user.role}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Dialog open={editProfileDialogOpen} onOpenChange={setEditProfileDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 h-8 text-xs"
+                      onClick={() => {
+                        setEditDistrict(user.district || DISTRICTS[0]);
+                        setEditLanguage(user.preferredLanguage || "fr");
+                        setEditVulnerable(user.isVulnerable || false);
+                      }}
+                    >
+                      <Edit3 className="size-3.5" />
+                      Modifier mes préférences
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Edit3 className="size-4 text-primary" />
+                        Modifier mon profil
+                      </DialogTitle>
+                      <DialogDescription>
+                        Ajustez votre quartier de résidence, votre langue d&apos;usage et votre situation.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSaveEditProfile} className="space-y-4 pt-2">
+                      {/* Informations d'identité */}
+                      <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
+                        <div>
+                          <span className="text-[11px] text-muted-foreground block">Identité (fixe)</span>
+                          <span className="text-xs font-semibold text-foreground">
+                            {user.firstName} {user.lastName}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[11px] text-muted-foreground block">Email de connexion</span>
+                          <span className="text-xs font-mono font-medium text-foreground truncate block">
+                            {user.email}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quartier */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="editDistrict">Quartier de résidence</Label>
+                        <Select value={editDistrict} onValueChange={(v) => setEditDistrict(v as District)}>
+                          <SelectTrigger id="editDistrict" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DISTRICTS.map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground">
+                          Détermine les alertes locales et les services de proximité qui vous sont proposés en priorité.
+                        </p>
+                      </div>
+
+                      {/* Langue préférée avec drapeaux */}
+                      <div className="space-y-1.5">
+                        <Label>Langue préférée (Interface & Alertes)</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            type="button"
+                            variant={editLanguage === "fr" ? "default" : "outline"}
+                            onClick={() => setEditLanguage("fr")}
+                            className="flex items-center justify-start gap-2.5 h-12 px-3 border"
+                          >
+                            <span className="text-2xl">🇫🇷</span>
+                            <div className="text-left">
+                              <p className="text-xs font-semibold leading-tight">Français</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight">Langue par défaut</p>
+                            </div>
+                            {editLanguage === "fr" && <Check className="ml-auto size-4" />}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={editLanguage === "en" ? "default" : "outline"}
+                            onClick={() => setEditLanguage("en")}
+                            className="flex items-center justify-start gap-2.5 h-12 px-3 border"
+                          >
+                            <span className="text-2xl">🇬🇧</span>
+                            <div className="text-left">
+                              <p className="text-xs font-semibold leading-tight">English</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight">International</p>
+                            </div>
+                            {editLanguage === "en" && <Check className="ml-auto size-4" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Statut personne vulnérable */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg border bg-amber-500/5 border-amber-500/20">
+                        <input
+                          id="editVulnerable"
+                          type="checkbox"
+                          checked={editVulnerable}
+                          onChange={(e) => setEditVulnerable(e.target.checked)}
+                          className="mt-0.5 size-4 rounded border-input text-primary"
+                        />
+                        <Label htmlFor="editVulnerable" className="text-xs font-normal cursor-pointer leading-relaxed">
+                          <strong className="font-semibold block text-foreground">Accompagnement prioritaire</strong>
+                          Je souhaite être identifié comme personne vulnérable (aide d&apos;urgence et alertes canicule/incident prioritaires).
+                        </Label>
+                      </div>
+
+                      <DialogFooter className="pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditProfileDialogOpen(false)}
+                          disabled={savingEditProfile}
+                        >
+                          Annuler
+                        </Button>
+                        <Button type="submit" disabled={savingEditProfile}>
+                          {savingEditProfile ? "Enregistrement…" : "Enregistrer les modifications"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Badge variant="outline" className="border-primary/40 text-primary">
+                  {ROLE_LABELS[user.role] ?? user.role}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               <div className="rounded-lg border border-border p-3.5">
-                <span className="text-xs text-muted-foreground">Nom</span>
-                <p className="text-base font-semibold">
+                <span className="text-xs text-muted-foreground block">Nom & Prénom</span>
+                <p className="text-sm font-semibold truncate">
                   {user.firstName} {user.lastName}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3.5">
-                <span className="text-xs text-muted-foreground">Email</span>
-                <p className="text-base font-semibold">{user.email}</p>
+                <span className="text-xs text-muted-foreground block">Email</span>
+                <p className="text-sm font-semibold truncate font-mono text-xs mt-0.5">{user.email}</p>
+              </div>
+              <div className="rounded-lg border border-border p-3.5">
+                <span className="text-xs text-muted-foreground block">Quartier</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {user.district || <span className="text-muted-foreground italic font-normal">Non défini</span>}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-3.5">
+                <span className="text-xs text-muted-foreground block">Langue préférée</span>
+                <p className="text-sm font-semibold flex items-center gap-1.5 mt-0.5">
+                  {user.preferredLanguage === "en" ? (
+                    <>
+                      <span>🇬🇧</span> English
+                    </>
+                  ) : (
+                    <>
+                      <span>🇫🇷</span> Français
+                    </>
+                  )}
+                </p>
               </div>
             </div>
 

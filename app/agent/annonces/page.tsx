@@ -266,6 +266,7 @@ function AgentAnnoncesContent() {
                 id="title"
                 value={draft.title}
                 onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                placeholder="Ex. Maintenance des sas pressurisés du Dôme Alpha"
               />
             </div>
             <div className="space-y-1.5">
@@ -275,6 +276,7 @@ function AgentAnnoncesContent() {
                 rows={4}
                 value={draft.body}
                 onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
+                placeholder="Détaillez les informations, les consignes ou les horaires pour les résidents de Nova Terra..."
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </div>
