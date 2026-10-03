@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import Protected from "@/components/protected"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
@@ -19,6 +20,23 @@ import {
 } from "@/components/ui/sidebar"
 import ModeToggle from "@/components/mode-toggle"
 
+const SEGMENT_LABEL: Record<string, string> = {
+  dashboard: "Vue d'ensemble",
+  espace: "Mon espace",
+  agent: "Agent",
+  annonces: "Annonces",
+  admin: "Administration",
+}
+
+function useBreadcrumbSegments(): { href: string; label: string }[] {
+  const pathname = usePathname()
+  const parts = pathname.split("/").filter(Boolean)
+  return parts.map((part, i) => ({
+    href: `/${parts.slice(0, i + 1).join("/")}`,
+    label: SEGMENT_LABEL[part] ?? part,
+  }))
+}
+
 export default function DashboardLayout({
   children,
   roles,
@@ -26,6 +44,8 @@ export default function DashboardLayout({
   children: React.ReactNode
   roles?: ("citizen" | "agent" | "admin")[]
 }) {
+  const segments = useBreadcrumbSegments()
+
   return (
     <Protected roles={roles}>
       <SidebarProvider>
@@ -41,22 +61,24 @@ export default function DashboardLayout({
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">Nova Terra</BreadcrumbLink>
+                    <BreadcrumbLink href="/">Nova Terra</BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Cockpit Urbain</BreadcrumbPage>
-                  </BreadcrumbItem>
+                  {segments.map((segment, i) => (
+                    <React.Fragment key={segment.href}>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        {i === segments.length - 1 ? (
+                          <BreadcrumbPage>{segment.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink href={segment.href}>{segment.label}</BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </React.Fragment>
+                  ))}
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success sm:inline-flex">
-                <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                Dôme Alpha Stable (1013 hPa)
-              </span>
-              <ModeToggle />
-            </div>
+            <ModeToggle />
           </header>
           <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
         </SidebarInset>

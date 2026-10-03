@@ -9,6 +9,7 @@ export type Me = {
   firstName: string;
   lastName: string;
   role: Role;
+  createdAt: string;
 };
 
 export type RegisterPayload = {
@@ -87,4 +88,218 @@ export async function fetchMe(token: string): Promise<Me> {
     throw new Error("Session expirée, merci de vous reconnecter.");
   }
   return (await res.json()) as Me;
+}
+
+function authFetch(path: string, token: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(apiUrl(path), {
+    ...init,
+    headers: {
+      ...(init.headers as Record<string, string> | undefined),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+// --- Messages des habitants (Bloc 2 — D04, F22) ---
+
+export type MessageStatus = "nouveau" | "en_cours" | "traite";
+
+export type CitizenMessage = {
+  id: number;
+  reference: string;
+  subject: string;
+  body: string;
+  category: string;
+  status: MessageStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MessageAuthor = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type AgentMessage = CitizenMessage & { author: MessageAuthor };
+
+export type MessageCounts = Record<MessageStatus, number>;
+
+export async function postMessage(
+  token: string,
+  payload: { subject: string; body: string; category: string }
+): Promise<CitizenMessage> {
+  const res = await authFetch("/messages", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'envoyer votre message pour le moment."));
+  }
+  return res.json();
+}
+
+export async function fetchMyMessages(token: string): Promise<CitizenMessage[]> {
+  const res = await authFetch("/messages/mine", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer vos messages."));
+  }
+  return res.json();
+}
+
+export async function fetchAgentMessages(
+  token: string,
+  status?: MessageStatus
+): Promise<{ messages: AgentMessage[]; counts: MessageCounts }> {
+  const qs = status ? `?status=${status}` : "";
+  const res = await authFetch(`/agent/messages${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les messages."));
+  }
+  return res.json();
+}
+
+export async function patchMessageStatus(
+  token: string,
+  id: number,
+  status: MessageStatus
+): Promise<AgentMessage> {
+  const res = await authFetch(`/agent/messages/${id}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de changer le statut de ce message."));
+  }
+  return res.json();
+}
+
+// --- Espace agent + API Webcup (Bloc 3 — D19, F22, D17) ---
+
+export type AgentDashboard = {
+  citizensCount: number;
+  messagesByStatus: MessageCounts;
+  recentMessages: AgentMessage[];
+};
+
+export async function fetchAgentDashboard(token: string): Promise<AgentDashboard> {
+  const res = await authFetch("/agent/dashboard", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger le tableau de bord."));
+  }
+  return res.json();
+}
+
+export type WebcupRequestsResponse = {
+  // Forme brute renvoyée par l'API Webcup, non reformatée par notre API —
+  // volontairement non typée en détail (voir docs/API.md).
+  data: unknown;
+  cache: { hit: boolean; ageSeconds: number };
+};
+
+export async function fetchWebcupRequests(token: string): Promise<WebcupRequestsResponse> {
+  const res = await authFetch("/agent/webcup/requests", token);
+  if (!res.ok) {
+    if (res.status === 503) {
+      throw new Error("Le flux Webcup est momentanément indisponible.");
+    }
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer le flux Webcup."));
+  }
+  return res.json();
+}
+
+// --- Contenu de la ville : services + annonces (Bloc 4 — D05, D06) ---
+
+export type Service = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  details: string;
+  contact: string;
+  horaires: string;
+  district: string;
+};
+
+export async function fetchServices(): Promise<Service[]> {
+  const res = await fetch(apiUrl("/services"));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les services municipaux."));
+  }
+  return res.json();
+}
+
+export async function fetchService(slug: string): Promise<Service> {
+  const res = await fetch(apiUrl(`/services/${slug}`));
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Ce service n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer ce service."));
+  }
+  return res.json();
+}
+
+export type Announcement = {
+  id: number;
+  title: string;
+  body: string;
+  category: string;
+  publishedAt: string;
+};
+
+export async function fetchAnnouncements(): Promise<Announcement[]> {
+  const res = await fetch(apiUrl("/announcements"));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les annonces."));
+  }
+  return res.json();
+}
+
+export async function fetchAnnouncement(id: number | string): Promise<Announcement> {
+  const res = await fetch(apiUrl(`/announcements/${id}`));
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Cette annonce n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer cette annonce."));
+  }
+  return res.json();
+}
+
+export async function postAnnouncement(
+  token: string,
+  payload: { title: string; body: string; category: string }
+): Promise<Announcement> {
+  const res = await authFetch("/announcements", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de créer l'annonce."));
+  }
+  return res.json();
+}
+
+export async function patchAnnouncement(
+  token: string,
+  id: number,
+  payload: Partial<{ title: string; body: string; category: string }>
+): Promise<Announcement> {
+  const res = await authFetch(`/announcements/${id}`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier cette annonce."));
+  }
+  return res.json();
+}
+
+export async function deleteAnnouncement(token: string, id: number): Promise<void> {
+  const res = await authFetch(`/announcements/${id}`, token, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de supprimer cette annonce."));
+  }
 }

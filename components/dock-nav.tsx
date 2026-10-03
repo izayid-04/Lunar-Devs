@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   UserPlus,
   Compass,
+  Megaphone,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -84,6 +85,7 @@ export default function DockNav() {
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
     { href: "/districts", label: "Districts", icon: Compass },
+    { href: "/annonces", label: "Annonces", icon: Megaphone },
     { href: "/a-propos", label: "À propos", icon: Info },
   ];
 

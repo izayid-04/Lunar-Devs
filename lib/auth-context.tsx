@@ -23,6 +23,7 @@ type Result = { ok: true } | { ok: false; message: string };
 
 type AuthContextValue = {
   user: Me | null;
+  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<Result>;
   register: (payload: RegisterPayload) => Promise<Result>;
@@ -37,25 +38,31 @@ function messageOf(err: unknown, fallback: string): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Me | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    Promise.resolve(token ? fetchMe(token) : null)
-      .then((me) => setUser(me))
+    const stored = window.localStorage.getItem(TOKEN_KEY);
+    Promise.resolve(stored ? fetchMe(stored) : null)
+      .then((me) => {
+        setUser(me);
+        setToken(me ? stored : null);
+      })
       .catch(() => {
         window.localStorage.removeItem(TOKEN_KEY);
         setUser(null);
+        setToken(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<Result> => {
     try {
-      const token = await loginRequest(email, password);
-      window.localStorage.setItem(TOKEN_KEY, token);
-      const me = await fetchMe(token);
+      const newToken = await loginRequest(email, password);
+      window.localStorage.setItem(TOKEN_KEY, newToken);
+      const me = await fetchMe(newToken);
       setUser(me);
+      setToken(newToken);
       return { ok: true };
     } catch (err) {
       return { ok: false, message: messageOf(err, "Connexion impossible.") };
@@ -74,11 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     window.localStorage.removeItem(TOKEN_KEY);
     setUser(null);
+    setToken(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout]
+    () => ({ user, token, loading, login, register, logout }),
+    [user, token, loading, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

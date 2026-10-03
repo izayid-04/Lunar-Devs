@@ -45,7 +45,7 @@ const CITIES: PlanetCity[] = [
     coordinates: [45.2, 12.8],
     description:
       "Cœur politique et névralgique de Nova Terra abritant le Haut Conseil et 24 100 résidents. Les jardins suspendus purifient l'air en circuit fermé tandis que les rames à lévitation magnétique sillonnent la canopée.",
-    image: "/dome-alpha.jpg",
+    image: "/dome-alpha.webp",
     imageAlt: "Vue intérieure du Dôme Alpha avec verrière hexagonale et jardins suspendus",
     stats: [
       { label: "Population", value: "24 100", icon: Users },
@@ -66,7 +66,7 @@ const CITIES: PlanetCity[] = [
     coordinates: [-15.5, 48.2],
     description:
       "La porte d'entrée de Nova Terra. Équipé d'ascenseurs orbitaux vers la flotte commerciale et de sas pressurisés automatiques, le Port Spatial Gamma orchestre l'arrivée des cargaisons de ravitaillement et des nouveaux arrivants.",
-    image: "/port-spatial.jpg",
+    image: "/port-spatial.webp",
     imageAlt: "Terminal du port spatial avec navettes cargo et ascenseur orbital",
     stats: [
       { label: "Fret transit", value: "1 450 t/j", icon: Radio },
@@ -87,7 +87,7 @@ const CITIES: PlanetCity[] = [
     coordinates: [22.4, -40.6],
     description:
       "Vaste complexe énergétique captant les flux solaires et alimenté par 3 réacteurs tokamak à confinement magnétique. Il fournit 100% de l'électricité propre distribuée par câbles supraconducteurs à l'ensemble des dômes.",
-    image: "/nova-terra-planet.jpg",
+    image: "/nova-terra-planet.webp",
     imageAlt: "Vue de la planète Nova Terra et de ses gisements énergétiques",
     stats: [
       { label: "Production", value: "5.0 GW", icon: Zap },

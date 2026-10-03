@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
   },
+  images: {
+    // next/image optimization needs `sharp` at runtime ; pnpm-workspace.yaml
+    // désactive volontairement son build natif (ERR_PNPM_BUILD_THREAD_POOL
+    // sur Hodifly, voir docs/DEPLOIEMENT.md). On optimise donc les images
+    // nous-mêmes en amont (WebP compressé dans public/) plutôt que de
+    // dépendre d'un sharp potentiellement absent en production.
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

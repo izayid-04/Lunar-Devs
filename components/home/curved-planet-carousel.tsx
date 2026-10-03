@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, Pause, Play } from "lucide-react";
 
 export interface ZoneSlide {
   id: string;
@@ -22,7 +22,7 @@ const ZONES: ZoneSlide[] = [
     id: "dome-alpha",
     name: "Dôme Alpha — Capitale Civique",
     sectorTag: "Secteur Central • Verrière Bioclimatique",
-    image: "/dome-alpha.jpg",
+    image: "/dome-alpha.webp",
     description: "Cœur politique et social abritant le Haut Conseil, les universités quantiques et le Maglev suspendu.",
     coordinates: "45.2°N • 12.8°E",
     status: "Biosphère Optimale (1013 hPa)",
@@ -31,7 +31,7 @@ const ZONES: ZoneSlide[] = [
     id: "biocentre",
     name: "Biocentre Nova — Dôme Beta",
     sectorTag: "Agriculture Verticale & Oxygénation",
-    image: "/biocentre.jpg",
+    image: "/biocentre.webp",
     description: "Tours hélicoïdales de cultures aéroponiques et bassins de bio-algues produisant 85% de la nourriture fraîche.",
     coordinates: "34.8°N • 05.2°W",
     status: "Photosynthèse Continue (99.8% O₂)",
@@ -40,7 +40,7 @@ const ZONES: ZoneSlide[] = [
     id: "port-spatial",
     name: "Port Spatial Gamma",
     sectorTag: "Transit Orbital & Sas Fret",
-    image: "/port-spatial.jpg",
+    image: "/port-spatial.webp",
     description: "Terminaux d'amarrage des navettes cargo et ascenseurs orbitaux ravitaillant la colonie.",
     coordinates: "15.5°S • 48.2°E",
     status: "Dépressurisation Sas Niv. 5",
@@ -49,7 +49,7 @@ const ZONES: ZoneSlide[] = [
     id: "residentiel",
     name: "Quartier Céleste — Habitat Familial",
     sectorTag: "Terrasses Suspendues & Jardins",
-    image: "/residentiel.jpg",
+    image: "/residentiel.webp",
     description: "Modules d'habitation avec passerelles transparentes, domotique régulée et parcs suspendus.",
     coordinates: "52.1°N • 28.4°E",
     status: "Confort Résidentiel Calme",
@@ -58,7 +58,7 @@ const ZONES: ZoneSlide[] = [
     id: "orbite-globale",
     name: "Nova Terra — Panorama Orbital",
     sectorTag: "Vue Cosmique • Solaria-04",
-    image: "/nova-terra-planet.jpg",
+    image: "/nova-terra-planet.webp",
     description: "Vue d'ensemble de la planète et du réseau de dômes scintillants dans la nuit stellaire.",
     coordinates: "Altitude : 420 km",
     status: "Bouclier Magnétique Actif",
@@ -70,6 +70,17 @@ const DOUBLE_ZONES = [...ZONES, ...ZONES];
 
 export default function CurvedPlanetCarousel() {
   const [activeZone, setActiveZone] = useState<ZoneSlide | null>(null);
+  const [paused, setPaused] = useState(false);
+
+  // Respecte la préférence système : pas de défilement automatique si
+  // l'utilisateur a demandé moins de mouvement.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    Promise.resolve().then(() => setPaused(mq.matches));
+    const onChange = (e: MediaQueryListEvent) => setPaused(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   return (
     <div className="relative w-full py-8 select-none">
@@ -92,7 +103,8 @@ export default function CurvedPlanetCarousel() {
           padding: 3rem 1rem;
         }
 
-        .marquee-container:hover .marquee-track {
+        .marquee-container:hover .marquee-track,
+        .marquee-container:focus-within .marquee-track {
           animation-play-state: paused !important;
         }
 
@@ -131,12 +143,14 @@ export default function CurvedPlanetCarousel() {
 
       {/* Viewport incurvé avec masque progressif et perspective */}
       <div className="marquee-container curved-viewport relative">
-        <div className="marquee-track">
+        <div className="marquee-track" style={{ animationPlayState: paused ? "paused" : "running" }}>
           {DOUBLE_ZONES.map((zone, idx) => (
             <div
               key={`${zone.id}-${idx}`}
+              tabIndex={0}
               onMouseEnter={() => setActiveZone(zone)}
-              className="curved-card group relative w-[320px] sm:w-[420px] md:w-[480px] aspect-[16/10] shrink-0 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-xl cursor-pointer hover:border-primary/60 hover:shadow-[0_20px_50px_-10px_rgba(224,93,56,0.35)]"
+              onFocus={() => setActiveZone(zone)}
+              className="curved-card group relative w-[320px] sm:w-[420px] md:w-[480px] aspect-[16/10] shrink-0 rounded-3xl overflow-hidden border border-border/80 bg-card shadow-xl cursor-pointer hover:border-primary/60 hover:shadow-[0_20px_50px_-10px_rgba(224,93,56,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Image
                 src={zone.image}
@@ -191,14 +205,20 @@ export default function CurvedPlanetCarousel() {
         </div>
       </div>
 
-      {/* Indicateur de pause / défilement continu */}
-      <div className="mt-2 flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground">
-        <span className="size-2 rounded-full bg-primary animate-pulse" />
-        <span>
-          {activeZone
-            ? `Défilement en pause : ${activeZone.name}`
-            : "Défilement orbital continu • Survolez une zone avec la souris pour la figer"}
-        </span>
+      {/* Contrôle de pause explicite (clavier/tactile inclus) */}
+      <div className="mt-2 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setPaused((p) => !p)}
+          className="h-7 gap-1.5 px-2 text-xs"
+        >
+          {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+          {paused ? "Reprendre le défilement" : "Mettre en pause"}
+        </Button>
+        {activeZone && !paused && (
+          <span className="hidden sm:inline">En pause sur : {activeZone.name}</span>
+        )}
       </div>
     </div>
   );

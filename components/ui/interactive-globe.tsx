@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import createGlobe from "cobe";
+import * as THREE from "three";
 
 export interface MarkerLocation {
   id: string;
@@ -17,12 +17,15 @@ interface InteractiveGlobeProps {
   className?: string;
 }
 
-// Convert lat/long to 3D Cartesian coords on a unit sphere
-function toCartesian(lat: number, lon: number): [number, number, number] {
-  const phi = (lat * Math.PI) / 180;
-  const lambda = (lon * Math.PI) / 180 - Math.PI;
-  const cosPhi = Math.cos(phi);
-  return [-cosPhi * Math.cos(lambda), Math.sin(phi), cosPhi * Math.sin(lambda)];
+// Convert latitude and longitude to 3D Cartesian coordinates on sphere
+function latLonToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
 }
 
 export default function InteractiveGlobe({
@@ -31,192 +34,278 @@ export default function InteractiveGlobe({
   onSelectMarker,
   className = "",
 }: InteractiveGlobeProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const pointerInteracting = useRef<number | null>(null);
-  const pointerInteractionMovement = useRef(0);
-  const currentPhi = useRef(0);
-  const currentTheta = useRef(0.2);
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const globeGroupRef = useRef<THREE.Group | null>(null);
 
-  // Target angles when clicking or focusing on a city
-  const targetPhi = useRef<number | null>(null);
-  const targetTheta = useRef<number | null>(null);
-
-  // Screen positions for 2D clickable overlays (percentage 0 to 100)
   const [projectedMarkers, setProjectedMarkers] = useState<
     { id: string; name: string; x: number; y: number; visible: boolean; index: number }[]
   >([]);
 
-  // When selected index changes, smooth rotate globe to that marker
+  // Refs for smooth animation & full 360° drag interaction
+  const targetRotation = useRef<{ x: number; y: number } | null>(null);
+  const isDragging = useRef(false);
+  const prevPointer = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const rotationVelocity = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Update target rotation when selectedIndex changes
   useEffect(() => {
     if (markers[selectedIndex]) {
       const [lat, lon] = markers[selectedIndex].location;
-      targetPhi.current = -(lon * Math.PI) / 180;
-      targetTheta.current = (lat * Math.PI) / 180;
+      const targetY = -(lon * Math.PI) / 180;
+      const targetX = (lat * Math.PI) / 180 * 0.45;
+      targetRotation.current = { x: targetX, y: targetY };
     }
   }, [selectedIndex, markers]);
 
   useEffect(() => {
-    let width = 0;
-    const onResize = () => {
-      if (canvasRef.current) {
-        width = canvasRef.current.offsetWidth;
-      }
-    };
-    window.addEventListener("resize", onResize);
-    onResize();
+    const container = mountRef.current;
+    if (!container) return;
 
-    if (!canvasRef.current) return;
+    const width = container.clientWidth || 360;
+    const height = container.clientHeight || 360;
 
-    // Config Cobe customisée aux couleurs de NOVA TERRA :
-    // baseColor sombre cobalt/spatial, glow orange vif #e05d38, mapSamples denses
-    const globe = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
-      width: (width || 360) * 2,
-      height: (width || 360) * 2,
-      phi: 0,
-      theta: 0.2,
-      dark: 1,
-      diffuse: 1.4,
-      mapSamples: 24000,
-      mapBrightness: 6,
-      mapBaseBrightness: 0.08,
-      baseColor: [0.18, 0.22, 0.32], // Teinte cobalt extraterrestre
-      markerColor: [0.95, 0.45, 0.22], // Orange Nova Terra
-      glowColor: [0.95, 0.4, 0.18], // Halo atmosphérique orange
-      markers: markers.map((m) => ({
-        location: m.location,
-        size: m.size,
-      })),
-      // Anneaux orbitaux reliant les cités de Nova Terra (donne l'aspect d'une colonie spatiale)
-      arcs: [
-        { from: [45.2, 12.8], to: [-15.5, 48.2] },
-        { from: [45.2, 12.8], to: [22.4, -40.6] },
-        { from: [-15.5, 48.2], to: [22.4, -40.6] },
-      ],
-      arcColor: [0.95, 0.5, 0.25],
-      arcWidth: 1.2,
-      arcHeight: 0.25,
+    // 1. Three.js Scene, Camera, WebGLRenderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.z = 4.2;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // Group that rotates
+    const globeGroup = new THREE.Group();
+    globeGroupRef.current = globeGroup;
+    scene.add(globeGroup);
+
+    // 2. Custom Texture Extraterrestre pour Nova Terra (Nuances mandarine, cuivre et cobalt profond)
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d")!;
+
+    // Fond marin / canyons extraterrestres bleu cobalt
+    const grad = ctx.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, "#0b101c");
+    grad.addColorStop(0.5, "#151f38");
+    grad.addColorStop(1, "#0b101c");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Reliefs et continents cuivrés & terracotta de Solaria
+    ctx.fillStyle = "#d46238";
+    for (let i = 0; i < 48; i++) {
+      const cx = (Math.sin(i * 3.7) * 0.5 + 0.5) * 1024;
+      const cy = (Math.cos(i * 2.1) * 0.4 + 0.5) * 512;
+      const rad = 45 + (i % 6) * 20;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Crêtes géothermiques et failles dorées lumineuses
+    ctx.strokeStyle = "#e8824f";
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.moveTo(100, 200);
+    ctx.bezierCurveTo(300, 80, 500, 380, 750, 180);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#ff9e58";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(250, 320);
+    ctx.bezierCurveTo(450, 420, 650, 150, 900, 260);
+    ctx.stroke();
+
+    const planetTexture = new THREE.CanvasTexture(canvas);
+
+    // 3. Sphère de la Planète
+    const sphereGeo = new THREE.SphereGeometry(1.4, 64, 64);
+    const sphereMat = new THREE.MeshStandardMaterial({
+      map: planetTexture,
+      roughness: 0.65,
+      metalness: 0.25,
+    });
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    globeGroup.add(sphereMesh);
+
+    // 4. Atmosphère & Bouclier magnétique polygonal
+    const cloudsGeo = new THREE.SphereGeometry(1.43, 40, 40);
+    const cloudsMat = new THREE.MeshStandardMaterial({
+      color: 0xe05d38,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      wireframe: true,
+    });
+    const cloudsMesh = new THREE.Mesh(cloudsGeo, cloudsMat);
+    globeGroup.add(cloudsMesh);
+
+    // 5. Anneaux Planétaires de Nova Terra
+    const ringGeo = new THREE.RingGeometry(1.75, 2.35, 64);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xe05d38,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.45,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = Math.PI / 2.4;
+    ringMesh.rotation.y = Math.PI / 12;
+    globeGroup.add(ringMesh);
+
+    // 6. Éclairage
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffaa66, 2.8);
+    dirLight1.position.set(5, 3, 5);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x4477bb, 1.2);
+    dirLight2.position.set(-5, -2, -3);
+    scene.add(dirLight2);
+
+    // 7. Beacons 3D
+    const markerMeshes: THREE.Mesh[] = [];
+    markers.forEach((m) => {
+      const pos = latLonToVector3(m.location[0], m.location[1], 1.42);
+      const beaconGeo = new THREE.SphereGeometry(0.045, 16, 16);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+      beaconMesh.position.copy(pos);
+      globeGroup.add(beaconMesh);
+      markerMeshes.push(beaconMesh);
     });
 
-    let animationFrameId: number;
-    let tickCount = 0;
+    // 8. Animation & Projection
+    let animId: number;
 
     const animate = () => {
-      // Rotation physics
-      if (pointerInteracting.current === null) {
-        if (targetPhi.current !== null && targetTheta.current !== null) {
-          const dPhi = targetPhi.current - currentPhi.current;
-          const dTheta = targetTheta.current - currentTheta.current;
-          currentPhi.current += dPhi * 0.05;
-          currentTheta.current += dTheta * 0.05;
+      animId = requestAnimationFrame(animate);
 
-          if (Math.abs(dPhi) < 0.01 && Math.abs(dTheta) < 0.01) {
-            targetPhi.current = null;
-            targetTheta.current = null;
+      cloudsMesh.rotation.y += 0.001;
+
+      // Rotation & Drag Physics (Horizontal + Vertical)
+      if (!isDragging.current) {
+        if (targetRotation.current) {
+          const dx = targetRotation.current.x - globeGroup.rotation.x;
+          const dy = targetRotation.current.y - globeGroup.rotation.y;
+          globeGroup.rotation.x += dx * 0.06;
+          globeGroup.rotation.y += dy * 0.06;
+
+          if (Math.abs(dx) < 0.005 && Math.abs(dy) < 0.005) {
+            targetRotation.current = null;
           }
         } else {
-          currentPhi.current += 0.003;
+          // Inertia damping
+          globeGroup.rotation.x += rotationVelocity.current.x;
+          globeGroup.rotation.y += rotationVelocity.current.y;
+          rotationVelocity.current.x *= 0.94;
+          rotationVelocity.current.y *= 0.94;
+
+          // Gentle idle rotation
+          globeGroup.rotation.y += 0.0025;
         }
-      } else {
-        currentPhi.current += pointerInteractionMovement.current;
-        pointerInteractionMovement.current = 0;
       }
 
-      globe.update({
-        phi: currentPhi.current,
-        theta: currentTheta.current,
-        width: (width || 360) * 2,
-        height: (width || 360) * 2,
+      // Projection 3D vers 2D
+      const tempV = new THREE.Vector3();
+      const proj = markers.map((m, idx) => {
+        const mesh = markerMeshes[idx];
+        if (!mesh) return { id: m.id, name: m.name, x: 0, y: 0, visible: false, index: idx };
+
+        mesh.getWorldPosition(tempV);
+        const isFacing = tempV.z > 0.05;
+
+        tempV.project(camera);
+        const screenX = ((tempV.x + 1) / 2) * 100;
+        const screenY = ((-tempV.y + 1) / 2) * 100;
+
+        return {
+          id: m.id,
+          name: m.name,
+          x: screenX,
+          y: screenY,
+          visible: isFacing,
+          index: idx,
+        };
       });
 
-      // Calculate 2D screen projections for interactive clickable markers (throttle to every 2 frames)
-      tickCount++;
-      if (tickCount % 2 === 0 && markers.length > 0) {
-        const f = currentPhi.current;
-        const l = currentTheta.current;
-        const cosL = Math.cos(l);
-        const cosF = Math.cos(f);
-        const sinL = Math.sin(l);
-        const sinF = Math.sin(f);
-        const R = 0.85; // Cobe sphere radius
+      setProjectedMarkers(proj);
 
-        const projected = markers.map((m, idx) => {
-          const t = toCartesian(m.location[0], m.location[1]);
-          const px = t[0] * R;
-          const py = t[1] * R;
-          const pz = t[2] * R;
-
-          const c = cosF * px + sinF * pz;
-          const s = sinF * sinL * px + cosL * py - cosF * sinL * pz;
-          const isFront = -sinF * cosL * px + sinL * py + cosF * cosL * pz >= 0;
-
-          // x and y in percentage 0..100
-          const x = ((c + 1) / 2) * 100;
-          const y = ((-s + 1) / 2) * 100;
-
-          return {
-            id: m.id,
-            name: m.name,
-            x,
-            y,
-            visible: isFront,
-            index: idx,
-          };
-        });
-
-        setProjectedMarkers(projected);
-      }
-
-      animationFrameId = requestAnimationFrame(animate);
+      renderer.render(scene, camera);
     };
 
-    animationFrameId = requestAnimationFrame(animate);
+    animate();
+
+    const handleResize = () => {
+      if (!container) return;
+      const w = container.clientWidth || 360;
+      const h = container.clientHeight || 360;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      globe.destroy();
-      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", handleResize);
+      if (renderer.domElement.parentElement) {
+        renderer.domElement.parentElement.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
     };
   }, [markers]);
 
+  // Full 360° Drag & Scroll Handlers (UP, DOWN, LEFT, RIGHT)
+  const onPointerDown = (e: React.PointerEvent) => {
+    isDragging.current = true;
+    targetRotation.current = null;
+    rotationVelocity.current = { x: 0, y: 0 };
+    prevPointer.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || !globeGroupRef.current) return;
+    const dx = e.clientX - prevPointer.current.x;
+    const dy = e.clientY - prevPointer.current.y;
+
+    const deltaX = dy * 0.006;
+    const deltaY = dx * 0.006;
+
+    // Apply rotation immediately on both X (vertical) and Y (horizontal) axes
+    globeGroupRef.current.rotation.x += deltaX;
+    globeGroupRef.current.rotation.y += deltaY;
+
+    // Cap vertical rotation to avoid flipping upside down
+    globeGroupRef.current.rotation.x = Math.max(
+      -Math.PI / 2.2,
+      Math.min(Math.PI / 2.2, globeGroupRef.current.rotation.x)
+    );
+
+    rotationVelocity.current = { x: deltaX, y: deltaY };
+    prevPointer.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const onPointerUp = () => {
+    isDragging.current = false;
+  };
+
   return (
     <div
-      ref={containerRef}
-      className={`relative flex items-center justify-center select-none ${className}`}
+      ref={mountRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+      className={`relative flex items-center justify-center select-none cursor-grab active:cursor-grabbing touch-none ${className}`}
     >
-      {/* 3D Planet Canvas */}
-      <div
-        className="w-full h-full cursor-grab active:cursor-grabbing"
-        onPointerDown={(e) => {
-          pointerInteracting.current = e.clientX;
-        }}
-        onPointerUp={() => {
-          pointerInteracting.current = null;
-        }}
-        onPointerOut={() => {
-          pointerInteracting.current = null;
-        }}
-        onPointerMove={(e) => {
-          if (pointerInteracting.current !== null) {
-            const delta = (e.clientX - pointerInteracting.current) * 0.006;
-            pointerInteractionMovement.current = delta;
-            pointerInteracting.current = e.clientX;
-          }
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{
-            width: "100%",
-            height: "100%",
-            contain: "layout paint size",
-            opacity: 0.98,
-          }}
-        />
-      </div>
-
-      {/* Interactive Clickable Pins Overlay */}
+      {/* Clickable 2D HTML Beacons with Labels & Halos */}
       {projectedMarkers.map((pin) => {
         if (!pin.visible) return null;
         const isCurrent = pin.index === selectedIndex;
@@ -236,30 +325,31 @@ export default function InteractiveGlobe({
             className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer focus:outline-none z-20 pointer-events-auto"
             title={`Cliquer pour explorer : ${pin.name}`}
           >
-            {/* Pulsing halo */}
+            {/* Pulsing beacon glow */}
             <span
-              className={`absolute -inset-2 rounded-full transition-all ${
+              className={`absolute -inset-2.5 rounded-full transition-all ${
                 isCurrent
-                  ? "bg-primary/40 animate-ping opacity-75"
-                  : "bg-primary/20 group-hover:bg-primary/40"
+                  ? "bg-primary/50 animate-ping opacity-90"
+                  : "bg-primary/25 group-hover:bg-primary/50"
               }`}
             />
-            {/* Center beacon pin */}
+
+            {/* Glowing pin center */}
             <span
-              className={`relative flex size-4 items-center justify-center rounded-full border border-white/80 shadow-lg transition-transform group-hover:scale-125 ${
-                isCurrent ? "bg-white ring-2 ring-primary scale-110" : "bg-primary"
+              className={`relative flex size-5 items-center justify-center rounded-full border-2 border-white shadow-xl transition-transform group-hover:scale-130 ${
+                isCurrent ? "bg-white ring-4 ring-primary/60 scale-115" : "bg-primary"
               }`}
             >
               <span
-                className={`size-1.5 rounded-full ${
+                className={`size-2 rounded-full ${
                   isCurrent ? "bg-primary" : "bg-white"
                 }`}
               />
             </span>
 
-            {/* Floating Label */}
+            {/* Always visible or hover label */}
             <span
-              className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap rounded-md border border-border/80 bg-background/95 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-md backdrop-blur-md transition-opacity pointer-events-none ${
+              className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap rounded-md border border-border bg-card/95 px-2.5 py-1 text-[11px] font-bold text-foreground shadow-lg backdrop-blur-md transition-opacity pointer-events-none ${
                 isCurrent
                   ? "opacity-100 border-primary text-primary"
                   : "opacity-0 group-hover:opacity-100"

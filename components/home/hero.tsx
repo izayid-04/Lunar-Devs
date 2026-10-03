@@ -6,6 +6,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import CurvedPlanetCarousel from "@/components/home/curved-planet-carousel";
+import SpaceDustTraffic from "@/components/home/space-dust-traffic";
 import {
   ArrowRight,
   Eye
@@ -28,11 +29,14 @@ export default function Hero() {
       ref={heroRef}
       className="relative overflow-hidden border-b border-border pt-16 pb-20 sm:pt-24 sm:pb-32"
     >
+      {/* Animation d'arrière-plan vivante : Poussières stellaires & navettes de transport suborbitales */}
+      <SpaceDustTraffic />
+
       {/* Halos d'ambiance spatiale */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[650px] rounded-full bg-primary/10 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/2 right-10 size-80 rounded-full bg-success/5 blur-[100px]" />
 
-      <motion.div style={{ opacity: textOpacity }} className="mx-auto max-w-4xl px-6 text-center">
+      <motion.div style={{ opacity: textOpacity }} className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -49,7 +53,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl leading-[1.08]"
+          className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl leading-[1.15] py-1"
         >
           Bienvenue dans la Cité des{" "}
           <span className="bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent">
@@ -76,8 +80,8 @@ export default function Hero() {
           >
             {user ? (
               <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/20 gap-2 h-12 px-7 text-base">
-                <Link href="/dashboard">
-                  Ouvrir mon Cockpit
+                <Link href="/espace">
+                  Accéder à mon espace
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -85,7 +89,7 @@ export default function Hero() {
               <>
                 <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/20 gap-2 h-12 px-7 text-base">
                   <Link href="/inscription">
-                    Rejoindre la Colonie
+                    Créer mon compte
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>
@@ -102,7 +106,7 @@ export default function Hero() {
       </motion.div>
 
       {/* Carrousel Incurvé 3D Multizones de la Planète */}
-      <div className="relative mx-auto mt-12 max-w-7xl px-4 sm:px-6">
+      <div className="relative z-10 mx-auto mt-12 max-w-7xl px-4 sm:px-6">
         <CurvedPlanetCarousel />
       </div>
     </section>

@@ -1,74 +1,134 @@
-# Demandes — Bloc 1 (Socle)
+# Demandes — suivi par bloc
 
-Suivi des demandes du Bloc 1 traitées côté front, et des pages/fichiers qui
-y répondent. Les intitulés sont ceux reçus du Haut Conseil / des services
-municipaux de Nova Terra pour ce bloc.
+Suivi des demandes traitées côté front, et des pages/fichiers qui y
+répondent. Mis à jour à chaque étape du branchement sur l'API réelle
+(contrat : `docs/API.md` du dépôt `api-lunar-devs`).
 
-| Code | Demandeur | Besoin | Pages / fichiers concernés | Statut |
-| ---- | --------- | ------ | --------------------------- | ------ |
-| **D01** | Haut Conseil de la Ville | Permettre à un nouvel habitant de créer simplement un compte pour utiliser les services numériques et retrouver son espace personnel. | `/inscription` (`app/inscription/page.tsx`), `registerRequest` (`lib/api.ts`) | ✅ Fait |
-| **D03** | Direction des Services Municipaux | Permettre aux citoyens inscrits de se reconnecter et d'accéder à un espace personnel clairement identifié. | `/connexion` (`app/connexion/`), `/espace` (`app/espace/page.tsx`), `AuthProvider` (`lib/auth-context.tsx`) | ✅ Fait |
-| **D08** | Direction des Services Municipaux | Distinguer clairement les profils (citizen / agent / admin) pour adapter les outils et responsabilités disponibles. | `Me.role` (`lib/api.ts`), navigation adaptée au rôle (`components/nav.tsx`) | ✅ Fait |
-| **D09** | Direction des Services Municipaux | Empêcher un citoyen d'atteindre les outils réservés aux agents ; limiter les fonctions sensibles aux profils autorisés. | `/agent`, `/admin` protégées côté front (`components/protected.tsx`) ; **la vraie protection reste côté API** (401/403 sur `/auth/*`, `/me` et les futures routes agent/admin) | ✅ Fait (expérience front) |
+## Bloc 1 — Socle (D01, D03, D08, D09)
 
-## Détail de ce qui a été construit
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D01** | Inscription d'un compte habitant. | `/inscription`, `registerRequest` (`lib/api.ts`) | ✅ Fait, vérifié contre l'API réelle |
+| **D03** | Connexion + espace personnel identifié. | `/connexion`, `/espace`, `AuthProvider` (`lib/auth-context.tsx`) | ✅ Fait, vérifié contre l'API réelle |
+| **D08** | Distinguer les profils (citizen / agent / admin). | `Me.role` (`lib/api.ts`), `components/dock-nav.tsx`, `components/app-sidebar.tsx` | ✅ Fait |
+| **D09** | Limiter les outils sensibles aux profils autorisés. | `components/protected.tsx` (via `DashboardLayout`) | ✅ Fait (expérience front — la vraie protection est côté API) |
 
-- **Inscription (D01)** : formulaire prénom/nom/email/mot de passe +
-  confirmation, validation côté client (champs requis, format email, mot
-  de passe ≥ 8 caractères, confirmation identique), appel à
-  `POST /auth/register`. En cas de succès, notification (toast) puis
-  redirection vers `/connexion` (le contrat de l'API ne renvoie pas de
-  jeton à l'inscription, donc pas de connexion automatique).
-- **Connexion + espace personnel (D03)** : formulaire email/mot de passe,
-  appel à `POST /auth/login` puis `GET /me` pour récupérer le profil.
-  Jeton stocké dans `localStorage` (clé `novaterra.token`). `/espace`
-  affiche un accueil personnalisé (prénom, nom, email, profil).
-- **Distinction des profils (D08)** : le rôle (`citizen` / `agent` /
-  `admin`) renvoyé par `/me` pilote la navigation (`components/nav.tsx`) —
-  les liens « Agent » et « Admin » n'apparaissent que pour les rôles
-  concernés.
-- **Accès restreint (D09)** : `components/protected.tsx` redirige vers
-  `/connexion` si l'utilisateur n'est pas authentifié, ou vers `/espace` si
-  son rôle ne correspond pas à la page (`/agent` → `agent`/`admin`,
-  `/admin` → `admin` uniquement). **Ceci est uniquement une expérience
-  utilisateur** : un citoyen qui appellerait directement l'API sur une
-  route agent/admin doit être bloqué par l'API elle-même (401/403), pas par
-  ce garde-fou front qui peut être contourné (DevTools, appel direct).
-- **Jeton et déconnexion** : `AuthProvider` (`lib/auth-context.tsx`) relit
-  le jeton au chargement de l'app, le valide via `GET /me`, et expose
-  `logout()` qui vide `localStorage` et l'état utilisateur (bouton
-  « Déconnexion » dans la nav).
-- **Identité visuelle « ville spatiale »** : palette sombre/claire sur les
-  tokens shadcn (cyan néon en sombre), champ d'étoiles et halos en CSS pur,
-  logo SVG inline — détaillé dans `docs/DESIGN.md`.
+Jeton stocké dans `localStorage` (clé `novaterra.token`), relu et validé
+via `GET /me` au chargement de l'app. Déconnexion : `AuthProvider.logout()`
+vide le jeton et l'état utilisateur.
 
-## Non couvert par ce bloc (hors périmètre)
+Re-vérifié de bout en bout le 2026-10-03 contre
+`https://api.lunardevs.lescomores.webcup.hodi.cloud` : inscription,
+connexion, et navigation par rôle (dock + sidebar) — tout utilise déjà le
+vrai contrat, aucune donnée factice sur ce périmètre.
 
-Vu dans le flux de demandes mais **pas traité ici**, pour un bloc suivant :
-D04 (contact des services), D05/D06/D07 (page d'accueil enrichie,
-services, annonces), D19 (espace de travail agent complet), F22 (file des
-demandes côté agent). Les pages `/agent` et `/admin` existent déjà comme
-coquilles protégées, prêtes à accueillir ces fonctionnalités.
+## Bloc 2 — Messages des habitants (D04, F22)
 
-## Vérification de bout en bout
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F22** (côté agent) | Voir les demandes entrantes, identifier leur état, filtrer par statut, le faire progresser. | `/agent` (`fetchAgentMessages`, `patchMessageStatus` dans `lib/api.ts`) | ✅ Fait |
+| **D04 / D16 / F26** (côté citoyen) | Transmettre un message aux services, écran de confirmation avec la référence, historique « Mes demandes ». | `/espace` (`postMessage`, `fetchMyMessages` dans `lib/api.ts`) | ✅ Fait |
 
-`/auth/register`, `/auth/login` et `/me` sont en ligne et ont été testés
-directement contre l'API réelle
-(`https://api.lunardevs.lescomores.webcup.hodi.cloud`) : inscription,
-connexion, récupération du profil, et les deux cas d'erreur (mot de passe
-incorrect → 401, email déjà utilisé → 409) — avec le code exact de
-`lib/api.ts` (compilé et exécuté contre l'API, pas une réimplémentation).
-CORS confirmé pour `localhost` et le domaine du front en production.
+Côté agent : `GET /agent/messages?status=` avec onglets Tous/Nouveaux/En
+cours/Traités (badge de compte sur chaque onglet, toujours global comme
+documenté dans `docs/API.md`), `PATCH /agent/messages/:id/status` pour
+faire progresser un dossier (cycle nouveau → en_cours → traité).
 
-Côté API, la matrice de rôles est confirmée en prod par l'équipe backend :
-`citizen` → 403 sur les routes agent/admin, `agent` → 200/403, `admin` →
-200/200. Côté front, `components/protected.tsx` et `components/nav.tsx`
-n'ont qu'un seul chemin de code pour ça (comparaison de `user.role` en
-chaîne) — déjà exercé de bout en bout avec un compte `citizen` réel ; pas
-re-testé avec les comptes de démo `agent`/`admin` (identifiants non
-partagés, et pas nécessaire : même chemin de code, juste une valeur de
-rôle différente).
+Côté citoyen : dans `/espace`, dialogue « Nouveau message » (catégorie,
+objet 3-150 caractères, message 10-5000 caractères, validés côté client
+avant l'appel) → `POST /messages`. En cas de succès, le dialogue bascule
+sur un écran de confirmation affichant la référence (ex. `NT-0002`), puis
+l'historique « Mes demandes » (`GET /messages/mine`) se rafraîchit. Les
+anciennes « démarches » fictives (quotas d'énergie, Maglev, etc.) ont été
+retirées.
 
-Non testé pour l'instant : le rendu réel en navigateur (extension Chrome
-indisponible dans cet environnement — vérifié par ailleurs via le CSS
-compilé et une relecture de code).
+Vérifié de bout en bout contre l'API réelle avec le code exact de
+`lib/api.ts` : inscription d'un compte de test, envoi d'un message
+(`POST /messages` → 201 avec référence), relecture via
+`GET /messages/mine`.
+
+## Bloc 3 — Espace agent + API Webcup (D19, F22, D17)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D19** | Interface distincte pour les agents, informations de l'API Webcup. | `/agent` (`fetchWebcupRequests`) | ✅ Fait |
+| **D17 / F22** | Tableau de bord agent avec compteur de demandes en attente bien visible. | `/agent` (`fetchAgentDashboard`) | ✅ Fait — « en attente » = `nouveau + en_cours` |
+
+Le flux Webcup (`GET /agent/webcup/requests`) est maintenant affiché
+proprement (session en cours, compte à rebours de la prochaine vague,
+tableau des demandes avec code/demandeur/message/difficulté/XP), d'après
+un exemple réel capturé en prod par l'agent backend. Si la forme du
+payload venait à changer (API tierce, aucune garantie contractuelle),
+`parseWebcupPayload` retombe sur un affichage JSON brut plutôt que de
+planter.
+
+## Bloc 4 — Contenu de la ville (D05, D06, F28, F32)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D05 / F28 / F32** | Services municipaux par quartier, page détail, recherche et filtres. | `/districts`, `/services/[slug]` (`fetchServices`, `fetchService`) | ✅ Fait |
+| **D06** | Annonces municipales, publiques + gestion agent. | `/annonces`, `/annonces/[id]`, `/agent/annonces` | ✅ Fait |
+
+`/districts` liste les 8 services réels (`GET /services`), groupés par
+leurs 5 quartiers réels (Centre-Ville, Faubourg Est, Hauts de Nova, Port
+Stellaire, Quartier des Dunes — champ `district`, prêt pour une future
+carte). Recherche (nom/description) et filtre par quartier, tous deux
+côté client sur les données déjà chargées (8 services, pas besoin d'appel
+serveur par filtre). Chaque service ouvre `/services/[slug]`
+(`GET /services/:slug`, rendu côté serveur, `notFound()` si le slug
+n'existe pas — testé contre un slug réel et un slug inexistant).
+
+`/annonces` (liste publique) et `/annonces/[id]` (détail) utilisent
+`GET /announcements`. `/annonces` est forcée en rendu dynamique
+(`export const dynamic = "force-dynamic"`) : sans ça, Next l'aurait figée
+au moment du `next build` (constaté en pratique — la liste se serait
+désynchronisée dès la première annonce créée/modifiée après coup). Gestion
+complète (créer/modifier/supprimer) dans `/agent/annonces`, réservée
+agent/admin, reliée à `POST`/`PATCH`/`DELETE /announcements/:id`. Lien
+ajouté dans le dock public (« Annonces ») et dans la barre latérale agent
+(remplace un sous-lien factice qui pointait déjà vers `/agent`).
+
+Vérifié contre l'API réelle : lecture publique, et confirmation qu'un
+compte `citizen` reçoit bien `403` sur `POST /announcements` (la vraie
+protection est côté API). Le succès de création/modification/suppression
+par un compte `agent`/`admin` n'a pas pu être re-testé en direct (pas
+d'identifiants de démo disponibles au moment de cette étape) — le code
+suit exactement le même schéma (headers, gestion d'erreur) que
+`postMessage`/`patchMessageStatus`, déjà vérifiés de bout en bout.
+
+Les 6 « dômes » fictifs précédents (population, pression, énergie
+imaginaires) ont été entièrement retirés.
+
+## Fil d'Ariane (D15)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D15** | Fil d'Ariane sur les pages internes. | `components/dashboard-layout.tsx`, `/services/[slug]`, `/annonces/[id]` | ✅ Fait |
+
+`DashboardLayout` (utilisé par `/dashboard`, `/espace`, `/agent`,
+`/agent/annonces`, `/admin`) affichait un fil d'Ariane **figé en dur**
+(« Nova Terra > Cockpit Urbain ») identique sur toutes les pages, qu'il
+s'agisse de l'espace citoyen, agent ou admin. Il reflète maintenant le
+chemin réel (`usePathname()`), ex. « Nova Terra > Agent > Annonces » sur
+`/agent/annonces`. Les pages de détail publiques (`/services/[slug]`,
+`/annonces/[id]`) ont aussi leur propre fil d'Ariane (ex. « Nova Terra >
+Services > Bibliothèque Municipale »), remplaçant le simple bouton
+« retour » qu'elles avaient avant.
+
+Au passage, le badge « Dôme Alpha Stable (1013 hPa) » (donnée factice,
+sans lien avec une route API) a été retiré de l'en-tête du dashboard.
+
+## Pages existantes non reliées au contrat API
+
+- `/dashboard` : page d'accueil post-connexion générique (accessible à
+  tous les rôles), entièrement illustrative (qualité de l'air, réseau
+  électrique, bouclier...) — aucune route API ne couvre ce contenu. Pas
+  dans le périmètre des blocs ci-dessus ; non touché pour l'instant.
+- `components/home/district-map.tsx` (utilisé sur l'accueil `/`) : carte
+  décorative des 6 « dômes » avec services fictifs par quartier au clic —
+  pas dans le périmètre des étapes ci-dessus (page d'accueil, pas
+  `/districts`), donc pas touchée. À remplacer par les vraies données de
+  `GET /services` si l'accueil doit lui aussi perdre ses données factices.
+- `/admin` : contenu illustratif (registre des comptes, sécurité, audit)
+  — aucune route API admin au-delà de `/admin/ping` n'existe à ce jour.
+  Rôle correctement protégé (`admin` uniquement), contenu non branché.

@@ -40,8 +40,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <TooltipProvider delayDuration={150}>
             <AuthProvider>
-              <div className="flex flex-1 flex-col">{children}</div>
-              <PublicFooter />
+              {/* pb-24 : la barre de navigation flottante est fixe, elle ne
+                  doit jamais recouvrir le bas du contenu ou du pied de page. */}
+              <div className="flex flex-1 flex-col pb-24">
+                {children}
+                <PublicFooter />
+              </div>
               <DockNav />
             </AuthProvider>
             <Toaster />

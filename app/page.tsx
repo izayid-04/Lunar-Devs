@@ -1,4 +1,5 @@
 import Hero from "@/components/home/hero";
+import QuickAccess from "@/components/home/quick-access";
 import PlanetShowcase from "@/components/home/planet-showcase";
 import CitizenPrivileges from "@/components/home/citizen-privileges";
 import DistrictMap from "@/components/home/district-map";
@@ -8,8 +9,10 @@ import ClosingCta from "@/components/home/closing-cta";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col pb-24">
+    <main className="flex flex-1 flex-col">
       <Hero />
+
+      <QuickAccess />
 
       {/* Holographic Planet Showcase & Live Telemetry */}
       <PlanetShowcase />

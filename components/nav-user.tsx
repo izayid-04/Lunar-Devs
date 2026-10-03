@@ -22,7 +22,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, BadgeCheckIcon, BellIcon, LogOutIcon, ShieldIcon } from "lucide-react"
+import { ChevronsUpDownIcon, BadgeCheckIcon, LogOutIcon, ShieldIcon } from "lucide-react"
 
 export function NavUser({
   user: initialUser,
@@ -102,10 +102,6 @@ export function NavUser({
                   Console {user.role === "admin" ? "Admin" : "Agent"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem>
-                <BellIcon className="size-4" />
-                Transmissions
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
