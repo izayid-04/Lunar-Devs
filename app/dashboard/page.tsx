@@ -38,9 +38,29 @@ export default function DashboardPage() {
       {/* Salutation & Status header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Console de Contrôle — Nova Terra
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+              Console de Contrôle — Nova Terra
+            </h1>
+            {user?.role && (
+              <Badge
+                variant="outline"
+                className={
+                  user.role === "admin"
+                    ? "border-destructive/40 text-destructive bg-destructive/10 text-xs"
+                    : user.role === "agent"
+                    ? "border-primary/40 text-primary bg-primary/10 text-xs"
+                    : "border-border text-muted-foreground text-xs"
+                }
+              >
+                {user.role === "citizen"
+                  ? "Habitant"
+                  : user.role === "agent"
+                  ? "Agent Municipal"
+                  : "Administrateur"}
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Bienvenue, <span className="font-semibold text-foreground">{user?.firstName} {user?.lastName}</span>. Surveillance orbitale et gestion municipale en temps réel.
           </p>

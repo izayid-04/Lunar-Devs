@@ -21,11 +21,13 @@ import ModeToggle from "@/components/mode-toggle"
 
 export default function DashboardLayout({
   children,
+  roles,
 }: {
   children: React.ReactNode
+  roles?: ("citizen" | "agent" | "admin")[]
 }) {
   return (
-    <Protected>
+    <Protected roles={roles}>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="bg-background">

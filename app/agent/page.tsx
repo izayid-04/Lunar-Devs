@@ -117,7 +117,7 @@ export default function AgentPage() {
   const pendingCount = transmissions.filter((t) => t.statut !== "resolue").length;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout roles={["agent", "admin"]}>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2">

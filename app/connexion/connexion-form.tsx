@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import {
   Card,
   CardContent,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/card";
 
 export default function ConnexionForm() {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
@@ -25,6 +26,14 @@ export default function ConnexionForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Si l'utilisateur est déjà connecté, rediriger immédiatement
+  useEffect(() => {
+    if (user && !submitting) {
+      router.replace(next);
+    }
+  }, [user, submitting, router, next]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,13 +45,28 @@ export default function ConnexionForm() {
 
     setSubmitting(true);
     const result = await login(email.trim(), password);
-    setSubmitting(false);
 
     if (!result.ok) {
+      setSubmitting(false);
       toast.error(result.message);
       return;
     }
+
+    // Connexion réussie : bloquer l'interface et afficher le spinner pendant la transition
+    setRedirecting(true);
+    toast.success("Authentification réussie. Chargement de votre cockpit…");
     router.push(next);
+  }
+
+  if (redirecting) {
+    return (
+      <main className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+        <LoadingSpinner />
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">
+          Ouverture de votre session Nova Terra…
+        </p>
+      </main>
+    );
   }
 
   return (

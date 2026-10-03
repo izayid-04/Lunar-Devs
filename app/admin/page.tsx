@@ -11,7 +11,7 @@ export default function AdminPage() {
   if (!user) return null;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout roles={["admin"]}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-primary border-primary/40 gap-1.5">

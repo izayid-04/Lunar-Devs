@@ -13,7 +13,7 @@ export default function ConnexionPage() {
       fallback={
         <div
           role="status"
-          className="flex flex-col items-center gap-4 px-6 py-16 text-center"
+          className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 py-16 text-center"
         >
           <LoadingSpinner />
           <span className="sr-only">Chargement…</span>
