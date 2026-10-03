@@ -237,13 +237,20 @@ html.force-reduced-motion *::after {
   }
 
   /* F43 : liens textuels soulignés pour ne pas transmettre l'information
-     uniquement par la couleur. Les boutons et composants asChild retirent
-     le soulignement via leurs propres classes. */
-  p a,
-  li a,
-  span a:not([class*="button"]):not([class*="badge"]) {
+     uniquement par la couleur. Les boutons, menus de navigation et composants asChild
+     ne sont pas soulignés pour préserver l'ergonomie de l'interface. */
+  p a:not([data-sidebar] *):not(nav *),
+  li a:not([data-sidebar] *):not(nav *),
+  span a:not([data-sidebar] *):not(nav *):not([class*="button"]):not([class*="badge"]) {
     text-decoration-line: underline;
     text-underline-offset: 3px;
+  }
+
+  /* Dans la sidebar, aucun soulignement de lien */
+  [data-sidebar] a,
+  [data-sidebar] button,
+  [data-sidebar] span {
+    text-decoration: none !important;
   }
 
   /* F41 : focus visible partout pour la navigation au clavier */
