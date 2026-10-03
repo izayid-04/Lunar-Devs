@@ -89,8 +89,8 @@ export default function ConnexionForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 md:py-14">
-      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl lg:grid-cols-12">
+    <div className="flex-1 flex flex-col justify-center mx-auto w-full max-w-6xl px-4 py-8 md:py-14 min-h-[calc(100vh-10rem)]">
+      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl lg:grid-cols-12 my-auto">
         {/* Colonne gauche créative : Vitrine orbitale & statut de la colonie */}
         <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-sidebar via-background to-sidebar p-6 sm:p-10 lg:col-span-7">
           {/* Cercles d'ambiance et glow */}
