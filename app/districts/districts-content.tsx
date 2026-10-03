@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function DistrictsContent() {
   const [services, setServices] = useState<Service[] | null>(null);
@@ -71,18 +78,19 @@ export default function DistrictsContent() {
               onChange={(e) => setSearch(e.target.value)}
               className="sm:max-w-sm"
             />
-            <select
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="all">Tous les quartiers</option>
-              {districts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+            <Select value={district} onValueChange={setDistrict}>
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Tous les quartiers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les quartiers</SelectItem>
+                {districts.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {error && <p className="text-center text-sm text-destructive">{error}</p>}

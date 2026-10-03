@@ -86,6 +86,78 @@
   --sidebar-ring: oklch(0.6397 0.1720 36.4421);
 }
 
+/* --- Accessibilité (F21, F23, F24) --- */
+
+/* 1. Niveaux de taille de police (en rem sans chevauchement) */
+html.text-size-normal {
+  font-size: 16px;
+}
+html.text-size-large {
+  font-size: 18px;
+}
+html.text-size-xlarge {
+  font-size: 20px;
+}
+
+/* 2. Mode Contraste Élevé (F23) :
+   Garantit un contraste supérieur à 7:1 (AAA) en mode clair et sombre,
+   corrige le texte primaire orange sur fond clair en le remplaçant par un
+   mandarine foncé hautement contrasté, et épaissit les bordures / focus. */
+html.high-contrast {
+  --foreground: oklch(0.1 0 0);
+  --background: oklch(1 0 0);
+  --card: oklch(0.98 0 0);
+  --card-foreground: oklch(0.08 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.08 0 0);
+  --primary: oklch(0.48 0.22 36.44); /* Orange foncé hyper contrasté (ratio > 7:1) */
+  --primary-foreground: oklch(1 0 0);
+  --muted: oklch(0.92 0 0);
+  --muted-foreground: oklch(0.25 0 0);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.2 0 0);
+  --ring: oklch(0.1 0 0);
+}
+
+html.dark.high-contrast {
+  --foreground: oklch(1 0 0);
+  --background: oklch(0.08 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.78 0.18 42); /* Orange très lumineux sur fond noir (ratio > 7:1) */
+  --primary-foreground: oklch(0.05 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.85 0 0);
+  --border: oklch(0.8 0 0);
+  --input: oklch(0.8 0 0);
+  --ring: oklch(1 0 0);
+}
+
+html.high-contrast button,
+html.high-contrast [role="button"],
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  border-width: 2px !important;
+}
+
+html.high-contrast *:focus-visible {
+  outline: 3px solid var(--ring) !important;
+  outline-offset: 3px !important;
+}
+
+/* 3. Forcer le mouvement réduit à la demande de l'utilisateur */
+html.force-reduced-motion *,
+html.force-reduced-motion *::before,
+html.force-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

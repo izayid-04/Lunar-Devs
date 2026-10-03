@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   OrbitIcon,
@@ -33,6 +34,8 @@ type NavItem = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   const navMainItems: NavItem[] = [
     { title: "Vue d'ensemble", url: "/dashboard", icon: <LayoutDashboardIcon className="size-4" /> },
@@ -62,10 +65,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <OrbitIcon className="size-4 text-primary" />
-                <span className="font-semibold">Nova Terra</span>
+            <SidebarMenuButton size="lg" asChild tooltip="Nova Terra">
+              <Link href="/" className="flex items-center">
+                <OrbitIcon className="size-5 text-primary shrink-0" />
+                {!isCollapsed && <span className="font-semibold truncate">Nova Terra</span>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

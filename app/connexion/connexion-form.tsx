@@ -25,6 +25,7 @@ export default function ConnexionForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
@@ -37,9 +38,12 @@ export default function ConnexionForm() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setError(null);
 
     if (!email.trim() || !password) {
-      toast.error("Email et mot de passe sont requis.");
+      const msg = "Email et mot de passe sont requis.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -48,6 +52,7 @@ export default function ConnexionForm() {
 
     if (!result.ok) {
       setSubmitting(false);
+      setError(result.message);
       toast.error(result.message);
       return;
     }
@@ -62,7 +67,7 @@ export default function ConnexionForm() {
     return (
       <main className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <LoadingSpinner />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">
+        <p className="text-sm font-medium text-muted-foreground animate-pulse" role="status">
           Ouverture de votre session Nova Terra…
         </p>
       </main>
@@ -83,15 +88,31 @@ export default function ConnexionForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            {error && (
+              <div
+                id="connexion-error"
+                role="alert"
+                aria-live="assertive"
+                className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive font-medium"
+              >
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
+                aria-invalid={!!error}
+                aria-describedby={error ? "connexion-error" : undefined}
                 placeholder="exemple@domaine.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError(null);
+                }}
               />
             </div>
 
@@ -101,9 +122,14 @@ export default function ConnexionForm() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
+                aria-invalid={!!error}
+                aria-describedby={error ? "connexion-error" : undefined}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError(null);
+                }}
               />
             </div>
 

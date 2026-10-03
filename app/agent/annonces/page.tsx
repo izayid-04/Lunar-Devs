@@ -33,6 +33,13 @@ import {
 import { ArrowLeft, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CATEGORIES = ["Municipal", "Travaux", "Événement", "Sécurité", "Autre"];
 
@@ -211,18 +218,21 @@ function AgentAnnoncesContent() {
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label htmlFor="category">Catégorie</Label>
-              <select
-                id="category"
+              <Select
                 value={draft.category}
-                onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                onValueChange={(val) => setDraft((d) => ({ ...d, category: val }))}
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="category" className="w-full">
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="title">Titre</Label>

@@ -19,6 +19,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import ModeToggle from "@/components/mode-toggle"
+import AccessibilityPanel from "@/components/accessibility-panel"
 
 const SEGMENT_LABEL: Record<string, string> = {
   dashboard: "Vue d'ensemble",
@@ -78,7 +79,10 @@ export default function DashboardLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
-            <ModeToggle />
+            <div className="flex items-center gap-1">
+              <AccessibilityPanel />
+              <ModeToggle />
+            </div>
           </header>
           <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
         </SidebarInset>

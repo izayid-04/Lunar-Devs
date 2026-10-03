@@ -40,6 +40,13 @@ import {
   type MessageStatus,
 } from "@/lib/api";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ROLE_LABELS: Record<string, string> = {
   citizen: "Habitant",
@@ -100,6 +107,18 @@ function EspaceContent() {
   }, [loadMessages]);
 
   if (!user) return null;
+
+  if (messages === null && !messagesError) {
+    return (
+      <div
+        role="status"
+        className="flex min-h-[50vh] flex-col items-center justify-center gap-4 py-16 text-center"
+      >
+        <LoadingSpinner />
+        <span className="sr-only">Chargement de votre espace…</span>
+      </div>
+    );
+  }
 
   function resetForm() {
     setCategory(CATEGORIES[0]);
@@ -203,18 +222,18 @@ function EspaceContent() {
                 <form onSubmit={handleSubmit} className="space-y-4 py-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Catégorie</Label>
-                    <select
-                      id="category"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger id="category" className="w-full">
+                        <SelectValue placeholder="Sélectionner une catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1.5">
@@ -298,17 +317,12 @@ function EspaceContent() {
               </div>
 
               {messagesError && <p className="text-sm text-destructive">{messagesError}</p>}
-              {!messagesError && messages === null && (
-                <div className="flex justify-center py-6">
-                  <LoadingSpinner />
-                </div>
-              )}
-              {!messagesError && messages !== null && messages.length === 0 && (
+              {messages && messages.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   Vous n&apos;avez envoyé aucun message pour le moment.
                 </p>
               )}
-              {!messagesError && messages !== null && messages.length > 0 && (
+              {messages && messages.length > 0 && (
                 <div className="space-y-2">
                   {messages.map((m) => (
                     <div

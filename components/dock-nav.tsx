@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import ModeToggle from "@/components/mode-toggle";
+import AccessibilityPanel from "@/components/accessibility-panel";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -133,6 +134,7 @@ export default function DockNav() {
                 />
               ))}
               <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+              <AccessibilityPanel />
               <ModeToggle />
             </motion.div>
           )}
@@ -176,6 +178,7 @@ export default function DockNav() {
           />
         ))}
         <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+        <AccessibilityPanel />
         <ModeToggle />
       </div>
     </nav>

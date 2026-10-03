@@ -109,12 +109,15 @@ export default function InscriptionPage() {
                   id="firstName"
                   autoComplete="given-name"
                   aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? "firstName-error" : undefined}
                   placeholder="Votre prénom"
                   value={fields.firstName}
                   onChange={(e) => update("firstName", e.target.value)}
                 />
                 {errors.firstName && (
-                  <p className="text-sm text-destructive">{errors.firstName}</p>
+                  <p id="firstName-error" role="alert" className="text-sm text-destructive">
+                    {errors.firstName}
+                  </p>
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
@@ -123,12 +126,15 @@ export default function InscriptionPage() {
                   id="lastName"
                   autoComplete="family-name"
                   aria-invalid={!!errors.lastName}
+                  aria-describedby={errors.lastName ? "lastName-error" : undefined}
                   placeholder="Votre nom"
                   value={fields.lastName}
                   onChange={(e) => update("lastName", e.target.value)}
                 />
                 {errors.lastName && (
-                  <p className="text-sm text-destructive">{errors.lastName}</p>
+                  <p id="lastName-error" role="alert" className="text-sm text-destructive">
+                    {errors.lastName}
+                  </p>
                 )}
               </div>
             </div>
@@ -140,11 +146,16 @@ export default function InscriptionPage() {
                 type="email"
                 autoComplete="email"
                 aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 placeholder="exemple@domaine.com"
                 value={fields.email}
                 onChange={(e) => update("email", e.target.value)}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              {errors.email && (
+                <p id="email-error" role="alert" className="text-sm text-destructive">
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -154,12 +165,15 @@ export default function InscriptionPage() {
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "password-error" : undefined}
                 placeholder="Minimum 8 caractères"
                 value={fields.password}
                 onChange={(e) => update("password", e.target.value)}
               />
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
+                <p id="password-error" role="alert" className="text-sm text-destructive">
+                  {errors.password}
+                </p>
               )}
             </div>
 
@@ -170,12 +184,15 @@ export default function InscriptionPage() {
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.confirmPassword}
+                aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
                 placeholder="Confirmez votre mot de passe"
                 value={fields.confirmPassword}
                 onChange={(e) => update("confirmPassword", e.target.value)}
               />
               {errors.confirmPassword && (
-                <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                <p id="confirmPassword-error" role="alert" className="text-sm text-destructive">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
 

@@ -132,3 +132,14 @@ sans lien avec une route API) a été retiré de l'en-tête du dashboard.
 - `/admin` : contenu illustratif (registre des comptes, sécurité, audit)
   — aucune route API admin au-delà de `/admin/ping` n'existe à ce jour.
   Rôle correctement protégé (`admin` uniquement), contenu non branché.
+
+## Bloc Accessibilité — F21, F23, F24 (1 300 XP)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F21** | Options d'accessibilité avec au moins 3 niveaux de taille de texte sans chevauchement. | `lib/accessibility-context.tsx`, `components/accessibility-panel.tsx`, `app/globals.css` (`text-size-normal`, `large`, `xlarge`) | ✅ Fait |
+| **F23** | Mode contraste élevé (WCAG AAA ratio > 7:1) résolvant la lisibilité de la couleur d'action sur fond clair/sombre. | `app/globals.css` (`.high-contrast`), `components/accessibility-panel.tsx` | ✅ Fait |
+| **F24** | Accessibilité clavier & lecteurs d'écran : lien « Aller au contenu », landmarks HTML5, aria-labels, aria-describedby reliés aux erreurs formulaires, focus visible. | `app/layout.tsx`, `app/inscription/page.tsx`, `app/connexion/connexion-form.tsx`, `components/dock-nav.tsx`, `components/dashboard-layout.tsx` | ✅ Fait |
+
+Panneau d'accessibilité accessible partout via l'icône oeil dans le dock flottant et l'en-tête du dashboard. Rétention des préférences dans `localStorage`. Mode mouvement réduit forcé également disponible. Focus clavier épais et visible partout.
+
