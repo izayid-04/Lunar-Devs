@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import InteractiveGlobe from "@/components/ui/interactive-globe";
+import InteractiveGlobe, { MarkerLocation } from "@/components/ui/interactive-globe";
 import {
   Sparkles,
   ArrowRight,
@@ -15,7 +15,8 @@ import {
   Radio,
   Users,
   Compass,
-  RotateCcw
+  RotateCcw,
+  CheckCircle2
 } from "lucide-react";
 
 interface PlanetCity {
@@ -105,9 +106,11 @@ export default function PlanetShowcase() {
   const [selectedCityIndex, setSelectedCityIndex] = useState<number>(0);
   const currentCity = CITIES[selectedCityIndex];
 
-  const globeMarkers = CITIES.map((c, i) => ({
+  const globeMarkers: MarkerLocation[] = CITIES.map((c, i) => ({
+    id: c.id,
+    name: c.name,
     location: c.coordinates,
-    size: i === selectedCityIndex ? 0.09 : 0.05,
+    size: i === selectedCityIndex ? 0.08 : 0.05,
   }));
 
   return (
@@ -121,18 +124,17 @@ export default function PlanetShowcase() {
         <div className="text-center max-w-3xl mx-auto">
           <Badge variant="outline" className="gap-1.5 border-primary/40 text-primary px-3 py-1 text-xs">
             <Sparkles className="size-3.5" />
-            Globe 3D Interactif & Cartographie Vivante
+            Globe 3D Interactif & Cartographie Stellaire
           </Badge>
           <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-5xl">
             Explorez la Planète Nova Terra
           </h2>
           <p className="mt-3 text-muted-foreground text-sm sm:text-base leading-relaxed">
-            Faites pivoter la planète à la souris ou cliquez sur les dômes et secteurs pour observer
-            la ville sous tous ses angles et afficher ses installations en temps réel.
+            Faites tourner la planète et <strong>cliquez directement sur les balises lumineuses</strong> pour inspecter chaque dôme et afficher sa vue réelle avec sa télémétrie en temps réel.
           </p>
         </div>
 
-        {/* City Quick Selector Buttons */}
+        {/* City Quick Selector Tabs */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           {CITIES.map((city, idx) => {
             const isSelected = selectedCityIndex === idx;
@@ -159,19 +161,20 @@ export default function PlanetShowcase() {
 
         {/* 3D Globe + Visual Inspector Grid */}
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center rounded-3xl border border-border/80 bg-card/40 p-4 sm:p-6 lg:p-8 backdrop-blur-md shadow-2xl">
-          {/* Interactive 3D Globe */}
+          {/* Interactive 3D Globe with Clickable Beacon Pins */}
           <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
-            <div className="relative size-[280px] sm:size-[360px] md:size-[400px] flex items-center justify-center">
+            <div className="relative size-[290px] sm:size-[360px] md:size-[400px] flex items-center justify-center">
               <InteractiveGlobe
                 className="w-full h-full"
                 markers={globeMarkers}
-                focusLocation={currentCity.coordinates}
+                selectedIndex={selectedCityIndex}
+                onSelectMarker={(idx) => setSelectedCityIndex(idx)}
               />
             </div>
 
-            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground font-mono">
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
               <RotateCcw className="size-3.5 text-primary animate-spin" style={{ animationDuration: "12s" }} />
-              <span>Glissez pour faire tourner • Cliquez pour cibler</span>
+              <span>Cliquez sur un point lumineux ou glissez le globe</span>
             </div>
           </div>
 
@@ -202,7 +205,7 @@ export default function PlanetShowcase() {
                   <div className="absolute top-3.5 left-3.5 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1 backdrop-blur-md text-[11px] text-white">
                     <span className="size-2 rounded-full bg-success animate-pulse" />
                     <span className="font-mono">
-                      LAT: {currentCity.coordinates[0]}° • LON: {currentCity.coordinates[1]}°
+                      COORD: {currentCity.coordinates[0]}°N • {currentCity.coordinates[1]}°E
                     </span>
                   </div>
 
@@ -245,7 +248,7 @@ export default function PlanetShowcase() {
                   <div className="mt-4 space-y-1.5 border-t border-border/60 pt-3">
                     {currentCity.features.map((feat, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                        <CheckCircle2 className="size-3.5 text-success shrink-0" />
                         <span>{feat}</span>
                       </div>
                     ))}
