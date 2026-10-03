@@ -6,7 +6,7 @@ import { fetchServices, fetchAnnouncements, type Service, type Announcement } fr
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Compass, Megaphone, Siren } from "lucide-react";
+import { Compass, Megaphone, Siren, HeartHandshake } from "lucide-react";
 import Reveal from "@/components/home/reveal";
 
 export default function QuickAccess() {
@@ -106,6 +106,16 @@ export default function QuickAccess() {
             Toutes les annonces →
           </Link>
         </Reveal>
+      </div>
+
+      <div className="mx-auto mt-10 max-w-4xl text-center">
+        <Link
+          href="/partenaires"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline hover:text-foreground"
+        >
+          <HeartHandshake className="size-3.5" />
+          Associations partenaires de Nova Terra →
+        </Link>
       </div>
     </section>
   );

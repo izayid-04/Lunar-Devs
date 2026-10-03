@@ -41,10 +41,12 @@ export default function LoadingSpinner({
       <div className="absolute inset-0 rounded-full border border-primary/20" />
 
       {/* Anneau orbital tournant */}
-      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-primary/50 animate-spin" />
+      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-primary/50 animate-spin spinner-spin" />
 
       {/* Deuxième anneau orbital pulsant */}
-      <div className="absolute inset-1.5 rounded-full border border-dashed border-primary/30 animate-[spin_4s_linear_infinite_reverse]" />
+      <div
+        className="absolute inset-1.5 rounded-full border border-dashed border-primary/40 animate-spin spinner-spin-reverse"
+      />
 
       {/* Planète centrale Nova Terra avec halo lumineux */}
       <div
@@ -58,7 +60,9 @@ export default function LoadingSpinner({
       </div>
 
       {/* Petit satellite orbital en rotation */}
-      <div className="absolute inset-0 animate-[spin_2s_linear_infinite]">
+      <div
+        className="absolute inset-0 animate-spin spinner-spin-slow"
+      >
         <div
           className={cn(
             "rounded-full bg-primary shadow-[0_0_6px_var(--primary)] -translate-x-1/2 -translate-y-1/2",

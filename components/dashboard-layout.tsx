@@ -36,6 +36,8 @@ const SEGMENT_LABEL: Record<string, string> = {
   demandes: "Mes demandes",
   signalements: "Signalements du quartier",
   users: "Gestion des comptes",
+  notifications: "Notifications",
+  idees: "Boîte à idées",
 };
 
 function useBreadcrumbSegments(): { href: string; label: string }[] {

@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
   }, [search]);
 
   const loadUsers = useCallback(
-    async (currentPage = page) => {
+    async (currentPage: number) => {
       if (!token) return;
       setLoading(true);
       setError(null);
@@ -134,16 +134,15 @@ export default function AdminUsersPage() {
         setLoading(false);
       }
     },
-    [token, debouncedSearch, roleFilter, page]
+    [token, debouncedSearch, roleFilter]
   );
 
   useEffect(() => {
-    Promise.resolve().then(() => loadUsers(1));
+    Promise.resolve().then(() => {
+      setPage(1);
+      loadUsers(1);
+    });
   }, [debouncedSearch, roleFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    Promise.resolve().then(() => loadUsers(page));
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleToggleStatus() {
     if (!token || !statusTarget) return;
@@ -272,16 +271,20 @@ export default function AdminUsersPage() {
                       <Label htmlFor="createFirstName">Prénom</Label>
                       <Input
                         id="createFirstName"
+                        placeholder="Ex: Elena, Marc…"
                         value={createFirstName}
                         onChange={(e) => setCreateFirstName(e.target.value)}
+                        autoComplete="given-name"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="createLastName">Nom</Label>
                       <Input
                         id="createLastName"
+                        placeholder="Ex: Vance, Dubois…"
                         value={createLastName}
                         onChange={(e) => setCreateLastName(e.target.value)}
+                        autoComplete="family-name"
                       />
                     </div>
                   </div>
@@ -290,6 +293,7 @@ export default function AdminUsersPage() {
                     <Input
                       id="createEmail"
                       type="email"
+                      placeholder="nom.prenom@novaterra.sol"
                       value={createEmail}
                       onChange={(e) => setCreateEmail(e.target.value)}
                       autoComplete="email"
@@ -299,10 +303,10 @@ export default function AdminUsersPage() {
                     <Label htmlFor="createPassword">Mot de passe provisoire</Label>
                     <PasswordInput
                       id="createPassword"
+                      placeholder="Ex: NovaTerra2026! (8 car. min, 1 maj, 1 chiffre)"
                       value={createPassword}
                       onChange={(e) => setCreatePassword(e.target.value)}
                       autoComplete="new-password"
-                      placeholder="8 caractères min., 1 majuscule, 1 chiffre"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -516,7 +520,10 @@ export default function AdminUsersPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        onClick={() => {
+                          const prev = Math.max(1, page - 1);
+                          loadUsers(prev);
+                        }}
                         disabled={page <= 1 || loading}
                         className="h-8 w-8 p-0"
                         aria-label="Page précédente"
@@ -526,7 +533,10 @@ export default function AdminUsersPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        onClick={() => {
+                          const next = Math.min(totalPages, page + 1);
+                          loadUsers(next);
+                        }}
                         disabled={page >= totalPages || loading}
                         className="h-8 w-8 p-0"
                         aria-label="Page suivante"

@@ -1166,3 +1166,285 @@ export async function patchAdminUserStatus(token: string, id: string, isActive: 
   }
   return res.json();
 }
+
+// --- Projets de la ville & consultations citoyennes (F65, F66, F67) ---
+
+export type Consultation = {
+  id: number;
+  question: string;
+  options: string[];
+  endDate: string;
+  totalResponses?: number;
+  aggregatedResults?: Record<string, number>;
+};
+
+export type Project = {
+  id: number;
+  title: string;
+  description: string;
+  district: string;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  consultations: Consultation[];
+};
+
+export async function fetchProjects(): Promise<Project[]> {
+  const res = await fetch(apiUrl("/projects"));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les projets de la ville."));
+  }
+  return res.json();
+}
+
+export async function fetchProject(id: number | string): Promise<Project> {
+  const res = await fetch(apiUrl(`/projects/${id}`));
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Ce projet n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer ce projet."));
+  }
+  return res.json();
+}
+
+export type ConsultationResponsePayload = {
+  option: string;
+  comment?: string;
+};
+
+export type ConsultationResponseResult = {
+  message: string;
+  reference: string;
+  response: {
+    id: number;
+    consultationId: number;
+    citizenId: number;
+    reference: string;
+    option: string;
+    comment: string | null;
+  };
+  aggregatedResults: Record<string, number>;
+  totalResponses: number;
+};
+
+export async function postConsultationResponse(
+  token: string,
+  consultationId: number,
+  payload: ConsultationResponsePayload
+): Promise<ConsultationResponseResult> {
+  const res = await authFetch(`/consultations/${consultationId}/responses`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'enregistrer votre avis."));
+  }
+  return res.json();
+}
+
+// --- Boîte à idées citoyenne (F68) ---
+
+export type IdeaStatus = "soumise" | "en_etude" | "retenue" | "rejetee";
+
+export type Idea = {
+  id: number;
+  reference: string;
+  title: string;
+  description: string;
+  district: string;
+  status: IdeaStatus;
+  adminNote: string | null;
+  citizenId?: number;
+  createdAt: string;
+};
+
+export async function postIdea(
+  token: string,
+  payload: { title: string; description: string; district: District }
+): Promise<Idea> {
+  const res = await authFetch("/ideas", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'envoyer votre idée."));
+  }
+  return res.json();
+}
+
+export async function fetchMyIdeas(token: string): Promise<Idea[]> {
+  const res = await authFetch("/ideas/mine", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer vos idées."));
+  }
+  return res.json();
+}
+
+export type AgentIdea = Idea & {
+  citizen?: {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+};
+
+export async function fetchAgentIdeas(
+  token: string,
+  status?: IdeaStatus
+): Promise<AgentIdea[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await authFetch(`/agent/ideas${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les idées citoyennes."));
+  }
+  return res.json();
+}
+
+export async function patchAgentIdea(
+  token: string,
+  id: number,
+  payload: { status: IdeaStatus; adminNote?: string }
+): Promise<AgentIdea> {
+  const res = await authFetch(`/agent/ideas/${id}`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de mettre à jour le statut de l'idée."));
+  }
+  return res.json();
+}
+
+// --- Avis sur les services municipaux (F76) ---
+
+export type ServiceFeedbackPayload = {
+  rating: number;
+  comment?: string;
+};
+
+export type ServiceFeedbackResult = {
+  message: string;
+  reference: string;
+  feedback: {
+    id: number;
+    serviceId: number;
+    citizenId: number;
+    rating: number;
+    comment: string | null;
+    reference: string;
+  };
+  averageRating: number;
+  totalFeedbacks: number;
+};
+
+export async function postServiceFeedback(
+  token: string,
+  serviceId: number | string,
+  payload: ServiceFeedbackPayload
+): Promise<ServiceFeedbackResult> {
+  const res = await authFetch(`/services/${serviceId}/feedback`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'enregistrer votre avis."));
+  }
+  return res.json();
+}
+
+export type AgentServiceFeedback = {
+  id: number;
+  serviceId: number;
+  citizenId: number;
+  rating: number;
+  comment: string | null;
+  reference: string;
+  createdAt: string;
+  service?: {
+    id: number;
+    name: string;
+    slug?: string;
+  };
+  citizen?: {
+    id: number | string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+};
+
+export async function fetchAgentServiceFeedbacks(
+  token: string,
+  serviceId?: number | string
+): Promise<AgentServiceFeedback[]> {
+  const qs = serviceId ? `?serviceId=${encodeURIComponent(String(serviceId))}` : "";
+  const res = await authFetch(`/agent/service-feedbacks${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les avis sur les services."));
+  }
+  return res.json();
+}
+
+// --- Partenaires & associations locales (F74) ---
+
+export type Partner = {
+  id: number;
+  name: string;
+  description: string;
+  address: string;
+  district: string;
+  openingHours: string;
+  contact: string;
+};
+
+export async function fetchPartners(district?: string): Promise<Partner[]> {
+  const qs = district ? `?district=${encodeURIComponent(district)}` : "";
+  const res = await fetch(apiUrl(`/partners${qs}`));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les associations partenaires."));
+  }
+  return res.json();
+}
+
+// --- Détection de Demandes Similaires (IA) (F75) ---
+
+export type SimilarMessageItem = {
+  id: number;
+  reference: string;
+  subject: string;
+  body: string;
+  category: string;
+  district?: string | null;
+  status: MessageStatus;
+  createdAt: string;
+  similarityScore: number;
+};
+
+export type SimilarMessagesResponse = {
+  targetMessage: {
+    id: number;
+    reference: string;
+    subject: string;
+    body: string;
+    category: string;
+    district?: string | null;
+  };
+  similarMessages: SimilarMessageItem[];
+  explanation: string;
+  aiEnhanced: boolean;
+};
+
+export async function fetchSimilarMessages(
+  token: string,
+  messageId: number | string
+): Promise<SimilarMessagesResponse> {
+  const res = await authFetch(`/agent/messages/${messageId}/similar`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger les demandes similaires."));
+  }
+  return res.json();
+}

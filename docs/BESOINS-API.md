@@ -82,15 +82,64 @@ actuel de `PATCH /me` n'accepte que `district`, `preferredLanguage` et
 alternative trouvée. Le formulaire de profil ne peut donc proposer que
 ces trois champs en attendant une extension du contrat.
 
-### Nouveau — Pas de filtre sur « Mes demandes » (F26)
-Le scénario demande une liste de demandes « filtrable » par statut/type
-dans `/espace`. Ceci est réalisable **entièrement côté front**
-(les données sont déjà dans `GET /messages/mine`) — identifié mais pas
-encore construit, faute de temps avant le gel de ce soir.
+### ✅ FAIT — Filtre sur « Mes demandes » (F26)
+Réalisé entièrement côté front (les données sont déjà dans `GET
+/messages/mine`, aucune route supplémentaire) : recherche par référence
+ou mot-clé, filtre par statut, filtre par type. Voir `docs/DEMANDES.md`.
 
-Deux besoins restent réalisables côté front seul, désormais construits :
+Tous les besoins réalisables côté front seul sont désormais construits :
 
 - **F55 / F56 — export de mes données et récapitulatif de mes
   demandes** : fait, vérifié (voir `docs/DEMANDES.md`).
 - **Liste de démarrage pour un nouveau citoyen** : fait, avec un bug
   corrigé ce soir (voir `docs/DEMANDES.md`).
+- **F26 — filtres sur « Mes demandes »** : fait (voir ci-dessus).
+
+## ⚠️ URGENT — Les 4 nouveaux modules (F65-F68, F74, F76) renvoient `500` en prod
+
+Testé en direct le 2026-10-04 contre
+`https://api.lunardevs.lescomores.webcup.hodi.cloud`, toutes les
+routes documentées dans `docs/API.md` pour ces modules :
+- `GET /projects` → `500 Internal server error`
+- `GET /projects/1` → `500`
+- `GET /partners` (avec ou sans `?district=`) → `500`
+- `GET /ideas/mine` (avec un citoyen authentifié valide) → `500`
+- `POST /ideas` (corps conforme au contrat) → `500`
+- `POST /services/1/feedback` (corps conforme au contrat) → `500`
+
+Les 4 routes échouent systématiquement, avec le même message générique
+NestJS (`Internal server error`, sans détail) — à l'inverse d'un `404`
+(route absente) ou d'un `403`/`401` (droits), ce qui suggère une cause
+commune côté backend (migration de base de données pas appliquée en
+prod, table manquante, ou erreur de configuration), plutôt que 4 bugs
+indépendants. Le front est néanmoins construit et déployé en
+anticipation : chaque appel affiche le message d'erreur générique
+("Impossible de récupérer..."/"Impossible d'enregistrer...") de façon
+propre, sans jamais planter une page, conformément à la règle commune
+du cahier de scénarios. Front à re-tester dès que ces routes répondront
+`200` en prod.
+
+## Écarts — données manquantes sur `GET /projects/:id` et `GET /services`
+
+Deux routes `GET` existantes ne renvoient pas certaines informations
+nécessaires pour afficher correctement « ce que le citoyen a déjà
+fait », ce qui oblige le front à mémoriser la donnée localement
+(`localStorage`, par navigateur, non partagé entre appareils) plutôt
+que de la relire depuis l'API :
+
+- **`GET /projects/:id`** : ne renvoie pas le vote déjà déposé par le
+  citoyen connecté sur une consultation (pas de `myResponse` ni
+  `hasResponded`). Impossible de savoir, à la relecture de la page, si
+  le citoyen a déjà répondu ni avec quelle option — nécessaire pour la
+  règle « résultats affichés après avoir répondu » et « possibilité de
+  modifier son avis » du cahier de scénarios.
+- **`GET /services`** et **`GET /services/:slug`** : ne renvoient ni
+  `averageRating`, ni `totalFeedbacks`, ni l'avis déjà déposé par le
+  citoyen connecté — ces champs n'existent que dans la réponse de
+  `POST /services/:id/feedback`. Conséquence : la fiche service ne peut
+  afficher une moyenne/un nombre d'avis qu'immédiatement après que le
+  citoyen vient lui-même de voter, jamais de façon permanente.
+
+Suggestion : ajouter ces champs calculés sur les `GET` correspondants
+(`myResponse` par consultation, `averageRating`/`totalFeedbacks` par
+service), et si possible le propre avis déjà déposé par le citoyen.

@@ -15,6 +15,8 @@ import {
   Compass,
   Megaphone,
   Siren,
+  Building2,
+  HeartHandshake,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -97,6 +99,8 @@ export default function DockNav() {
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
     { href: "/districts", label: "Services", icon: Compass },
+    { href: "/projets", label: "Projets", icon: Building2 },
+    { href: "/partenaires", label: "Partenaires", icon: HeartHandshake },
     { href: "/annonces", label: "Annonces", icon: Megaphone },
     { href: "/alertes", label: "Alertes", icon: Siren },
     { href: "/a-propos", label: "À propos", icon: Info },

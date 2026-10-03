@@ -17,6 +17,7 @@ import { AvailabilityBadge, AvailabilityDetails } from "@/components/services/av
 import AvailabilityManager from "@/components/services/availability-manager";
 import AppointmentBooking from "@/components/services/appointment-booking";
 import ContactServiceButton from "@/components/services/contact-service-button";
+import ServiceFeedback from "@/components/services/service-feedback";
 
 async function getService(slug: string) {
   try {
@@ -118,6 +119,8 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
           </div>
         </CardContent>
       </Card>
+
+      <ServiceFeedback service={service} />
     </div>
   );
 }

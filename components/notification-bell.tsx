@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Bell, Check, ExternalLink, Loader2 } from "lucide-react";
+import { Bell, Check, ExternalLink, Loader2, BellRing } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   fetchNotifications,
   markNotificationAsRead,
   type AppNotification,
 } from "@/lib/api";
-import { notificationHref } from "@/lib/alerts";
+import { notificationHref, notificationTypeLabel } from "@/lib/alerts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,32 +17,68 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+// Rafraîchissement silencieux : assez rapide pour que le badge et la
+// liste reflètent une nouvelle notification sans que l'utilisateur ait
+// à recharger la page, sans pour autant appeler l'API en continu.
+const POLL_INTERVAL_MS = 20_000;
 
 export default function NotificationBell() {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [markingId, setMarkingId] = useState<number | null>(null);
+  // Id le plus élevé déjà vu, pour détecter l'arrivée d'une notification
+  // réellement nouvelle (et non un simple re-fetch du même contenu).
+  const seenMaxId = useRef<number | null>(null);
 
-  const loadNotifications = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await fetchNotifications(token);
-      setNotifications(data);
-    } catch {
-      // Ignorer l'erreur réseau en arrière-plan pour éviter de bloquer l'UI
-    }
+  const loadNotifications = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!token) return;
+      try {
+        const data = await fetchNotifications(token);
+        setNotifications(data);
+
+        const maxId = data.reduce((max, n) => Math.max(max, n.id), 0);
+        if (opts?.silent && seenMaxId.current !== null) {
+          const freshOnes = data.filter((n) => n.id > (seenMaxId.current ?? 0) && !n.readAt);
+          for (const n of freshOnes.slice(0, 3)) {
+            toast(n.title, {
+              icon: <BellRing className="size-4" />,
+              description: notificationTypeLabel(n.type),
+            });
+          }
+        }
+        seenMaxId.current = maxId > 0 ? maxId : seenMaxId.current;
+      } catch {
+        // Erreur réseau en arrière-plan : on n'interrompt pas l'UI pour ça.
+      }
+    },
+    [token]
+  );
+
+  // Changement de compte (déconnexion/reconnexion avec un autre utilisateur
+  // dans le même onglet) : on vide immédiatement la liste affichée plutôt
+  // que de laisser transparaître les notifications du compte précédent le
+  // temps que le nouvel appel réponde.
+  useEffect(() => {
+    Promise.resolve().then(() => setNotifications([]));
+    seenMaxId.current = null;
   }, [token]);
 
   useEffect(() => {
     if (!token) return;
     let isCancelled = false;
+
     fetchNotifications(token)
       .then((data) => {
-        if (!isCancelled) setNotifications(data);
+        if (isCancelled) return;
+        setNotifications(data);
+        seenMaxId.current = data.reduce((max, n) => Math.max(max, n.id), 0);
       })
       .catch(() => {});
 
-    const interval = window.setInterval(loadNotifications, 60_000);
+    const interval = window.setInterval(() => loadNotifications({ silent: true }), POLL_INTERVAL_MS);
     return () => {
       isCancelled = true;
       window.clearInterval(interval);
@@ -108,7 +144,7 @@ export default function NotificationBell() {
             variant="ghost"
             size="sm"
             className="h-7 text-xs text-muted-foreground"
-            onClick={loadNotifications}
+            onClick={() => loadNotifications()}
           >
             Actualiser
           </Button>
@@ -120,7 +156,7 @@ export default function NotificationBell() {
               Aucune notification reçue pour le moment.
             </div>
           ) : (
-            notifications.map((n) => {
+            notifications.slice(0, 8).map((n) => {
               const href = notificationHref(n.link);
               const isUnread = !n.readAt;
 
@@ -136,6 +172,9 @@ export default function NotificationBell() {
                       href={href}
                       className="block hover:underline"
                     >
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-primary">
+                        {notificationTypeLabel(n.type)}
+                      </span>
                       <p className="text-xs text-foreground line-clamp-2">
                         {n.title}
                       </p>
@@ -179,6 +218,14 @@ export default function NotificationBell() {
             })
           )}
         </div>
+
+        {notifications.length > 0 && (
+          <div className="border-t border-border p-2">
+            <Button asChild variant="ghost" size="sm" className="w-full text-xs">
+              <Link href="/notifications">Voir toutes mes notifications</Link>
+            </Button>
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

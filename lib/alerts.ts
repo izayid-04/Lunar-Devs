@@ -47,6 +47,21 @@ export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 }
 
+// Types réels de notifications renvoyés par l'API (notification-type.enum.ts
+// côté backend) — libellés lisibles, utilisés par la cloche et par la page
+// "Toutes les notifications".
+export const NOTIFICATION_TYPE_LABEL: Record<string, string> = {
+  alert: "Alerte",
+  announcement: "Annonce",
+  appointment_reminder: "Rendez-vous",
+  demande_statut: "Ma demande",
+  security: "Sécurité du compte",
+};
+
+export function notificationTypeLabel(type: string): string {
+  return NOTIFICATION_TYPE_LABEL[type] ?? "Notification";
+}
+
 // Les liens de notification renvoyés par l'API pointent vers ses propres
 // routes (/alerts/1, /announcements/2, /messages/mine/3, /appointments/4,
 // /privacy/inquiries/5) : on les traduit en pages existantes du front (F49).

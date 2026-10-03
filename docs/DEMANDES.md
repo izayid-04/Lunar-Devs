@@ -859,3 +859,212 @@ publique ne crée que des comptes citoyens).
 
 Build + lint : clean après chaque changement de ce soir.
 
+## F26 — Filtres sur « Mes demandes »
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F26** | Filtrer « Mes demandes » par statut, par type et par recherche libre, sans nouvelle route. | `app/espace/page.tsx` | ✅ Fait |
+
+Entièrement côté front, sur les données déjà chargées par `GET
+/messages/mine` (`messages` en mémoire) : recherche par référence,
+objet ou contenu (`requestSearch`), filtre par statut (nouveau / en
+cours / traité), filtre par type (question / signalement). Les trois
+se combinent. Compteur mis à jour (« X / Y » quand un filtre est actif).
+Bouton « Réinitialiser » visible seulement quand au moins un filtre est
+actif. État vide dédié (« Aucune demande ne correspond à ces filtres »,
+avec un lien pour réinitialiser) distinct de l'état vide « aucun
+message du tout », conformément à la règle commune du cahier de
+scénarios (jamais de page blanche).
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur.
+
+## Notifications — filtrage par compte, rafraîchissement silencieux, page complète (F30)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F30** | Notifications bien filtrées par utilisateur/rôle, rafraîchissement silencieux (badge + liste à jour sans recharger), page listant toutes les notifications. | `components/notification-bell.tsx`, `app/notifications/page.tsx`, `lib/alerts.ts` | ✅ Fait |
+
+**Filtrage par utilisateur/rôle** : vérifié contre l'API réelle que
+`GET /notifications` est déjà strictement limité au compte connecté
+(testé avec un citoyen tout juste créé : tableau vide, aucune fuite
+d'un autre compte). Le bug côté front était ailleurs : si quelqu'un se
+déconnecte puis se reconnecte avec un **autre compte dans le même
+onglet**, la cloche gardait en mémoire les notifications du compte
+précédent jusqu'à ce que le nouvel appel réponde. Corrigé : la liste
+est maintenant vidée immédiatement dès que le jeton change, avant même
+de recharger les notifications du nouveau compte.
+
+**Rafraîchissement silencieux** : l'intervalle d'actualisation en
+arrière-plan passe de 60 s à 20 s. À chaque actualisation silencieuse,
+les notifications dont l'identifiant est supérieur au plus grand déjà
+vu (et non lues) déclenchent un toast discret (titre + type), pour
+qu'une nouvelle notification « s'affiche directement » sans que
+l'utilisateur ait à ouvrir la cloche. Le badge (compteur de non lues)
+se recalcule à chaque actualisation, silencieuse ou manuelle.
+
+**Page « Toutes mes notifications »** (`/notifications`, nouveau lien
+en bas du menu de la cloche) : liste complète, filtre lu/non lu, filtre
+par type (alerte, annonce, rendez-vous, ma demande, sécurité — les
+vrais types renvoyés par le backend), bouton « Tout marquer comme lu »,
+états vide/erreur/chargement conformes aux règles communes du cahier de
+scénarios. Accessible à tout rôle connecté (la route API elle-même
+n'est pas restreinte par rôle).
+
+Ajouté au passage `notificationTypeLabel` dans `lib/alerts.ts`,
+partagé entre la cloche et la nouvelle page, pour traduire les types
+bruts (`alert`, `announcement`, `appointment_reminder`,
+`demande_statut`, `security`) en libellés lisibles.
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur (un
+bug de lint préexistant dans `app/admin/users/page.tsx`,
+`react-hooks/set-state-in-effect`, corrigé au passage avec le même
+motif `Promise.resolve().then(...)` déjà utilisé partout ailleurs).
+
+## Point 1 — Projets de la ville & consultations citoyennes (F65, F66, F67)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F65 / F66 / F67** | Liste des projets, détail avec consultation (choisir une option, commentaire facultatif, confirmation avec référence `CONS-...`, modification possible, résultats affichés après avoir répondu). | `app/projets/page.tsx`, `app/projets/[id]/page.tsx`, `components/projects/consultation-vote.tsx`, `lib/api.ts` | ✅ Fait (bloqué par une panne backend, voir `docs/BESOINS-API.md`) |
+
+`/projets` (liste publique, `GET /projects`) et `/projets/[id]`
+(détail, `GET /projects/:id`) suivent le même schéma que `/annonces` et
+`/services/[slug]` déjà en place (rendu serveur, `force-dynamic`,
+`notFound()` si l'id n'existe pas, fil d'Ariane). Lien ajouté dans le
+dock public.
+
+Le vote (`components/projects/consultation-vote.tsx`) est un
+composant client dédié par consultation :
+- Non connecté → invité à se connecter.
+- Connecté mais pas citoyen (agent/admin) → message explicite, pas de
+  formulaire.
+- Citoyen → choix d'une option (boutons radio), commentaire facultatif,
+  envoi vers `POST /consultations/:id/responses`. Succès : toast avec
+  la référence `CONS-...`, résultats mis à jour immédiatement à partir
+  de la réponse (pas besoin de recharger la page).
+- **Résultats affichés seulement après avoir répondu**, ou si la
+  consultation est terminée (date de fin dépassée) — dans ce dernier
+  cas, affichés à tous par transparence même sans y avoir participé.
+- **Modifier son avis** : bouton dédié qui réaffiche le formulaire
+  pré-rempli avec le choix précédent ; renvoyer la requête mande à jour
+  le vote existant (comportement documenté de l'API).
+
+**Écart constaté** : `GET /projects/:id` ne renvoie pas le vote déjà
+déposé par le citoyen connecté (pas de champ `myResponse` ou
+équivalent) — impossible de savoir, à la relecture de la page, si et
+quoi un citoyen a déjà répondu. Contourné en mémorisant le vote
+localement (`localStorage`, par navigateur) au moment de l'envoi :
+fonctionne sur le même appareil, mais pas de reconnaissance entre
+appareils. Documenté dans `docs/BESOINS-API.md`.
+
+**⚠️ Testé en direct contre la prod le 2026-10-04 : `GET /projects` et
+`GET /projects/:id` renvoient tous les deux `500 Internal server
+error`** — impossible de vérifier le rendu réel avec de vraies données
+ni le flux de vote de bout en bout. Le code suit exactement le contrat
+documenté et affiche une erreur propre (pas de page cassée) en
+attendant que la route réponde. Voir l'entrée détaillée dans
+`docs/BESOINS-API.md` (les 4 nouveaux modules sont tous en panne,
+probablement une cause commune côté backend).
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur.
+
+## Point 2 — Boîte à idées (F68)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F68** | Proposer une idée avec confirmation et référence `IDEE-...`, « Mes idées » dans l'espace avec statut et note de l'agent. | `app/espace/idees/page.tsx`, `lib/api.ts` (`postIdea`, `fetchMyIdeas`) | ✅ Fait (bloqué par la panne backend) |
+
+Nouvelle page `/espace/idees` (lien depuis `/espace`), même schéma que
+les autres formulaires citoyens déjà en place : dialogue « Proposer une
+idée » (titre, description, quartier), validations avant envoi,
+confirmation avec référence `IDEE-...` (`role="status"` /
+`aria-live="polite"`), liste « Mes idées » avec badge de statut
+(soumise / à l'étude / retenue / rejetée) et encart dédié affichant la
+note de l'agent (`adminNote`) quand elle existe. États vide/erreur
+conformes aux règles communes.
+
+**Pendant ce point**, une édition concurrente d'un autre agent sur
+`lib/api.ts` a fait disparaître la fonction `fetchMyIdeas` que je
+venais d'y ajouter (remplacée par l'ajout de leurs propres
+`fetchAgentIdeas`/`AgentIdea` juste après) — recréée à l'identique.
+Build cassé aussi, séparément, par un import manquant dans leur propre
+page `app/agent/ideas/page.tsx` (`components/ui/textarea` inexistant) :
+composant shadcn standard ajouté (`components/ui/textarea.tsx`, aucune
+logique métier, juste le primitif manquant) pour débloquer le build
+partagé.
+
+Vérifié : `GET /ideas/mine`, `POST /ideas` renvoient `500` en prod
+(même panne que le reste, voir `docs/BESOINS-API.md`). `npm run build`
+et `npm run lint` passent sans erreur.
+
+## Point 3 — Avis sur les services municipaux (F76)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F76** | « Donner mon avis » sur un service (note 1-5 + commentaire), confirmation avec référence, moyenne et nombre d'avis affichés. | `components/services/service-feedback.tsx`, `app/services/[slug]/page.tsx`, `lib/api.ts` (`postServiceFeedback`) | ✅ Fait (bloqué par la panne backend) |
+
+Nouveau composant `ServiceFeedback` ajouté en bas de la fiche service,
+même famille que `AppointmentBooking`/`ContactServiceButton` déjà en
+place : non connecté → invite à se connecter ; agent/admin → masqué ;
+citoyen → sélecteur d'étoiles (1 à 5, accessible au clavier et aux
+lecteurs d'écran via `role="radiogroup"` et des `aria-label` par
+étoile), commentaire facultatif, envoi vers `POST
+/services/:id/feedback`. Succès : confirmation avec référence
+`AVIS-...`, et affichage de la moyenne/nombre d'avis **tels que
+renvoyés par l'API à cet instant** (`role="status"`/`aria-live`).
+
+**Écart constaté** : `GET /services`/`GET /services/:slug` ne
+renvoient ni la moyenne, ni le nombre d'avis, ni l'avis déjà déposé par
+le citoyen connecté — ces informations n'existent, pour l'instant,
+que dans la réponse de `POST /services/:id/feedback`. Conséquence
+assumée : la moyenne ne s'affiche qu'après avoir soi-même laissé un
+avis dans la session en cours (jamais une valeur mise en cache
+présentée comme à jour après rechargement) ; « un seul avis par
+citoyen, modifiable » est géré en mémorisant localement
+(`localStorage`) la note déjà donnée, pour pré-remplir le formulaire et
+proposer « Modifier ». Documenté dans `docs/BESOINS-API.md` —
+idéalement `GET /services/:slug` renverrait `averageRating`/
+`totalFeedbacks` pour un affichage permanent.
+
+Vérifié : `POST /services/1/feedback` renvoie `500` en prod (même
+panne). `npm run build` et `npm run lint` passent sans erreur (un
+avertissement/erreur de lint préexistant dans
+`components/agent/similar-messages-block.tsx`, fichier non suivi d'un
+autre agent sur F75, hors de mon périmètre — pas touché).
+
+## Point 4 — Associations partenaires (F74)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F74** | Page « Associations partenaires » avec horaires, adresse, quartier, contact, filtre par quartier, lien depuis l'accueil. | `app/partenaires/page.tsx`, `app/partenaires/partenaires-content.tsx`, `lib/api.ts` (`fetchPartners`) | ✅ Fait (bloqué par la panne backend) |
+
+`/partenaires` (public, pas de connexion requise — `GET /partners` est
+public), même schéma que `/districts` : filtre par quartier (dont le
+quartier peut être pré-sélectionné via `?quartier=...` comme les autres
+pages filtrables), carte par association (nom, description, adresse,
+horaires, contact). Lien ajouté sur l'accueil (sous les blocs
+« Services principaux »/« Annonces »), et dans le dock de navigation
+public.
+
+Vérifié : `GET /partners` renvoie `500` en prod (même panne que les 3
+points précédents). `npm run build` et `npm run lint` passent sans
+erreur.
+
+---
+
+## Récapitulatif des 4 nouveaux modules (F65-F68, F74, F76)
+
+Les quatre écrans sont construits et prêts, strictement conformes aux
+contrats de `docs/API.md` et aux règles communes de
+`docs/SCENARIOS.md` (chargement, états vides avec action, erreurs
+compréhensibles, confirmations annoncées aux lecteurs d'écran,
+double-clic protégé par les `disabled` sur soumission, accessibilité
+clavier, mobile). **Aucun n'a pu être vérifié avec de vraies données en
+prod** : les 6 routes testées (`GET /projects`, `GET /projects/:id`,
+`GET /partners`, `GET /ideas/mine`, `POST /ideas`, `POST
+/services/1/feedback`) renvoient toutes `500 Internal server error` —
+voir l'entrée urgente en tête de `docs/BESOINS-API.md`. Deux écarts de
+contrat supplémentaires documentés (vote/avis déjà déposé non renvoyé
+par les `GET`, moyenne des avis absente de `GET /services`) — contournés
+provisoirement par une mémorisation locale (`localStorage`) le temps
+que ces champs soient ajoutés côté backend.
+

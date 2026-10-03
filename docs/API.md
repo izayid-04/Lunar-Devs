@@ -214,8 +214,10 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 - **Rôle** : connecté (tout rôle).
 - **Corps** — tous les champs sont optionnels, seuls ceux fournis sont modifiés :
   ```json
-  { "district": "Port Stellaire", "preferredLanguage": "fr", "isVulnerable": true }
+  { "firstName": "Alice", "lastName": "Dupont", "district": "Port Stellaire", "preferredLanguage": "fr", "isVulnerable": true }
   ```
+  - `firstName` : chaîne non vide, 100 caractères max.
+  - `lastName` : chaîne non vide, 100 caractères max.
   - `district` : une valeur parmi `Centre-Ville`, `Port Stellaire`, `Quartier des Dunes`, `Hauts de Nova`, `Faubourg Est` (mêmes quartiers que `GET /services`). **`400`** si une autre valeur est envoyée.
   - `preferredLanguage` : texte libre (code ou nom de langue), 50 caractères max.
   - `isVulnerable` : booléen.
@@ -1034,4 +1036,240 @@ Permet aux citoyens de poser des questions sur l'usage de leurs données ou d'ex
   }
   ```
 - **Réponse `200`** : demande mise à jour. Génère automatiquement une notification citoyenne (`Notification`) et un enregistrement dans le journal d'audit (`AuditLog`).
+
+---
+
+## Participation Citoyenne & Démocratie Participative (F65, F66, F67, F68)
+
+Permet aux citoyens et visiteurs de consulter les grands projets urbains de Nova Terra, de voter aux consultations citoyennes associées, de déposer des boîtes à idées avec référence de suivi `IDEE-...` et permet aux agents de piloter les propositions.
+
+### `GET /projects`
+- **Rôle** : public.
+- **Réponse `200`** : liste des projets avec leurs consultations associées.
+  ```json
+  [
+    {
+      "id": 1,
+      "title": "Végétalisation du Dôme Central",
+      "description": "Implantation d'espaces verts suspendus...",
+      "district": "Centre-Ville",
+      "status": "en_cours",
+      "startDate": "2026-09-01",
+      "endDate": "2027-03-31",
+      "consultations": [
+        {
+          "id": 1,
+          "question": "Quel aménagement végétal prioritaire souhaitez-vous installer sous la verrière ?",
+          "options": ["Jardins partagés suspendus", "Forêt urbaine de palmiers régénérants", "Bassin d'eau filtrée et allées ombragées"],
+          "endDate": "2026-11-03T00:00:00.000Z"
+        }
+      ]
+    }
+  ]
+  ```
+
+### `GET /projects/:id`
+- **Rôle** : public.
+- **Réponse `200`** : détail d'un projet avec ses consultations et les résultats agrégés des votes.
+  ```json
+  {
+    "id": 1,
+    "title": "Végétalisation du Dôme Central",
+    "description": "...",
+    "district": "Centre-Ville",
+    "status": "en_cours",
+    "consultations": [
+      {
+        "id": 1,
+        "question": "Quel aménagement végétal prioritaire...",
+        "options": ["Jardins partagés suspendus", "Forêt urbaine de palmiers régénérants", "Bassin d'eau filtrée et allées ombragées"],
+        "endDate": "2026-11-03T00:00:00.000Z",
+        "totalResponses": 12,
+        "aggregatedResults": {
+          "Jardins partagés suspendus": 7,
+          "Forêt urbaine de palmiers régénérants": 3,
+          "Bassin d'eau filtrée et allées ombragées": 2
+        }
+      }
+    ]
+  }
+  ```
+
+### `POST /consultations/:id/responses`
+- **Rôle** : `citizen`.
+- **Règle** : un seul avis par citoyen et par consultation (les soumissions suivantes modifient le vote existant). Renvoie une référence de participation unique `CONS-<id>-XXXXXX` et les résultats agrégés recalculés.
+- **Corps** :
+  ```json
+  {
+    "option": "Jardins partagés suspendus",
+    "comment": "Excellente idée pour créer du lien entre résidents."
+  }
+  ```
+- **Réponse `201`** (ou `200` sur mise à jour) :
+  ```json
+  {
+    "message": "Avis enregistré avec succès",
+    "reference": "CONS-1-849201",
+    "response": {
+      "id": 4,
+      "consultationId": 1,
+      "citizenId": 2,
+      "reference": "CONS-1-849201",
+      "option": "Jardins partagés suspendus",
+      "comment": "Excellente idée pour créer du lien entre résidents."
+    },
+    "aggregatedResults": {
+      "Jardins partagés suspendus": 8,
+      "Forêt urbaine de palmiers régénérants": 3,
+      "Bassin d'eau filtrée et allées ombragées": 2
+    },
+    "totalResponses": 13
+  }
+  ```
+
+### `POST /ideas`
+- **Rôle** : `citizen`.
+- **Corps** :
+  ```json
+  {
+    "title": "Bibliothèque d'outils partagés au Port Stellaire",
+    "description": "Mettre à disposition des habitants des outils de réparation spatiale et de bricolage en libre emprunt.",
+    "district": "Port Stellaire"
+  }
+  ```
+- **Réponse `201`** :
+  ```json
+  {
+    "id": 1,
+    "reference": "IDEE-2026-4821",
+    "title": "Bibliothèque d'outils partagés au Port Stellaire",
+    "description": "...",
+    "district": "Port Stellaire",
+    "status": "soumise",
+    "adminNote": null,
+    "citizenId": 2,
+    "createdAt": "2026-10-04T01:00:00.000Z"
+  }
+  ```
+
+### `GET /ideas/mine`
+- **Rôle** : `citizen`.
+- **Réponse `200`** : liste des idées déposées par le citoyen connecté avec leur statut (`soumise`, `en_etude`, `retenue`, `rejetee`) et la note éventuelle des agents.
+
+### `GET /agent/ideas`
+- **Rôle** : `agent`, `admin`.
+- **Query params** (optionnel) : `status` (`soumise`, `en_etude`, `retenue`, `rejetee`).
+- **Réponse `200`** : ensemble des idées citoyennes avec les informations du citoyen auteur.
+
+### `PATCH /agent/ideas/:id`
+- **Rôle** : `agent`, `admin`.
+- **Corps** :
+  ```json
+  {
+    "status": "en_etude",
+    "adminNote": "Proposition transmise à la commission d'urbanisme pour chiffrage."
+  }
+  ```
+- **Réponse `200`** : idée mise à jour.
+
+---
+
+## Avis sur les Services Municipaux (F76)
+
+Permet aux citoyens d'évaluer la qualité d'un service municipal (note 1 à 5 + commentaire optionnel), avec accusé de réception, référence `AVIS-...`, calcul instantané de la moyenne et consultation par les agents.
+
+### `POST /services/:id/feedback`
+- **Rôle** : `citizen`.
+- **Règle** : un seul avis par citoyen et par service (modifiable à volonté en réémettant la requête).
+- **Corps** :
+  ```json
+  {
+    "rating": 5,
+    "comment": "Personnel très disponible et démarches rapides."
+  }
+  ```
+- **Réponse `201`** :
+  ```json
+  {
+    "message": "Avis enregistré avec succès",
+    "reference": "AVIS-1-392182",
+    "feedback": {
+      "id": 2,
+      "serviceId": 1,
+      "citizenId": 2,
+      "rating": 5,
+      "comment": "Personnel très disponible...",
+      "reference": "AVIS-1-392182"
+    },
+    "averageRating": 4.7,
+    "totalFeedbacks": 15
+  }
+  ```
+
+### `GET /agent/service-feedbacks`
+- **Rôle** : `agent`, `admin`.
+- **Query params** (optionnel) : `serviceId`.
+- **Réponse `200`** : ensemble des avis déposés avec détail du service et identité du citoyen.
+
+---
+
+## Partenaires & Associations Locales (F74)
+
+Répertoire des associations et acteurs partenaires de Nova Terra, filtrable par quartier.
+
+### `GET /partners`
+- **Rôle** : public.
+- **Query params** (optionnel) : `district`.
+- **Réponse `200`** :
+  ```json
+  [
+    {
+      "id": 1,
+      "name": "Éco-Pionniers de Nova Terra",
+      "description": "Association citoyenne engagée pour le recyclage des biomatériaux...",
+      "address": "12 Avenue de l'Harmonie",
+      "district": "Centre-Ville",
+      "openingHours": "Mar-Sam 9h-17h",
+      "contact": "+269 773 80 01 · contact@ecopionniers.org"
+    }
+  ]
+  ```
+
+---
+
+## Détection de Demandes Similaires (IA) (F75)
+
+Assistance intelligente aux agents municipaux pour détecter les signalements et demandes en doublon ou récurrentes (même incident, voirie abîmée, panne d'eau), croisant la similarité de texte, quartier et catégorie, affinée par le LLM Qwen si configuré.
+
+### `GET /agent/messages/:id/similar`
+- **Rôle** : `agent`, `admin`.
+- **Réponse `200`** :
+  ```json
+  {
+    "targetMessage": {
+      "id": 12,
+      "reference": "NT-0012",
+      "subject": "Éclairage en panne allée des Sables",
+      "body": "Deux lampadaires sont éteints depuis hier soir.",
+      "category": "eclairage",
+      "district": "Quartier des Dunes"
+    },
+    "similarMessages": [
+      {
+        "id": 11,
+        "reference": "NT-0011",
+        "subject": "Lampadaires hors service secteur Dunes",
+        "body": "Plus de lumière sur le chemin piéton.",
+        "category": "eclairage",
+        "district": "Quartier des Dunes",
+        "status": "en_cours",
+        "createdAt": "2026-10-04T00:15:00.000Z",
+        "similarityScore": 0.85
+      }
+    ],
+    "explanation": "Demandes concordantes concernant une rupture d'alimentation sur le circuit d'éclairage du secteur Dunes.",
+    "aiEnhanced": true
+  }
+  ```
+
 

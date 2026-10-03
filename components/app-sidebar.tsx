@@ -82,6 +82,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               isActive: pathname.startsWith("/agent/privacy"),
             },
             {
+              title: "Idées des habitants",
+              url: "/agent/ideas",
+              isActive: pathname.startsWith("/agent/ideas"),
+            },
+            {
+              title: "Avis sur les services",
+              url: "/agent/feedbacks",
+              isActive: pathname.startsWith("/agent/feedbacks"),
+            },
+            {
               title: "Gestion des citoyens",
               url: "/agent/citizens",
               isActive: pathname.startsWith("/agent/citizens"),

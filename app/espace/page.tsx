@@ -50,6 +50,7 @@ import {
   Compass,
   ListChecks,
   ThumbsUp,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -141,6 +142,12 @@ function EspaceContent() {
 
   const [messages, setMessages] = useState<CitizenMessage[] | null>(null);
   const [messagesError, setMessagesError] = useState<string | null>(null);
+
+  // Filtres "Mes demandes" (F26) — purement côté front, sur les données
+  // déjà chargées via GET /messages/mine.
+  const [requestSearch, setRequestSearch] = useState("");
+  const [requestStatusFilter, setRequestStatusFilter] = useState<string>("all");
+  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
 
   const [privacyInquiries, setPrivacyInquiries] = useState<PrivacyInquiry[] | null>(null);
 
@@ -655,6 +662,20 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
     URL.revokeObjectURL(url);
     toast.success("Dossier complet de données téléchargé avec succès.");
   }
+
+  const filteredMessages = (messages ?? []).filter((m) => {
+    if (requestStatusFilter !== "all" && m.status !== requestStatusFilter) return false;
+    if (requestTypeFilter !== "all" && (m.type ?? "question") !== requestTypeFilter) return false;
+    const q = requestSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      m.reference.toLowerCase().includes(q) ||
+      m.subject.toLowerCase().includes(q) ||
+      m.body.toLowerCase().includes(q)
+    );
+  });
+  const requestFiltersActive =
+    requestSearch.trim() !== "" || requestStatusFilter !== "all" || requestTypeFilter !== "all";
 
   return (
     <>
@@ -1288,23 +1309,94 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                       Signalements du quartier
                     </Link>
                   </Button>
+                  <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                    <Link href="/espace/idees">
+                      <Lightbulb className="size-3.5 text-primary" />
+                      Boîte à idées
+                    </Link>
+                  </Button>
                   {messages && (
                     <span className="text-xs text-muted-foreground hidden sm:inline ml-1">
-                      {messages.length} message{messages.length === 1 ? "" : "s"}
+                      {requestFiltersActive
+                        ? `${filteredMessages.length} / ${messages.length}`
+                        : `${messages.length} message${messages.length === 1 ? "" : "s"}`}
                     </span>
                   )}
                 </div>
               </div>
 
-              {messagesError && <p className="text-sm text-destructive">{messagesError}</p>}
+              {messages && messages.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <Input
+                    value={requestSearch}
+                    onChange={(e) => setRequestSearch(e.target.value)}
+                    placeholder="Rechercher par référence ou mot-clé…"
+                    className="h-8 max-w-xs text-xs"
+                  />
+                  <Select value={requestStatusFilter} onValueChange={setRequestStatusFilter}>
+                    <SelectTrigger className="h-8 w-[150px] text-xs">
+                      <SelectValue placeholder="Tous les statuts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
+                      <SelectItem value="nouveau">Nouveau</SelectItem>
+                      <SelectItem value="en_cours">En cours</SelectItem>
+                      <SelectItem value="traite">Traité</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={requestTypeFilter} onValueChange={setRequestTypeFilter}>
+                    <SelectTrigger className="h-8 w-[150px] text-xs">
+                      <SelectValue placeholder="Tous les types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les types</SelectItem>
+                      <SelectItem value="question">Question</SelectItem>
+                      <SelectItem value="signalement">Signalement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {requestFiltersActive && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setRequestSearch("");
+                        setRequestStatusFilter("all");
+                        setRequestTypeFilter("all");
+                      }}
+                    >
+                      Réinitialiser
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {messagesError && <p role="alert" className="text-sm text-destructive">{messagesError}</p>}
               {messages && messages.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   Vous n&apos;avez envoyé aucun message pour le moment.
                 </p>
               )}
-              {messages && messages.length > 0 && (
+              {messages && messages.length > 0 && filteredMessages.length === 0 && (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  <p>Aucune demande ne correspond à ces filtres.</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => {
+                      setRequestSearch("");
+                      setRequestStatusFilter("all");
+                      setRequestTypeFilter("all");
+                    }}
+                  >
+                    Réinitialiser les filtres
+                  </Button>
+                </div>
+              )}
+              {filteredMessages.length > 0 && (
                 <div className="space-y-2">
-                  {messages.map((m) => (
+                  {filteredMessages.map((m) => (
                     <Link
                       key={m.id}
                       href={`/espace/demandes/${m.id}`}

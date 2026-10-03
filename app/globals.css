@@ -148,10 +148,10 @@ html.high-contrast *:focus-visible {
   outline-offset: 3px !important;
 }
 
-/* 3. Forcer le mouvement réduit à la demande de l'utilisateur */
-html.force-reduced-motion *,
-html.force-reduced-motion *::before,
-html.force-reduced-motion *::after {
+/* 3. Forcer le mouvement réduit à la demande de l'utilisateur (sauf spinners de chargement) */
+html.force-reduced-motion *:not([role="status"]):not([role="status"] *):not(.animate-spin):not(.spinner-spin):not(.spinner-spin-reverse):not(.spinner-spin-slow),
+html.force-reduced-motion *:not([role="status"]) *::before,
+html.force-reduced-motion *:not([role="status"]) *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
@@ -281,9 +281,9 @@ html.force-reduced-motion *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *:not([role="status"]):not([role="status"] *):not(.animate-spin):not(.spinner-spin):not(.spinner-spin-reverse):not(.spinner-spin-slow),
+  *:not([role="status"]) *::before,
+  *:not([role="status"]) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -350,11 +350,41 @@ body {
   --backdrop-blur: none !important;
 }
 
-.light-eco-mode * {
+.light-eco-mode *:not([role="status"]):not([role="status"] *):not(.animate-spin) {
   animation: none !important;
   transition: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+}
+
+/* Conserver la rotation fluide des indicateurs de chargement pour le retour utilisateur */
+.light-eco-mode [role="status"] .animate-spin,
+.light-eco-mode .animate-spin,
+.light-eco-mode .spinner-spin,
+.light-eco-mode .spinner-spin-reverse {
+  animation-play-state: running !important;
+}
+
+/* Animations autonomes dédiées pour le spinner Nova Terra */
+@keyframes nova-spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner-spin {
+  animation: nova-spinner-rotate 1.2s linear infinite !important;
+}
+
+.spinner-spin-reverse {
+  animation: nova-spinner-rotate 2.5s linear infinite reverse !important;
+}
+
+.spinner-spin-slow {
+  animation: nova-spinner-rotate 2s linear infinite !important;
 }
 
 /* Masquer les images décoratives et fonds complexes en mode léger */
