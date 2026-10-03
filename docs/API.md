@@ -1,6 +1,6 @@
 # API — contrat des routes
 
-> **Dernière mise à jour : 03 octobre 2026 à 20:25 UTC+3 (17:25 UTC)**  
+> **Dernière mise à jour : 03 octobre 2026 à 21:05 UTC+3 (18:05 UTC)**  
 > Conforme à 100% avec l'implémentation NestJS (`src/`).
 
 Documentation précise de chaque route de l'API `api-lunar-devs`. Sert de contrat strict entre le backend et l'agent front — toute réponse décrite ici est garantie.
@@ -22,7 +22,7 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 ## 📋 Tableau Récapitulatif Général des Routes
 
 | Domaine | Méthode & Route | Rôle Requis | Demandes Webcup Couvertes | Description |
-| :--- | :--- | :--- | :---: | :--- |
+| :--- | :--- | :--- | :--- | :--- |
 | **Santé** | `GET /` | `public` | - | Message racine / confirmation API en ligne |
 | **Santé** | `GET /health` | `public` | - | État global du serveur (mémoire, Node, app) |
 | **Santé** | `GET /health/db` | `public` | - | Connexion base de données MySQL |
@@ -30,6 +30,7 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 | **Auth** | `POST /auth/login` | `public` | **D03** | Connexion avec identifiants, renvoie JWT |
 | **Profil** | `GET /me` | `connecté` | **D08** | Consultation de son espace personnel |
 | **Profil** | `PATCH /me` | `connecté` | **D12** | Mise à jour quartier, langue, vulnérabilité |
+| **Profil** | `PATCH /me/password` | `connecté` | **D03, F37** | Modification de mot de passe sécurisée avec audit |
 | **Profil** | `DELETE /me` | `connecté` | **F33** | Suppression définitive du compte avec mot de passe |
 | **Sécurité** | `GET /me/security` | `connecté` | **F37** | Audit des accès personnels et échecs récents |
 | **Sécurité** | `GET /agent/security/targeted-accounts` | `agent`, `admin` | **F37** | Comptes ciblés par tentatives frauduleuses (24h) |
@@ -37,6 +38,10 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 | **Rôles** | `GET /admin/ping` | `admin` | **D09** | Vérification des privilèges administrateur |
 | **Comptes** | `GET /agent/citizens` | `agent`, `admin` | **F34** | Annuaire des citoyens avec recherche et pagination |
 | **Comptes** | `PATCH /agent/citizens/:id/status` | `agent`, `admin` | **F34** | Activation / désactivation de compte citoyen |
+| **Administration** | `GET /admin/users` | `admin` | **D08, D09** | Liste complète des utilisateurs (citoyens, agents, admin) |
+| **Administration** | `POST /admin/users` | `admin` | **D08, D09** | Création d'un compte agent ou citoyen par l'admin |
+| **Administration** | `PATCH /admin/users/:id/role` | `admin` | **D08, D09** | Modification de rôle (citoyen / agent / admin) |
+| **Administration** | `PATCH /admin/users/:id/status` | `admin` | **D08, D09** | Activation / désactivation de n'importe quel compte (sauf soi-même) |
 | **Messages** | `POST /messages` | `citizen` | **D04, F22, F25** | Dépôt d'une question ou d'un signalement |
 | **Messages** | `GET /messages/mine` | `citizen` | **F22** | Historique personnel des demandes |
 | **Messages** | `GET /messages/mine/:id` | `citizen` | **D11** | Détail d'une demande avec étapes de traitement |
@@ -199,6 +204,30 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 - **Réponse `200`** : le profil mis à jour (même forme que `GET /me`).
   `profileCompleted` passe automatiquement à `true` dès que `district` **et** `preferredLanguage` sont tous les deux renseignés — ce champ n'est jamais réglable directement par le client.
 
+### `PATCH /me/password` (D03, F37)
+- **Rôle** : connecté (tout rôle).
+- **Corps** :
+  ```json
+  {
+    "currentPassword": "AncienMotDePasse123!",
+    "newPassword": "NouveauMotDePasse123!"
+  }
+  ```
+  - `currentPassword` : chaîne non vide, mot de passe actuel du compte.
+  - `newPassword` : chaîne (8 à 72 caractères, au moins 1 lettre majuscule et au moins 1 chiffre). Doit obligatoirement différer du mot de passe actuel.
+- **Réponse `200`** :
+  ```json
+  {
+    "message": "Mot de passe modifié avec succès."
+  }
+  ```
+  - **Effets de bord de sécurité & conformité** :
+    - Envoi immédiat d'une notification à l'utilisateur : *"Votre mot de passe a été modifié. Si ce n'est pas vous, contactez la mairie."*
+    - Écriture d'une entrée dans le journal d'audit (`user_password_changed`, entité `User`, IP de la requête).
+- **Codes d'erreur** :
+  - **`400 Bad Request`** : nouveau mot de passe trop faible (moins de 8 caractères, pas de majuscule ou de chiffre) ou identique à l'ancien.
+  - **`401 Unauthorized`** : mot de passe actuel faux (la tentative échouée est comptabilisée dans les métriques de détection d'intrusions F37) ou jeton manquant/expiré.
+
 ### `DELETE /me` (F33)
 - **Rôle** : connecté (tout rôle).
 - **Corps** :
@@ -266,6 +295,83 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 - **Rôle** : `admin`.
 - **Réponse `200`** : `{ "status": "ok", "scope": "admin" }`
 - **`403`** pour `citizen` et `agent`. **`401`** sans token.
+
+### `GET /admin/users` (D08, D09)
+- **Rôle** : `admin`.
+- **Query params** :
+  - `q` (optionnel) : recherche par nom, prénom ou email.
+  - `role` (optionnel) : filtre par rôle (`citizen`, `agent`, `admin`).
+  - `page` (optionnel, défaut 1) : page demandée.
+  - `limit` (optionnel, défaut 20, max 100) : éléments par page.
+- **Réponse `200`** :
+  ```json
+  {
+    "data": [
+      {
+        "id": "1",
+        "email": "agent.demo@novaterra.local",
+        "firstName": "Sami",
+        "lastName": "Benali",
+        "role": "agent",
+        "isActive": true,
+        "district": null,
+        "preferredLanguage": null,
+        "isVulnerable": false,
+        "profileCompleted": false,
+        "createdAt": "2026-10-03T12:00:00.000Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1
+  }
+  ```
+- **`403`** pour `citizen` et `agent`.
+
+### `POST /admin/users` (D08, D09)
+- **Rôle** : `admin`.
+- **Corps** :
+  ```json
+  {
+    "email": "nouvel.agent@novaterra.local",
+    "password": "AgentPassword123!",
+    "firstName": "Yacine",
+    "lastName": "Diallo",
+    "role": "agent",
+    "district": "Port Stellaire"
+  }
+  ```
+  - `email` : adresse email unique et valide.
+  - `password` : mot de passe fort (8 à 72 caractères, min 1 majuscule, min 1 chiffre).
+  - `firstName`, `lastName` : obligatoires.
+  - `role` : un rôle parmi `citizen`, `agent`, `admin`.
+- **Réponse `201`** : profil sécurisé de l'utilisateur créé.
+- **`400`** si email déjà existant ou validation échouée. **`403`** pour `citizen` et `agent`.
+
+### `PATCH /admin/users/:id/role` (D08, D09)
+- **Rôle** : `admin`.
+- **Corps** :
+  ```json
+  {
+    "role": "agent"
+  }
+  ```
+- **Réponse `200`** : profil de l'utilisateur avec son nouveau rôle.
+- **Règle de sécurité** : un administrateur ne peut pas se retirer à lui-même le rôle `admin` (**`400 Bad Request`**).
+- **`404`** si l'utilisateur n'existe pas. **`403`** pour `citizen` et `agent`.
+
+### `PATCH /admin/users/:id/status` (D08, D09)
+- **Rôle** : `admin`.
+- **Corps** :
+  ```json
+  {
+    "isActive": false
+  }
+  ```
+- **Réponse `200`** : profil de l'utilisateur avec son statut d'activation mis à jour.
+- **Règle de sécurité** : un administrateur ne peut pas désactiver son propre compte (**`400 Bad Request`**).
+- **`404`** si l'utilisateur n'existe pas. **`403`** pour `citizen` et `agent`.
 
 ---
 
