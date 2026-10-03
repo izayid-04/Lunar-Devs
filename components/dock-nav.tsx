@@ -19,12 +19,23 @@ import {
   HeartHandshake,
   ChevronUp,
   ChevronDown,
+  Menu,
+  Orbit,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import ModeToggle from "@/components/mode-toggle";
 import AccessibilityPanel from "@/components/accessibility-panel";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 type Item = {
   href?: string;
@@ -86,6 +97,7 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
 export default function DockNav() {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Dans le dashboard, le dock est rétractable (minimisé par défaut pour laisser place à la sidebar)
   const isInsideDashboard =
@@ -179,24 +191,89 @@ export default function DockNav() {
     );
   }
 
-  // CAS HORS DASHBOARD (pages publiques) : Dock normal visible
+  // CAS HORS DASHBOARD (pages publiques) : dock flottant en bas sur
+  // grand écran, menu en haut (bouton + volet) sur mobile — un dock de
+  // 9 icônes ne tient pas sur un écran de téléphone sans défilement.
   return (
-    <nav
-      aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
-    >
-      <div className="flex items-center gap-1 rounded-full border border-border bg-card/90 p-1.5 shadow-lg backdrop-blur-md">
-        {items.map((item) => (
-          <DockItem
-            key={item.label}
-            item={item}
-            active={!!item.href && pathname === item.href}
-          />
-        ))}
-        <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-        <AccessibilityPanel />
-        <ModeToggle />
-      </div>
-    </nav>
+    <>
+      {/* Mobile (< sm) : barre fixée en haut */}
+      <header className="fixed inset-x-0 top-0 z-50 flex h-[52px] items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md sm:hidden">
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Nova Terra — Accueil"
+        >
+          <Orbit className="size-5 text-primary" aria-hidden="true" />
+          <span className="text-sm font-semibold">Nova Terra</span>
+        </Link>
+
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="rounded-full"
+              aria-label="Ouvrir le menu de navigation"
+            >
+              <Menu className="size-4" aria-hidden="true" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="top" className="max-h-[85vh] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Navigation</SheetTitle>
+            </SheetHeader>
+            <nav aria-label="Navigation principale" className="flex flex-col gap-1 px-4 pb-4">
+              {items.map((item) => {
+                const active = !!item.href && pathname === item.href;
+                const itemClassName = cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-muted"
+                );
+                return item.href ? (
+                  <SheetClose key={item.label} asChild>
+                    <Link href={item.href} className={itemClassName} aria-current={active ? "page" : undefined}>
+                      <item.icon className="size-[18px]" aria-hidden="true" />
+                      {item.label}
+                    </Link>
+                  </SheetClose>
+                ) : (
+                  <SheetClose key={item.label} asChild>
+                    <button type="button" onClick={item.onClick} className={itemClassName}>
+                      <item.icon className="size-[18px]" aria-hidden="true" />
+                      {item.label}
+                    </button>
+                  </SheetClose>
+                );
+              })}
+              <div className="mt-2 flex items-center gap-2 border-t border-border pt-3">
+                <AccessibilityPanel />
+                <ModeToggle />
+              </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </header>
+
+      {/* Desktop/tablette (≥ sm) : dock flottant en bas */}
+      <nav
+        aria-label="Navigation principale"
+        className="fixed inset-x-0 bottom-4 z-50 hidden justify-center px-4 sm:flex"
+      >
+        <div className="flex items-center gap-1 rounded-full border border-border bg-card/90 p-1.5 shadow-lg backdrop-blur-md">
+          {items.map((item) => (
+            <DockItem
+              key={item.label}
+              item={item}
+              active={!!item.href && pathname === item.href}
+            />
+          ))}
+          <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+          <AccessibilityPanel />
+          <ModeToggle />
+        </div>
+      </nav>
+    </>
   );
 }

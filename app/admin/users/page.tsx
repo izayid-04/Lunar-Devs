@@ -416,7 +416,93 @@ export default function AdminUsersPage() {
 
             {!error && !loading && users.length > 0 && (
               <>
-                <div className="rounded-md border overflow-x-auto">
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                    sur un écran de téléphone sans défilement horizontal. */}
+                <div className="block space-y-3 sm:hidden">
+                  {users.map((u) => {
+                    const isSelf = u.id === user.id;
+                    return (
+                      <Card key={u.id}>
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium">
+                                {u.firstName} {u.lastName}
+                                {isSelf && (
+                                  <Badge variant="outline" className="ml-2 text-[10px]">
+                                    Vous
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="text-xs font-mono text-muted-foreground">{u.email}</p>
+                            </div>
+                            {u.isActive ? (
+                              <Badge variant="secondary" className="gap-1 text-xs border-success/30 text-success bg-success/10">
+                                <UserCheck className="size-3" />
+                                Actif
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive" className="gap-1 text-xs">
+                                <UserX className="size-3" />
+                                Désactivé
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Rôle</Label>
+                            <Select
+                              value={u.role}
+                              onValueChange={(v) => {
+                                if (v === u.role) return;
+                                setRoleTarget({ user: u, newRole: v as Role });
+                              }}
+                              disabled={isSelf}
+                            >
+                              <SelectTrigger className="h-8 w-full text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ROLES.map((r) => (
+                                  <SelectItem key={r} value={r}>
+                                    {ROLE_LABEL[r]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant={u.isActive ? "outline" : "default"}
+                            disabled={isSelf}
+                            onClick={() => setStatusTarget(u)}
+                            className={cn(
+                              "h-8 w-full text-xs gap-1.5",
+                              u.isActive
+                                ? "text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                                : "bg-success hover:bg-success/90 text-white"
+                            )}
+                          >
+                            {u.isActive ? (
+                              <>
+                                <UserX className="size-3.5" />
+                                Désactiver
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="size-3.5" />
+                                Réactiver
+                              </>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden rounded-md border overflow-x-auto sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>

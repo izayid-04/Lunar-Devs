@@ -277,7 +277,66 @@ export default function AgentServiceFeedbacksPage() {
             )}
 
             {!loading && !error && feedbacks && feedbacks.length > 0 && (
-              <div className="overflow-x-auto">
+              <>
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                    sur un écran de téléphone sans défilement horizontal. */}
+                <div className="block space-y-3 sm:hidden">
+                  {feedbacks.map((f) => {
+                    const serviceName =
+                      f.service?.name ||
+                      services.find((s) => s.id === f.serviceId)?.name ||
+                      `Service #${f.serviceId}`;
+                    return (
+                      <Card key={f.id}>
+                        <CardContent className="space-y-2 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                              <Building2 className="size-3.5 text-primary shrink-0" />
+                              {serviceName}
+                            </span>
+                            <span className="font-mono text-[11px] text-primary">{f.reference}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-0.5 text-amber-500">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={cn(
+                                    "size-3.5",
+                                    star <= f.rating
+                                      ? "fill-amber-500 text-amber-500"
+                                      : "fill-muted text-muted-foreground/30"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs font-bold text-foreground">{f.rating}/5</span>
+                          </div>
+                          {f.comment ? (
+                            <p className="text-xs text-muted-foreground leading-relaxed">&ldquo;{f.comment}&rdquo;</p>
+                          ) : (
+                            <p className="text-xs italic text-muted-foreground/60">Aucun commentaire textuel</p>
+                          )}
+                          <div className="flex items-center justify-between text-xs">
+                            {f.citizen ? (
+                              <span className="flex items-center gap-1 font-medium text-foreground">
+                                <User className="size-3 text-muted-foreground" />
+                                {f.citizen.firstName} {f.citizen.lastName}
+                              </span>
+                            ) : (
+                              <span className="italic text-muted-foreground">Citoyen #{f.citizenId}</span>
+                            )}
+                            <span className="font-mono text-muted-foreground">
+                              {new Date(f.createdAt).toLocaleDateString("fr-FR")}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+              <div className="hidden overflow-x-auto sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -356,6 +415,7 @@ export default function AgentServiceFeedbacksPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

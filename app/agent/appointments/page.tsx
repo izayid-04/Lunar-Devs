@@ -235,7 +235,99 @@ export default function AgentAppointmentsPage() {
             )}
 
             {!error && !loading && filtered.length > 0 && (
-              <div className="rounded-md border overflow-x-auto">
+              <>
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                    sur un écran de téléphone sans défilement horizontal. */}
+                <div className="block space-y-3 sm:hidden">
+                  {filtered.map((apt) => {
+                    const dateObj = new Date(apt.startsAt);
+                    const isPast = now > 0 && dateObj.getTime() < now;
+                    return (
+                      <Card key={apt.id} className={cn(apt.status === "annule" && "opacity-60")}>
+                        <CardContent className="space-y-2 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium text-xs">
+                                {dateObj.toLocaleDateString("fr-FR", {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                              <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <Clock className="size-3" />
+                                {dateObj.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                {isPast && (
+                                  <Badge variant="outline" className="ml-1 text-[9px] px-1 py-0 h-3.5 text-muted-foreground">
+                                    Passé
+                                  </Badge>
+                                )}
+                              </p>
+                            </div>
+                            {apt.status === "confirme" ? (
+                              <Badge variant="secondary" className="gap-1 text-xs border-success/30 text-success bg-success/10">
+                                <CheckCircle2 className="size-3" />
+                                Confirmé
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="gap-1 text-xs border-destructive/30 text-destructive bg-destructive/10">
+                                <XCircle className="size-3" />
+                                Annulé
+                              </Badge>
+                            )}
+                          </div>
+
+                          {apt.user ? (
+                            <div className="text-xs">
+                              <p className="font-medium">
+                                {apt.user.firstName} {apt.user.lastName}
+                              </p>
+                              <p className="font-mono text-[11px] text-muted-foreground">{apt.user.email}</p>
+                            </div>
+                          ) : (
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <User className="size-3" />
+                              Usager inscrit
+                            </p>
+                          )}
+
+                          <div className="text-xs">
+                            <p className="font-medium">{apt.reason}</p>
+                            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              {apt.service && <span>{apt.service.name}</span>}
+                              {apt.location && (
+                                <span className="flex items-center gap-0.5">
+                                  • <MapPin className="size-2.5" /> {apt.location}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          {apt.requiredDocuments && (
+                            <div className="flex items-start gap-1 text-xs text-muted-foreground">
+                              <FileText className="size-3 mt-0.5 shrink-0 text-primary" />
+                              <span className="line-clamp-2">{apt.requiredDocuments}</span>
+                            </div>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadIcs(apt)}
+                            disabled={downloadingId === apt.id || apt.status === "annule"}
+                            className="h-8 w-full gap-1.5 text-xs"
+                          >
+                            <Download className={cn("size-3.5", downloadingId === apt.id && "animate-bounce")} />
+                            Télécharger (.ics)
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+              <div className="hidden rounded-md border overflow-x-auto sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -353,6 +445,7 @@ export default function AgentAppointmentsPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>

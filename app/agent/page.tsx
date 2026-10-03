@@ -431,13 +431,63 @@ function AgentContent() {
               </p>
             )}
             {!messagesError && messages !== null && messages.length > 0 && (
+              <>
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                    sur un écran de téléphone sans défilement horizontal. */}
+                <div className="block space-y-3 sm:hidden">
+                  {messages.map((m) => (
+                    <Card key={m.id}>
+                      <CardContent className="space-y-2 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-mono text-xs text-muted-foreground">{m.reference}</p>
+                            <p className="font-medium">
+                              {m.author.firstName} {m.author.lastName}
+                            </p>
+                          </div>
+                          {typeof m.supportCount === "number" && m.supportCount > 0 && (
+                            <Badge variant="secondary" className="gap-1 text-xs">
+                              <ThumbsUp className="size-3 text-amber-500" />
+                              {m.supportCount}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm">
+                          {m.type === "signalement" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-amber-500/50 text-amber-600">
+                              Signalement
+                            </Badge>
+                          )}
+                          <span>{m.subject}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {m.category}
+                          {m.district && ` · ${m.district}`}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => changeStatus(m)}
+                          disabled={updatingId === m.id}
+                          className="h-8 w-full gap-1.5 text-xs"
+                        >
+                          <span className={`size-2 rounded-full ${STATUS_DOT[m.status]}`} />
+                          {STATUS_LABEL[m.status]}
+                          <RotateCw className={`size-3 text-muted-foreground ml-1 ${updatingId === m.id ? "animate-spin" : ""}`} />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+              <div className="hidden sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
                     <TableHead>Habitant</TableHead>
                     <TableHead>Objet</TableHead>
-                    <TableHead className="hidden sm:table-cell">Catégorie</TableHead>
+                    <TableHead>Catégorie</TableHead>
                     <TableHead className="text-center">Soutiens</TableHead>
                     <TableHead className="text-right">Statut</TableHead>
                   </TableRow>
@@ -467,7 +517,7 @@ function AgentContent() {
                           <span className="truncate">{m.subject}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
+                      <TableCell className="text-muted-foreground">
                         {m.category}
                         {m.district && (
                           <span className="block text-[11px] text-muted-foreground/75">
@@ -502,6 +552,8 @@ function AgentContent() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -562,6 +614,28 @@ function AgentContent() {
                       </span>
                     )}
                   </div>
+                  {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                      sur un écran de téléphone sans défilement horizontal. */}
+                  <div className="block space-y-2 sm:hidden">
+                    {payload.requests.map((r) => (
+                      <Card key={r.id}>
+                        <CardContent className="space-y-1.5 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs">{r.request_code}</span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {r.difficulty}
+                              {r.wave_number !== null && ` • vague ${r.wave_number}`}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{r.requester_name}</p>
+                          <p className="text-xs">{r.message_public}</p>
+                          <p className="text-right font-mono text-xs text-muted-foreground">{r.xp_total} XP</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -589,6 +663,7 @@ function AgentContent() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               );
             })()}

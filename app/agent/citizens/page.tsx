@@ -206,7 +206,80 @@ export default function AgentCitizensPage() {
 
             {!error && !loading && citizens.length > 0 && (
               <>
-                <div className="rounded-md border overflow-x-auto">
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                    sur un écran de téléphone sans défilement horizontal. */}
+                <div className="block space-y-3 sm:hidden">
+                  {citizens.map((c) => {
+                    const isSelf = c.id === user.id;
+                    return (
+                      <Card key={c.id}>
+                        <CardContent className="space-y-2 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium">
+                                {c.firstName} {c.lastName}
+                              </p>
+                              <p className="text-xs font-mono text-muted-foreground">{c.email}</p>
+                            </div>
+                            {c.isActive ? (
+                              <Badge variant="secondary" className="gap-1 text-xs border-success/30 text-success bg-success/10">
+                                <UserCheck className="size-3" />
+                                Actif
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive" className="gap-1 text-xs">
+                                <UserX className="size-3" />
+                                Désactivé
+                              </Badge>
+                            )}
+                          </div>
+                          {c.isVulnerable && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-600">
+                              Accompagnement
+                            </Badge>
+                          )}
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Quartier : {c.district || "—"}</span>
+                            <span>
+                              Inscrit le{" "}
+                              {new Date(c.createdAt).toLocaleDateString("fr-FR", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={c.isActive ? "outline" : "default"}
+                            disabled={isSelf}
+                            onClick={() => setTargetCitizen(c)}
+                            className={cn(
+                              "h-8 w-full text-xs gap-1.5",
+                              c.isActive
+                                ? "text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                                : "bg-success hover:bg-success/90 text-white"
+                            )}
+                          >
+                            {c.isActive ? (
+                              <>
+                                <UserX className="size-3.5" />
+                                Désactiver
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="size-3.5" />
+                                Réactiver
+                              </>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden rounded-md border overflow-x-auto sm:block">
                   <Table>
                     <TableHeader>
                       <TableRow>

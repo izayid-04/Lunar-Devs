@@ -300,7 +300,64 @@ export default function AgentAuditLogsPage() {
           )}
 
           {!loading && !error && logs.length > 0 && (
-            <div className="overflow-x-auto">
+            <>
+              {/* Cartes empilées sur mobile : un tableau large ne tient pas
+                  sur un écran de téléphone sans défilement horizontal. */}
+              <div className="block space-y-3 sm:hidden">
+                {logs.map((log) => {
+                  const actionInfo = ACTION_LABELS[log.action] || {
+                    label: log.action.replace(/_/g, " "),
+                    badge: "border-border text-foreground bg-muted",
+                    icon: Activity,
+                  };
+                  const ActionIcon = actionInfo.icon;
+                  const entityLabel = ENTITY_LABELS[log.entityType] || log.entityType;
+                  return (
+                    <Card key={log.id}>
+                      <CardContent className="space-y-2 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <Badge variant="outline" className={cn("gap-1 text-[11px] font-medium", actionInfo.badge)}>
+                            <ActionIcon className="size-3 shrink-0" />
+                            <span>{actionInfo.label}</span>
+                          </Badge>
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {new Date(log.createdAt).toLocaleString("fr-FR", {
+                              dateStyle: "short",
+                              timeStyle: "medium",
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs">
+                          <span className="font-medium text-foreground">{entityLabel}</span>
+                          <span className="block font-mono text-[10px] text-muted-foreground">
+                            ID: {log.entityId}
+                          </span>
+                        </p>
+                        <div className="text-xs">
+                          {log.author ? (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground flex items-center gap-1">
+                                <User className="size-3 text-muted-foreground" />
+                                {log.author.firstName} {log.author.lastName}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {log.author.email} ({log.author.role})
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground italic">Système</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {parseDetails(log.details) || <span className="italic">Aucune note</span>}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -366,7 +423,8 @@ export default function AgentAuditLogsPage() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
 
           {/* Pagination au clavier */}
