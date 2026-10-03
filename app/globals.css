@@ -31,8 +31,8 @@
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(0.18 0 0);
   --success: oklch(0.62 0.16 145);
-  --border: oklch(0.9022 0.0052 247.8822);
-  --input: oklch(0.9700 0.0029 264.5420);
+  --border: oklch(0.82 0.01 247.88);
+  --input: oklch(0.78 0.015 247.88);
   --ring: oklch(0.6397 0.1720 36.4421);
   --chart-1: oklch(0.7156 0.0605 248.6845);
   --chart-2: oklch(0.7875 0.0917 35.9616);

@@ -30,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
@@ -57,6 +67,7 @@ function AgentAnnoncesContent() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
 
   const load = useCallback(() => {
     setAnnouncements(null);
@@ -114,12 +125,14 @@ function AgentAnnoncesContent() {
     }
   }
 
-  async function handleDelete(a: Announcement) {
-    if (!token) return;
+  async function confirmDelete() {
+    if (!token || !announcementToDelete) return;
+    const a = announcementToDelete;
     setDeletingId(a.id);
     try {
       await deleteAnnouncement(token, a.id);
       toast.success("Annonce supprimée.");
+      setAnnouncementToDelete(null);
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible de supprimer l'annonce.");
@@ -205,7 +218,7 @@ function AgentAnnoncesContent() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => handleDelete(a)}
+                      onClick={() => setAnnouncementToDelete(a)}
                       disabled={deletingId === a.id}
                       aria-label={`Supprimer l'annonce ${a.title}`}
                       title="Supprimer"
@@ -285,6 +298,40 @@ function AgentAnnoncesContent() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!announcementToDelete}
+        onOpenChange={(open) => {
+          if (!open) setAnnouncementToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l&apos;annonce municipale{" "}
+              <span className="font-semibold text-foreground">
+                « {announcementToDelete?.title} »
+              </span>{" "}
+              ? Cette action est irréversible et retirera l&apos;annonce de la vue publique.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingId !== null}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deletingId !== null}
+            >
+              {deletingId ? "Suppression…" : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

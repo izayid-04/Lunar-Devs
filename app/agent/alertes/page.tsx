@@ -44,6 +44,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -101,6 +111,9 @@ function AgentAlertesContent() {
   const [draft, setDraft] = useState<AlertDraft>(defaultDraft);
   const [submitting, setSubmitting] = useState(false);
   const [terminatingId, setTerminatingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [alertToDelete, setAlertToDelete] = useState<Alert | null>(null);
+  const [alertToTerminate, setAlertToTerminate] = useState<Alert | null>(null);
 
   // Assistant IA pour recommandations (F31)
   const [aiLoading, setAiLoading] = useState(false);
@@ -237,12 +250,14 @@ function AgentAlertesContent() {
     }
   }
 
-  async function handleTerminate(a: Alert) {
-    if (!token || terminatingId) return;
+  async function confirmTerminate() {
+    if (!token || !alertToTerminate || terminatingId) return;
+    const a = alertToTerminate;
     setTerminatingId(a.id);
     try {
       await terminateAlert(token, a.id);
       toast.success("Alerte clôturée avec succès.");
+      setAlertToTerminate(null);
       loadAlerts();
     } catch (err) {
       toast.error(
@@ -253,17 +268,21 @@ function AgentAlertesContent() {
     }
   }
 
-  async function handleDelete(a: Alert) {
-    if (!token || user?.role !== "admin") return;
-    if (!confirm(`Supprimer définitivement l'alerte « ${a.title} » du registre ?`)) return;
+  async function confirmDelete() {
+    if (!token || !alertToDelete || deletingId || user?.role !== "admin") return;
+    const a = alertToDelete;
+    setDeletingId(a.id);
     try {
       await deleteAlert(token, a.id);
       toast.success("Alerte définitivement supprimée (Privilège Admin).");
+      setAlertToDelete(null);
       loadAlerts();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Impossible de supprimer l'alerte."
       );
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -367,7 +386,7 @@ function AgentAlertesContent() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleTerminate(a)}
+                          onClick={() => setAlertToTerminate(a)}
                           disabled={terminatingId === a.id}
                           className="gap-1 text-xs text-destructive hover:bg-destructive/10"
                           aria-label={`Clôturer l'alerte ${a.title}`}
@@ -385,7 +404,8 @@ function AgentAlertesContent() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDelete(a)}
+                          onClick={() => setAlertToDelete(a)}
+                          disabled={deletingId === a.id}
                           className="gap-1 text-xs text-destructive hover:bg-destructive/10"
                           aria-label={`Supprimer définitivement l'alerte ${a.title}`}
                           title="Supprimer (Privilège Admin)"
@@ -589,6 +609,77 @@ function AgentAlertesContent() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation de clôture */}
+      <AlertDialog
+        open={!!alertToTerminate}
+        onOpenChange={(open) => {
+          if (!open) setAlertToTerminate(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clôturer cette alerte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir clore l&apos;alerte{" "}
+              <span className="font-semibold text-foreground">
+                « {alertToTerminate?.title} »
+              </span>{" "}
+              ? Elle cessera immédiatement d&apos;être active et passera au statut expiré.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={terminatingId !== null}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={(e) => {
+                e.preventDefault();
+                confirmTerminate();
+              }}
+              disabled={terminatingId !== null}
+            >
+              {terminatingId ? "Clôture en cours…" : "Confirmer la clôture"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation de suppression définitive (Admin) */}
+      <AlertDialog
+        open={!!alertToDelete}
+        onOpenChange={(open) => {
+          if (!open) setAlertToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer définitivement l&apos;alerte</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous certain de vouloir supprimer l&apos;alerte{" "}
+              <span className="font-semibold text-foreground">
+                « {alertToDelete?.title} »
+              </span>{" "}
+              du registre ? Cette action est un privilège d&apos;administration irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingId !== null}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deletingId !== null}
+            >
+              {deletingId ? "Suppression…" : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

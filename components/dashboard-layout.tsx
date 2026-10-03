@@ -24,7 +24,7 @@ import NotificationBell from "@/components/notification-bell"
 import AlertBanner from "@/components/alert-banner"
 import { useAuth } from "@/lib/auth-context"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, Radio, User } from "lucide-react"
+
 
 const SEGMENT_LABEL: Record<string, string> = {
   dashboard: "Vue d'ensemble",
