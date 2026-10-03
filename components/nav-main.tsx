@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import Link from "next/link"
 import {
   Collapsible,
@@ -27,6 +30,7 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      isActive?: boolean
     }[]
   }[]
 }) {
@@ -36,40 +40,15 @@ export function NavMain({
       <SidebarMenu>
         {items.map((item) =>
           item.items && item.items.length > 0 ? (
-            <Collapsible
-              key={item.title}
-              asChild
-              defaultOpen={item.isActive}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
-                    {item.icon}
-                    <span>{item.title}</span>
-                    <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {item.items.map((subItem) => (
-                      <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <Link href={subItem.url}>
-                            <span>{subItem.title}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
+            <CollapsibleMenuItem key={item.title} item={item} />
           ) : (
-            // Pas de sous-page réelle à proposer : un lien direct plutôt
-            // qu'un menu qui se déplie sur du vide.
+            // Pas de sous-page réelle à proposer : un lien direct
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                isActive={item.isActive}
+              >
                 <Link href={item.url}>
                   {item.icon}
                   <span>{item.title}</span>
@@ -80,5 +59,54 @@ export function NavMain({
         )}
       </SidebarMenu>
     </SidebarGroup>
+  )
+}
+
+function CollapsibleMenuItem({
+  item,
+}: {
+  item: {
+    title: string
+    url: string
+    icon?: React.ReactNode
+    isActive?: boolean
+    items?: {
+      title: string
+      url: string
+      isActive?: boolean
+    }[]
+  }
+}) {
+  const [isOpen, setIsOpen] = useState(item.isActive ?? true)
+
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={item.title} isActive={item.isActive}>
+            {item.icon}
+            <span>{item.title}</span>
+            <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {item.items?.map((subItem) => (
+              <SidebarMenuSubItem key={subItem.title}>
+                <SidebarMenuSubButton asChild isActive={subItem.isActive}>
+                  <Link href={subItem.url}>
+                    <span>{subItem.title}</span>
+                  </Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   )
 }
