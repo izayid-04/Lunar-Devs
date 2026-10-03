@@ -144,6 +144,24 @@ export async function patchMe(
   return res.json();
 }
 
+export async function changePassword(
+  token: string,
+  payload: { currentPassword: string; newPassword: string }
+): Promise<{ message: string }> {
+  const res = await authFetch("/me/password", token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("Mot de passe actuel incorrect.");
+    }
+    throw new Error(await readErrorMessage(res, "Impossible de modifier votre mot de passe."));
+  }
+  return res.json();
+}
+
 export async function deleteMyAccount(token: string, password: string): Promise<void> {
   const res = await fetch(apiUrl("/me"), {
     method: "DELETE",
