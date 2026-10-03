@@ -8,7 +8,6 @@ import {
   LogIn,
   LogOut,
   LayoutDashboard,
-  User,
   Satellite,
   ShieldCheck,
   UserPlus,
@@ -89,7 +88,6 @@ export default function DockNav() {
   if (!loading) {
     if (user) {
       items.push({ href: "/dashboard", label: "Cockpit", icon: LayoutDashboard });
-      items.push({ href: "/espace", label: "Mon espace", icon: User });
       if (user.role === "agent" || user.role === "admin") {
         items.push({ href: "/agent", label: "Agent", icon: Satellite });
       }
