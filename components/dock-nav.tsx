@@ -6,6 +6,11 @@ import {
   Home,
   Info,
   LogIn,
+  LogOut,
+  LayoutDashboard,
+  User,
+  Satellite,
+  ShieldCheck,
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -60,16 +65,17 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
 }
 
 export default function DockNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const pathname = usePathname();
 
-  const isConnectedRoute =
+  // On cache le dock du bas UNIQUEMENT quand on se trouve à l'intérieur du dashboard
+  const isInsideDashboard =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/espace") ||
     pathname.startsWith("/agent") ||
     pathname.startsWith("/admin");
 
-  if (!loading && (user || isConnectedRoute)) {
+  if (isInsideDashboard) {
     return null;
   }
 
@@ -79,7 +85,21 @@ export default function DockNav() {
   ];
 
   if (!loading) {
-    if (!user) {
+    if (user) {
+      items.push({ href: "/dashboard", label: "Cockpit", icon: LayoutDashboard });
+      items.push({ href: "/espace", label: "Mon espace", icon: User });
+      if (user.role === "agent" || user.role === "admin") {
+        items.push({ href: "/agent", label: "Agent", icon: Satellite });
+      }
+      if (user.role === "admin") {
+        items.push({ href: "/admin", label: "Admin", icon: ShieldCheck });
+      }
+      items.push({
+        label: "Déconnexion",
+        icon: LogOut,
+        onClick: () => logout(),
+      });
+    } else {
       items.push({ href: "/connexion", label: "Connexion", icon: LogIn });
       items.push({ href: "/inscription", label: "Inscription", icon: UserPlus });
     }

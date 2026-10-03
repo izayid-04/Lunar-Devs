@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -125,7 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <div className="px-2 py-1">
-          <a
+          <Link
             href="/"
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
           >
@@ -133,7 +133,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <span className="truncate group-data-[collapsible=icon]:hidden">
               Portail Public Nova Terra ↗
             </span>
-          </a>
+          </Link>
         </div>
         <NavUser />
       </SidebarFooter>
