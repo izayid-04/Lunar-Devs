@@ -65,6 +65,7 @@ export default function ConnexionForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
+                placeholder="citoyen@novaterra.sol"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -76,6 +77,7 @@ export default function ConnexionForm() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
