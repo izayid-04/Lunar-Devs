@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, ArrowRight, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchServices, type Service, type ServiceAvailability } from "@/lib/api";
 
 export interface ZoneSlide {
   id: string;
@@ -15,62 +16,91 @@ export interface ZoneSlide {
   description: string;
   coordinates: string;
   status: string;
+  availability: ServiceAvailability;
 }
 
-const ZONES: ZoneSlide[] = [
-  {
-    id: "dome-alpha",
-    name: "Dôme Alpha — Capitale Civique",
-    sectorTag: "Secteur Central • Verrière Bioclimatique",
+// Présentation visuelle des 5 vrais quartiers de Nova Terra : seules
+// l'image et l'accroche restent de la mise en scène, les coordonnées et
+// le statut proviennent réellement de GET /services (plus de "Biosphère
+// Optimale 1013 hPa" ou "99.8% O2" inventés).
+const DISTRICT_PRESENTATION: Record<string, { sectorTag: string; image: string; fallbackCoords: [number, number] }> = {
+  "Centre-Ville": {
+    sectorTag: "Administration & vie civique",
     image: "/dome-alpha.webp",
-    description: "Cœur politique et social abritant le Haut Conseil, les universités quantiques et le Maglev suspendu.",
-    coordinates: "45.2°N • 12.8°E",
-    status: "Biosphère Optimale (1013 hPa)",
+    fallbackCoords: [45.2, 12.8],
   },
-  {
-    id: "biocentre",
-    name: "Biocentre Nova — Dôme Beta",
-    sectorTag: "Agriculture Verticale & Oxygénation",
+  "Faubourg Est": {
+    sectorTag: "Eau, énergie & biosphère",
     image: "/biocentre.webp",
-    description: "Tours hélicoïdales de cultures aéroponiques et bassins de bio-algues produisant 85% de la nourriture fraîche.",
-    coordinates: "34.8°N • 05.2°W",
-    status: "Photosynthèse Continue (99.8% O₂)",
+    fallbackCoords: [34.8, -5.2],
   },
-  {
-    id: "port-spatial",
-    name: "Port Spatial Gamma",
-    sectorTag: "Transit Orbital & Sas Fret",
+  "Port Stellaire": {
+    sectorTag: "Santé, tourisme & transit",
     image: "/port-spatial.webp",
-    description: "Terminaux d'amarrage des navettes cargo et ascenseurs orbitaux ravitaillant la colonie.",
-    coordinates: "15.5°S • 48.2°E",
-    status: "Dépressurisation Sas Niv. 5",
+    fallbackCoords: [-15.5, 48.2],
   },
-  {
-    id: "residentiel",
-    name: "Quartier Céleste — Habitat Familial",
-    sectorTag: "Terrasses Suspendues & Jardins",
+  "Hauts de Nova": {
+    sectorTag: "Voirie & habitat résidentiel",
     image: "/residentiel.webp",
-    description: "Modules d'habitation avec passerelles transparentes, domotique régulée et parcs suspendus.",
-    coordinates: "52.1°N • 28.4°E",
-    status: "Confort Résidentiel Calme",
+    fallbackCoords: [52.1, 28.4],
   },
-  {
-    id: "orbite-globale",
-    name: "Nova Terra — Panorama Orbital",
-    sectorTag: "Vue Cosmique • Solaria-04",
+  "Quartier des Dunes": {
+    sectorTag: "Éducation & tourisme",
     image: "/nova-terra-planet.webp",
-    description: "Vue d'ensemble de la planète et du réseau de dômes scintillants dans la nuit stellaire.",
-    coordinates: "Altitude : 420 km",
-    status: "Bouclier Magnétique Actif",
+    fallbackCoords: [-30.6, 20.4],
   },
-];
+};
 
-// Doublon pour boucle infinie transparente (seamless marquee)
-const DOUBLE_ZONES = [...ZONES, ...ZONES];
+const AVAILABILITY_LABEL: Record<ServiceAvailability, string> = {
+  disponible: "Tous les services disponibles",
+  maintenance: "Un service en maintenance",
+  incident: "Un service signale un incident",
+};
+
+function formatCoord(lat: number, lon: number): string {
+  const latDir = lat >= 0 ? "N" : "S";
+  const lonDir = lon >= 0 ? "E" : "O";
+  return `${Math.abs(lat).toFixed(1)}°${latDir} • ${Math.abs(lon).toFixed(1)}°${lonDir}`;
+}
+
+function buildZones(services: Service[]): ZoneSlide[] {
+  return Object.entries(DISTRICT_PRESENTATION).map(([name, meta]) => {
+    const districtServices = services.filter((s) => s.district === name);
+    const withCoords = districtServices.find((s) => s.latitude && s.longitude);
+    const coordinates = withCoords
+      ? formatCoord(Number(withCoords.latitude), Number(withCoords.longitude))
+      : formatCoord(meta.fallbackCoords[0], meta.fallbackCoords[1]);
+    const worstAvailability: ServiceAvailability =
+      districtServices.find((s) => s.availability === "incident")?.availability ??
+      districtServices.find((s) => s.availability === "maintenance")?.availability ??
+      "disponible";
+    return {
+      id: name,
+      name,
+      sectorTag: meta.sectorTag,
+      image: meta.image,
+      description:
+        districtServices.length === 0
+          ? "Aucun service municipal recensé dans ce quartier pour le moment."
+          : `${districtServices.length} service${districtServices.length === 1 ? "" : "s"} municipal${districtServices.length === 1 ? "" : "aux"} : ${districtServices.slice(0, 3).map((s) => s.name).join(", ")}${districtServices.length > 3 ? "…" : ""}.`,
+      coordinates,
+      status: AVAILABILITY_LABEL[worstAvailability],
+      availability: worstAvailability,
+    };
+  });
+}
 
 export default function CurvedPlanetCarousel() {
+  const [services, setServices] = useState<Service[]>([]);
+  const ZONES = useMemo(() => buildZones(services), [services]);
+  // Doublon pour boucle infinie transparente (seamless marquee)
+  const DOUBLE_ZONES = useMemo(() => [...ZONES, ...ZONES], [ZONES]);
   const [activeZone, setActiveZone] = useState<ZoneSlide | null>(null);
   const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    fetchServices().then(setServices).catch(() => setServices([]));
+  }, []);
 
   // Respecte la préférence système : pas de défilement automatique si
   // l'utilisateur a demandé moins de mouvement.
@@ -179,8 +209,16 @@ export default function CurvedPlanetCarousel() {
                   <MapPin className="size-3 text-primary" />
                   {zone.coordinates}
                 </Badge>
-                <Badge className="bg-background/85 text-success backdrop-blur-md border border-border text-[10px] gap-1 py-0.5 px-2.5">
-                  <span className="size-1.5 rounded-full bg-success animate-ping" />
+                <Badge
+                  className={`bg-background/85 backdrop-blur-md border border-border text-[10px] gap-1 py-0.5 px-2.5 ${
+                    zone.availability === "disponible" ? "text-success" : "text-destructive"
+                  }`}
+                >
+                  <span
+                    className={`size-1.5 rounded-full ${
+                      zone.availability === "disponible" ? "bg-success animate-ping" : "bg-destructive"
+                    }`}
+                  />
                   {zone.status}
                 </Badge>
               </div>
@@ -202,7 +240,7 @@ export default function CurvedPlanetCarousel() {
                     Survolez pour figer le défilement
                   </span>
                   <Button asChild size="sm" variant="secondary" className="h-7 px-3 text-[11px] gap-1 rounded-full">
-                    <Link href="/districts">
+                    <Link href={`/districts?quartier=${encodeURIComponent(zone.name)}`}>
                       Explorer
                       <ArrowRight className="size-3" />
                     </Link>

@@ -45,10 +45,15 @@ function DistrictsContentInner() {
       .catch((err: Error) => setError(err.message));
   }, []);
 
-  // Pré-sélection du quartier depuis un lien externe (ex. fiche service → "Localiser dans le quartier").
+  // Pré-sélection du quartier ou du filtre Urgences depuis un lien externe
+  // (fiche service → "Localiser dans le quartier", accueil → "Urgences").
   useEffect(() => {
     const quartier = searchParams.get("quartier");
-    if (quartier) Promise.resolve().then(() => setDistrict(quartier));
+    const urgences = searchParams.get("urgences");
+    Promise.resolve().then(() => {
+      if (quartier) setDistrict(quartier);
+      if (urgences) setEmergencyOnly(true);
+    });
   }, [searchParams]);
 
   const districts = useMemo(() => {

@@ -29,7 +29,7 @@ const CITIZEN_PERKS = [
     title: "Allocation Énergétique Solaire",
     subtitle: "Tokamak & Photovoltaïque",
     desc: "Chaque résident bénéficie d'une part garantie d'énergie propre issue de la centrale Solaria pour son habitat.",
-    badge: "500 kWh / mois alloués",
+    badge: "Énergie 100% renouvelable",
   },
   {
     icon: Vote,
@@ -43,7 +43,7 @@ const CITIZEN_PERKS = [
     title: "Assistance Municipale 24/7",
     subtitle: "Intervention Immédiate",
     desc: "Des agents techniques et environnementaux veillent en continu sur la sécurité atmosphérique et vos demandes.",
-    badge: "Délai réponse < 15 min",
+    badge: "Disponible 24h/24",
   },
 ];
 

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { fetchServices, fetchAnnouncements, type Service, type Announcement } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Compass, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Compass, Megaphone, Siren } from "lucide-react";
 import Reveal from "@/components/home/reveal";
 
 export default function QuickAccess() {
@@ -13,12 +14,34 @@ export default function QuickAccess() {
   const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
 
   useEffect(() => {
-    fetchServices().then(setServices).catch(() => setServices([]));
+    fetchServices()
+      .then((all) =>
+        setServices(
+          [...all].sort((a, b) => (a.featured === b.featured ? 0 : a.featured ? -1 : 1))
+        )
+      )
+      .catch(() => setServices([]));
     fetchAnnouncements().then(setAnnouncements).catch(() => setAnnouncements([]));
   }, []);
 
+  const emergencyServices = (services ?? []).filter((s) => s.isEmergency);
+
   return (
     <section className="border-b border-border px-6 py-16">
+      {emergencyServices.length > 0 && (
+        <div className="mx-auto mb-8 max-w-4xl">
+          <Button
+            asChild
+            variant="outline"
+            className="w-full justify-center gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 sm:w-auto"
+          >
+            <Link href="/districts?urgences=1">
+              <Siren className="size-4" />
+              Urgences — services d&apos;urgence de Nova Terra
+            </Link>
+          </Button>
+        </div>
+      )}
       <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2">
         <Reveal>
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

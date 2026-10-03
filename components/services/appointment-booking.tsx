@@ -23,8 +23,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
-import { CalendarCheck, PartyPopper, Download, MapPin } from "lucide-react";
+import { CalendarCheck, PartyPopper, Download, MapPin, Clock, User, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+
+function formatDuration(startsAt: string, endsAt?: string): string | null {
+  if (!endsAt) return null;
+  const minutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000);
+  if (minutes <= 0) return null;
+  return `${minutes} min`;
+}
 
 // Prise de rendez-vous municipal (F39, F40). Réservé aux citoyens connectés :
 // l'API renvoie 403 pour les autres rôles sur POST /appointments/book/:slotId.
@@ -98,6 +105,18 @@ export default function AppointmentBooking({ service }: { service: Service }) {
 
   if (user.role !== "citizen") return null;
 
+  // Service indisponible : impossible de démarrer une prise de rendez-vous
+  // (scénario « Disponibilité » de docs/SCENARIOS.md) — l'explication et
+  // l'alternative sont déjà affichées par ailleurs sur la fiche service.
+  if (service.availability !== "disponible") {
+    return (
+      <Button variant="outline" className="gap-2" disabled>
+        <AlertTriangle className="size-4" />
+        Rendez-vous indisponible pour ce service
+      </Button>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogTrigger asChild>
@@ -119,9 +138,36 @@ export default function AppointmentBooking({ service }: { service: Service }) {
                   dateStyle: "long",
                   timeStyle: "short",
                 })}
-                {confirmation.location ? ` · ${confirmation.location}` : ""}
               </DialogDescription>
             </DialogHeader>
+
+            <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+              {formatDuration(confirmation.startsAt, confirmation.endsAt) && (
+                <p className="flex items-center gap-2">
+                  <Clock className="size-4 text-muted-foreground" />
+                  Durée : {formatDuration(confirmation.startsAt, confirmation.endsAt)}
+                </p>
+              )}
+              {confirmation.location && (
+                <p className="flex items-center gap-2">
+                  <MapPin className="size-4 text-muted-foreground" />
+                  {confirmation.location}
+                </p>
+              )}
+              {confirmation.agent && (
+                <p className="flex items-center gap-2">
+                  <User className="size-4 text-muted-foreground" />
+                  Reçu par {confirmation.agent.firstName} {confirmation.agent.lastName}
+                </p>
+              )}
+              {confirmation.requiredDocuments && (
+                <p className="flex items-start gap-2">
+                  <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  À apporter : {confirmation.requiredDocuments}
+                </p>
+              )}
+            </div>
+
             <Button
               variant="outline"
               className="gap-2"
@@ -150,9 +196,14 @@ export default function AppointmentBooking({ service }: { service: Service }) {
               </div>
             )}
             {!error && slots !== null && slots.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Aucun créneau disponible pour ce service dans les prochains jours.
-              </p>
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                <p>Aucun créneau disponible pour ce service dans les prochains jours.</p>
+                <p className="mt-2">
+                  {service.alternative
+                    ? service.alternative
+                    : `Vous pouvez contacter directement le service : ${service.contact}`}
+                </p>
+              </div>
             )}
 
             {slots && slots.length > 0 && (

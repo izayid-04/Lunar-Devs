@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import {
@@ -12,107 +12,25 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { fetchServices, type Service } from "@/lib/api";
+import { DISTRICTS } from "@/lib/alerts";
 import {
   Compass,
   TrainFront,
-  Zap,
   Trees,
-  Activity,
   Shield,
+  Zap,
   ArrowRight,
-  Info
+  Info,
 } from "lucide-react";
 
-type District = {
-  id: string;
-  name: string;
-  tagline: string;
-  icon: typeof Compass;
-  pressure: string;
-  population: string;
-  services: string[];
-};
+const ICONS = [Compass, TrainFront, Trees, Shield, Zap];
 
-const DISTRICTS: District[] = [
-  {
-    id: "port-spatial",
-    name: "Port Spatial Gamma",
-    tagline: "Logistique & Fret Orbital",
-    icon: TrainFront,
-    pressure: "1010 hPa",
-    population: "6 500 agents",
-    services: [
-      "Ascenseurs orbitaux et quais de transit",
-      "Liaison directe par navette vers la Terre",
-      "Douanes pressurisées & biosécurité",
-    ],
-  },
-  {
-    id: "centre-admin",
-    name: "Dôme Alpha (Capitale)",
-    tagline: "Conseil & Agora Citoyenne",
-    icon: Compass,
-    pressure: "1013 hPa",
-    population: "24 100 résidents",
-    services: [
-      "Siège du Conseil Municipal & Guichets",
-      "Passeport citoyen & démarches en ligne",
-      "Agora holographique et votes directs",
-    ],
-  },
-  {
-    id: "biocentre",
-    name: "Biocentre Nova (Dôme Beta)",
-    tagline: "Biosphère & Hydroponie",
-    icon: Trees,
-    pressure: "1015 hPa",
-    population: "8 400 biologistes",
-    services: [
-      "Tours aéroponiques & nourriture fraîche",
-      "Parcs botaniques à haute oxygénation",
-      "Recyclage cyclique de l'eau à 99.4%",
-    ],
-  },
-  {
-    id: "technopole",
-    name: "Parc Tech & Innovation",
-    tagline: "Laboratoires & Métallurgie",
-    icon: Shield,
-    pressure: "1011 hPa",
-    population: "4 100 ingénieurs",
-    services: [
-      "Fablabs en gravité allégée",
-      "Prototypage de boucliers magnétiques",
-      "Incubateur de technologies stellaires",
-    ],
-  },
-  {
-    id: "energie",
-    name: "Secteur Solaria",
-    tagline: "Centrale Énergétique Stellaire",
-    icon: Zap,
-    pressure: "1008 hPa",
-    population: "3 200 techniciens",
-    services: [
-      "Réacteurs Tokamak à fusion propre",
-      "Champs de concentrateurs solaires",
-      "Grille de supraconductivité dôme-à-dôme",
-    ],
-  },
-  {
-    id: "residentiel",
-    name: "Quartier Résidentiel Céleste",
-    tagline: "Habitat & Espaces Familiaux",
-    icon: Activity,
-    pressure: "1012 hPa",
-    population: "14 200 familles",
-    services: [
-      "Modules d'habitation avec domotique verte",
-      "Centres médicaux de régénération",
-      "Micro-marchés & écoles connectées",
-    ],
-  },
-];
+type DistrictPanel = {
+  name: string;
+  icon: (typeof ICONS)[number];
+  services: Service[];
+};
 
 const CX = 160;
 const CY = 160;
@@ -136,11 +54,22 @@ function sectorPath(index: number, count: number) {
 }
 
 export default function DistrictMap() {
-  const [active, setActive] = useState<District | null>(null);
+  const [services, setServices] = useState<Service[] | null>(null);
+  const [active, setActive] = useState<DistrictPanel | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const reduceMotion = useReducedMotion();
 
-  const selectedOrHovered = hovered !== null ? DISTRICTS[hovered] : DISTRICTS[1];
+  useEffect(() => {
+    fetchServices().then(setServices).catch(() => setServices([]));
+  }, []);
+
+  const districts: DistrictPanel[] = DISTRICTS.map((name, i) => ({
+    name,
+    icon: ICONS[i % ICONS.length],
+    services: (services ?? []).filter((s) => s.district === name),
+  }));
+
+  const selectedOrHovered = hovered !== null ? districts[hovered] : districts[0];
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -157,12 +86,12 @@ export default function DistrictMap() {
               role="group"
               aria-label="Carte interactive des quartiers de Nova Terra"
             >
-              {DISTRICTS.map((district, i) => {
+              {districts.map((district, i) => {
                 const isHovered = hovered === i;
                 return (
                   <motion.path
                     key={district.name}
-                    d={sectorPath(i, DISTRICTS.length)}
+                    d={sectorPath(i, districts.length)}
                     fill={isHovered ? "var(--primary)" : "var(--card)"}
                     stroke={isHovered ? "var(--primary)" : "var(--border)"}
                     strokeWidth={1.5}
@@ -226,12 +155,12 @@ export default function DistrictMap() {
 
           <p className="mt-4 text-center text-xs text-muted-foreground font-mono">
             {hovered !== null
-              ? `Secteur ciblé : ${DISTRICTS[hovered].name}`
-              : "Survolez un quadrant pour inspecter le secteur"}
+              ? `Quartier ciblé : ${districts[hovered].name}`
+              : "Survolez un quadrant pour inspecter le quartier"}
           </p>
         </div>
 
-        {/* Real-time Sector Telemetry Card - Perfectly contained and responsive */}
+        {/* Sector panel — données réelles (GET /services) */}
         <div className="md:col-span-6 w-full">
           <div className="w-full rounded-2xl border border-border/80 bg-card p-6 shadow-md transition-all flex flex-col justify-between overflow-hidden">
             <div>
@@ -240,36 +169,41 @@ export default function DistrictMap() {
                   <selectedOrHovered.icon className="size-4" />
                 </span>
                 <Badge variant="outline" className="border-primary/40 text-primary text-[10px]">
-                  {selectedOrHovered.pressure}
+                  {services === null
+                    ? "…"
+                    : `${selectedOrHovered.services.length} service${selectedOrHovered.services.length === 1 ? "" : "s"}`}
                 </Badge>
               </div>
 
               <h3 className="text-xl font-bold text-foreground tracking-tight">
                 {selectedOrHovered.name}
               </h3>
-              <p className="text-xs text-primary font-medium mt-0.5">
-                {selectedOrHovered.tagline}
-              </p>
-
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs font-mono text-muted-foreground">
-                <span>Population :</span>
-                <strong className="text-foreground">{selectedOrHovered.population}</strong>
-              </div>
 
               <div className="mt-4 border-t border-border/60 pt-3 space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Infrastructures & Services :
+                  Services municipaux :
                 </p>
-                {selectedOrHovered.services.map((svc, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                {services === null && (
+                  <p className="text-xs text-muted-foreground">Chargement…</p>
+                )}
+                {services !== null && selectedOrHovered.services.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Aucun service recensé dans ce quartier pour le moment.
+                  </p>
+                )}
+                {selectedOrHovered.services.slice(0, 3).map((svc) => (
+                  <Link
+                    key={svc.id}
+                    href={`/services/${svc.slug}`}
+                    className="flex items-start gap-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
                     <span className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />
-                    <span className="leading-snug">{svc}</span>
-                  </div>
+                    <span className="leading-snug underline">{svc.name}</span>
+                  </Link>
                 ))}
               </div>
             </div>
 
-            {/* Action buttons with flex-col on small screens, flex-row with flex-1 on larger */}
             <div className="mt-6 flex flex-col sm:flex-row items-stretch gap-2.5 pt-4 border-t border-border/60">
               <Button
                 size="sm"
@@ -286,8 +220,8 @@ export default function DistrictMap() {
                 asChild
                 className="flex-1 text-xs gap-1.5 cursor-pointer"
               >
-                <Link href="/districts">
-                  Tous les dômes
+                <Link href={`/districts?quartier=${encodeURIComponent(selectedOrHovered.name)}`}>
+                  Tous les quartiers
                   <ArrowRight className="size-3" />
                 </Link>
               </Button>
@@ -305,32 +239,35 @@ export default function DistrictMap() {
               {active?.name}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {active?.tagline} • Pression {active?.pressure}
+              {active ? `${active.services.length} service${active.services.length === 1 ? "" : "s"} municipal${active.services.length === 1 ? "" : "aux"}` : ""}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <div className="rounded-lg bg-muted/40 p-3 text-xs flex justify-between font-mono">
-              <span className="text-muted-foreground">Population résidente :</span>
-              <span className="font-semibold text-foreground">{active?.population}</span>
-            </div>
-
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Services & Missions assurés :
-              </p>
-              <ul className="flex flex-col gap-2 text-xs">
-                {active?.services.map((service) => (
-                  <li key={service} className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2.5">
-                    <span className="size-1.5 rounded-full bg-primary shrink-0" />
-                    <span>{service}</span>
-                  </li>
-                ))}
-              </ul>
+              {active?.services.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Aucun service recensé dans ce quartier pour le moment.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2 text-xs">
+                  {active?.services.map((svc) => (
+                    <li key={svc.id}>
+                      <Link
+                        href={`/services/${svc.slug}`}
+                        className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2.5 transition-colors hover:border-primary/40"
+                      >
+                        <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                        <span>{svc.name}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <Button asChild className="w-full text-xs mt-2">
-              <Link href="/districts">
+              <Link href={`/districts?quartier=${encodeURIComponent(active?.name ?? "")}`}>
                 Consulter la carte complète de Nova Terra
               </Link>
             </Button>

@@ -578,3 +578,121 @@ sécurité signalée (hash de mot de passe exposé sur
 `GET /appointments/slots`) est également corrigée côté backend. Les
 trois entrées correspondantes dans `docs/BESOINS-API.md` sont marquées
 résolues plutôt que supprimées, pour garder une trace.
+
+## Audit `docs/SCENARIOS.md` (2026-10-03) — corrections appliquées
+
+Relecture complète du cahier de scénarios et confrontation à
+l'application réelle. Corrections appliquées immédiatement (petits
+correctifs sur des écrans déjà construits) :
+
+- **Cadre « Complétez votre profil » trop large dans `/espace`** :
+  remplacé par une bannière compacte (icône + texte court) avec un
+  bouton qui ouvre une **modale** pour le formulaire, au lieu d'un
+  grand encart pleine largeur avec des boutons étirés.
+- **Rendez-vous — confirmation incomplète** (scénario 7 : « date en
+  toutes lettres, heure, durée, lieu, agent, documents à apporter ») :
+  `components/services/appointment-booking.tsx` affiche maintenant la
+  durée, le lieu, l'agent et les documents à apporter dans l'écran de
+  confirmation (seule la date/heure et le lieu étaient affichés avant).
+- **Rendez-vous — aucun créneau disponible** : ajout d'une alternative
+  (`service.alternative` ou le contact du service) au lieu d'un simple
+  message sans suite.
+- **Rendez-vous sur un service indisponible** (scénario 5 : « impossible
+  de commencer une démarche ou de prendre rendez-vous ») : le bouton
+  « Prendre rendez-vous » est désormais désactivé avec une explication
+  quand `service.availability !== "disponible"` (rien ne l'empêchait
+  avant).
+- **« Mes rendez-vous »** : séparés en « À venir » et « Passés » comme
+  demandé par le scénario 7 (tout était affiché à plat avant).
+- **F52 — soutenir sa propre demande** : voir l'entrée détaillée dans
+  `docs/BESOINS-API.md` — le bouton de soutien actionnable a été retiré
+  de `/espace/demandes/[id]` (ne reste qu'un compteur en lecture) car il
+  ne pouvait techniquement s'exercer que sur ses propres demandes,
+  contredisant le scénario.
+- **Accueil public — carte des quartiers entièrement fictive**
+  (`components/home/district-map.tsx`) : violait la règle « aucune
+  donnée inventée affichée comme réelle » (section 0) du cahier — les 6
+  secteurs affichés (« Dôme Alpha », « Secteur Solaria »…), leurs
+  populations et pressions atmosphériques étaient inventés et ne
+  correspondaient pas aux 5 vrais quartiers. Remplacé par les 5 vrais
+  quartiers (`lib/alerts.ts`, `DISTRICTS`) avec les vrais services de
+  chaque quartier (`GET /services`), sans toucher à la mise en forme
+  visuelle (radar SVG, dialogue de détail) : seule la source de données
+  change, la décoration reste.
+- **Accueil public — services principaux pas triés, pas d'accès
+  Urgences** (scénario 1 : « services prioritaires en premier (F28) » et
+  « accès direct Urgences (F46) ») : `components/home/quick-access.tsx`
+  trie maintenant les services mis en avant (`featured`) en premier, et
+  affiche un bouton « Urgences » (visible seulement s'il existe au moins
+  un service `isEmergency`) qui ouvre `/districts` avec le filtre
+  Urgences déjà activé (`?urgences=1`, lu par `districts-content.tsx`).
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur après
+chaque changement.
+
+### Écarts trouvés qui restent à traiter
+
+Documentés en détail dans `docs/BESOINS-API.md` :
+- Changer son mot de passe, notification de nouvelle connexion (F54) et
+  soutenir le signalement d'un autre citoyen (F52) : **bloqués côté
+  API**, aucune route correspondante dans `docs/API.md`.
+- Export de mes données (F55) et récapitulatif de mes demandes (F56) :
+  réalisables côté front avec les données déjà disponibles, **pas
+  encore construits**.
+- Liste de démarrage pour un nouveau citoyen (compléter profil / trouver
+  un service / envoyer une demande, avec cases à cocher) : **pas encore
+  construite**.
+
+### Sections d'accueil restées fictives — corrigées
+
+`components/home/planet-showcase.tsx` et `components/home/curved-planet-carousel.tsx`
+affichaient des statistiques inventées présentées comme réelles
+(population, pression atmosphérique, tonnage de fret, rendement
+énergétique) — même défaut que la carte des quartiers. Même traitement
+appliqué : mise en forme et animations conservées (globe 3D, carrousel
+incurvé), mais source de données remplacée par les 5 vrais quartiers et
+les vrais services (`GET /services`) :
+- Le globe 3D (`planet-showcase.tsx`) affiche désormais les 5 vrais
+  quartiers, avec leurs vraies coordonnées GPS (`latitude`/`longitude`
+  d'un service du quartier) et jusqu'à 4 vrais services en lien direct
+  vers leur fiche, au lieu de statistiques de population/pression/énergie
+  inventées.
+- Le carrousel (`curved-planet-carousel.tsx`) affiche les mêmes 5
+  quartiers, avec les vraies coordonnées et un badge de statut qui
+  reflète la vraie disponibilité des services du quartier
+  (`availability` — « Tous les services disponibles », « Un service en
+  maintenance »/« signale un incident », avec la bonne couleur), au lieu
+  d'un statut « Biosphère Optimale (1013 hPa) » inventé.
+- Les deux images par défaut (`public/*.webp`, déjà présentes) sont
+  réattribuées aux 5 vrais quartiers plutôt qu'à des secteurs fictifs.
+
+`components/home/citizen-privileges.tsx` : les deux badges présentant un
+chiffre inventé comme un engagement réel (« 500 kWh / mois alloués »,
+« Délai réponse < 15 min ») ont été remplacés par des formulations sans
+chiffre vérifiable (« Énergie 100% renouvelable », « Disponible 24h/24 »),
+cohérentes avec le reste de la section qui reste une vitrine
+promotionnelle de fonctionnalités (transport, vote citoyen) qui
+n'existent pas dans l'application réelle — non retouchée au-delà des
+deux chiffres signalés, cette section entière restant un pur argumentaire
+marketing plutôt qu'un écran fonctionnel.
+
+Par cohérence directe avec ce qui précède, deux mentions adjacentes de
+quartiers fictifs ont aussi été corrigées : `components/home/how-it-works.tsx`
+listait explicitement « 6 districts (Dôme Alpha, Port Spatial,
+Biocentre, etc.) » — remplacé par les 5 vrais noms de quartiers.
+
+**Non touché volontairement** : le titre principal de l'accueil
+(`components/home/hero.tsx`), « Bienvenue dans la Cité des Six Dômes »,
+reste une appellation de marque pour la ville (comme « Cité des
+Lumières ») plutôt qu'une donnée vérifiable — mais elle entre en léger
+décalage numérique avec les 5 vrais quartiers (6 vs 5). Signalé dans le
+rapport plutôt que changé unilatéralement : renommer le titre principal
+de l'accueil est une décision de direction artistique, pas juste une
+correction de donnée inventée.
+
+Vérifié : `npm run build` et `npm run lint` passent sans erreur ; un
+serveur de prévisualisation local (`next start`) a été démarré
+temporairement pour confirmer que `/`, `/districts`, `/services/[slug]`
+et `/espace` répondent bien (`200`, pas d'erreur serveur), puis arrêté —
+aucun outil de capture visuelle n'étant disponible dans cette session
+pour une vérification à l'œil.

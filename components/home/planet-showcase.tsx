@@ -1,112 +1,97 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import InteractiveGlobe, { MarkerLocation } from "@/components/ui/interactive-globe";
+import { fetchServices, type Service } from "@/lib/api";
 import {
   Sparkles,
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Radio,
-  Users,
-  Compass,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 
-interface PlanetCity {
+// Présentation des 5 vrais quartiers de Nova Terra (lib/alerts.ts, DISTRICTS)
+// sur un globe 3D. Image, slug et sous-titre restent de la mise en scène
+// (aucune route API ne décrit un quartier en tant que tel), mais les
+// coordonnées, le nombre de services et la liste de services affichés sont
+// ceux réellement renvoyés par GET /services — plus aucune statistique
+// inventée (population, pression, énergie…).
+const DISTRICT_PRESENTATION: Record<string, { image: string; imageAlt: string; badge: string; fallbackCoords: [number, number] }> = {
+  "Centre-Ville": {
+    image: "/dome-alpha.webp",
+    imageAlt: "Vue intérieure du centre-ville avec verrière hexagonale et jardins suspendus",
+    badge: "Cœur administratif",
+    fallbackCoords: [45.2, 12.8],
+  },
+  "Port Stellaire": {
+    image: "/port-spatial.webp",
+    imageAlt: "Terminal du port avec navettes et quais",
+    badge: "Logistique & santé",
+    fallbackCoords: [-15.5, 48.2],
+  },
+  "Faubourg Est": {
+    image: "/biocentre.webp",
+    imageAlt: "Biosphère et installations de distribution d'eau et d'énergie",
+    badge: "Eau & énergie",
+    fallbackCoords: [22.4, -40.6],
+  },
+  "Hauts de Nova": {
+    image: "/residentiel.webp",
+    imageAlt: "Quartier résidentiel en hauteur",
+    badge: "Résidentiel",
+    fallbackCoords: [10.1, -60.3],
+  },
+  "Quartier des Dunes": {
+    image: "/nova-terra-planet.webp",
+    imageAlt: "Vue du quartier des Dunes",
+    badge: "Éducation & tourisme",
+    fallbackCoords: [-30.6, 20.4],
+  },
+};
+
+type DistrictCard = {
   id: string;
   name: string;
   badge: string;
-  subtitle: string;
-  coordinates: [number, number]; // [lat, lon]
-  description: string;
+  coordinates: [number, number];
   image: string;
   imageAlt: string;
-  stats: {
-    label: string;
-    value: string;
-    icon: typeof Users;
-  }[];
-  features: string[];
-}
-
-const CITIES: PlanetCity[] = [
-  {
-    id: "dome-alpha",
-    name: "Dôme Alpha (Capitale)",
-    badge: "Secteur Urbain Central",
-    subtitle: "Hexagones bioclimatiques & Maglev suspendu",
-    coordinates: [45.2, 12.8],
-    description:
-      "Cœur politique et névralgique de Nova Terra abritant le Haut Conseil et 24 100 résidents. Les jardins suspendus purifient l'air en circuit fermé tandis que les rames à lévitation magnétique sillonnent la canopée.",
-    image: "/dome-alpha.webp",
-    imageAlt: "Vue intérieure du Dôme Alpha avec verrière hexagonale et jardins suspendus",
-    stats: [
-      { label: "Population", value: "24 100", icon: Users },
-      { label: "Pression", value: "1013 hPa", icon: ShieldCheck },
-      { label: "Énergie", value: "1.8 GW", icon: Zap },
-    ],
-    features: [
-      "Verrière intelligente filtrant les vents solaires",
-      "Réseau Maglev urbain accessible à tous les résidents",
-      "Agora citoyenne holographique & consultations",
-    ],
-  },
-  {
-    id: "port-spatial",
-    name: "Port Spatial Gamma",
-    badge: "Logistique & Fret Orbital",
-    subtitle: "Ascenseurs orbitaux & Sas cargo haute capacité",
-    coordinates: [-15.5, 48.2],
-    description:
-      "La porte d'entrée de Nova Terra. Équipé d'ascenseurs orbitaux vers la flotte commerciale et de sas pressurisés automatiques, le Port Spatial Gamma orchestre l'arrivée des cargaisons de ravitaillement et des nouveaux arrivants.",
-    image: "/port-spatial.webp",
-    imageAlt: "Terminal du port spatial avec navettes cargo et ascenseur orbital",
-    stats: [
-      { label: "Fret transit", value: "1 450 t/j", icon: Radio },
-      { label: "Fréquence", value: "45 min", icon: Compass },
-      { label: "Sécurité", value: "Niveau 5", icon: ShieldCheck },
-    ],
-    features: [
-      "Amarrage simultané de 8 navettes inter-dômes",
-      "Contrôle de quarantaine automatisé en temps réel",
-      "Corridor direct vers le réseau de fret souterrain",
-    ],
-  },
-  {
-    id: "solaria-energy",
-    name: "Secteur Solaria (Énergie)",
-    badge: "Centrale Stellaire",
-    subtitle: "Tokamaks à fusion & concentrateurs photoniques",
-    coordinates: [22.4, -40.6],
-    description:
-      "Vaste complexe énergétique captant les flux solaires et alimenté par 3 réacteurs tokamak à confinement magnétique. Il fournit 100% de l'électricité propre distribuée par câbles supraconducteurs à l'ensemble des dômes.",
-    image: "/nova-terra-planet.webp",
-    imageAlt: "Vue de la planète Nova Terra et de ses gisements énergétiques",
-    stats: [
-      { label: "Production", value: "5.0 GW", icon: Zap },
-      { label: "Rendement", value: "98.4%", icon: ShieldCheck },
-      { label: "Techniciens", value: "3 200", icon: Users },
-    ],
-    features: [
-      "Stockage thermique en sels minéraux fondus",
-      "Distribution haute tension supraconductrice",
-      "Sécurité énergétique garantie sur 50 ans",
-    ],
-  },
-];
+  services: Service[];
+};
 
 export default function PlanetShowcase() {
+  const [services, setServices] = useState<Service[] | null>(null);
   const [selectedCityIndex, setSelectedCityIndex] = useState<number>(0);
-  const currentCity = CITIES[selectedCityIndex];
 
-  const globeMarkers: MarkerLocation[] = CITIES.map((c, i) => ({
+  useEffect(() => {
+    fetchServices().then(setServices).catch(() => setServices([]));
+  }, []);
+
+  const cities: DistrictCard[] = Object.entries(DISTRICT_PRESENTATION).map(([name, meta]) => {
+    const districtServices = (services ?? []).filter((s) => s.district === name);
+    const withCoords = districtServices.find((s) => s.latitude && s.longitude);
+    const coordinates: [number, number] = withCoords
+      ? [Number(withCoords.latitude), Number(withCoords.longitude)]
+      : meta.fallbackCoords;
+    return {
+      id: name,
+      name,
+      badge: meta.badge,
+      coordinates,
+      image: meta.image,
+      imageAlt: meta.imageAlt,
+      services: districtServices,
+    };
+  });
+
+  const currentCity = cities[selectedCityIndex];
+
+  const globeMarkers: MarkerLocation[] = cities.map((c, i) => ({
     id: c.id,
     name: c.name,
     location: c.coordinates,
@@ -136,7 +121,7 @@ export default function PlanetShowcase() {
 
         {/* City Quick Selector Tabs */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-          {CITIES.map((city, idx) => {
+          {cities.map((city, idx) => {
             const isSelected = selectedCityIndex === idx;
             return (
               <button
@@ -168,7 +153,8 @@ export default function PlanetShowcase() {
             aria-label="Représentation 3D interactive de la planète Nova Terra et de ses dômes"
           >
             <div className="sr-only" aria-live="polite">
-              Dôme sélectionné sur la planète : {currentCity.name}. {currentCity.description}.
+              Quartier sélectionné sur la planète : {currentCity.name}, {currentCity.services.length} service
+              {currentCity.services.length === 1 ? "" : "s"} municipal{currentCity.services.length === 1 ? "" : "aux"}.
             </div>
             <div className="relative size-[290px] sm:size-[360px] md:size-[400px] flex items-center justify-center">
               <InteractiveGlobe
@@ -226,46 +212,34 @@ export default function PlanetShowcase() {
                   </div>
                 </div>
 
-                {/* Description & Features */}
+                {/* Services réels du quartier */}
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {currentCity.description}
+                    {services === null
+                      ? "Chargement des services de ce quartier…"
+                      : currentCity.services.length === 0
+                      ? "Aucun service municipal recensé dans ce quartier pour le moment."
+                      : `${currentCity.services.length} service${currentCity.services.length === 1 ? "" : "s"} municipal${currentCity.services.length === 1 ? "" : "aux"} dans ce quartier.`}
                   </p>
 
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {currentCity.stats.map((st, i) => {
-                      const Icon = st.icon;
-                      return (
-                        <div
-                          key={i}
-                          className="rounded-xl border border-border/80 bg-card/80 p-2.5 text-center"
-                        >
-                          <Icon className="size-3.5 text-primary mx-auto mb-1 opacity-80" />
-                          <div className="text-xs sm:text-sm font-bold text-foreground font-mono">
-                            {st.value}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {st.label}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 space-y-1.5 border-t border-border/60 pt-3">
-                    {currentCity.features.map((feat, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="mt-4 space-y-1.5">
+                    {currentCity.services.slice(0, 4).map((svc) => (
+                      <Link
+                        key={svc.id}
+                        href={`/services/${svc.slug}`}
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
                         <CheckCircle2 className="size-3.5 text-success shrink-0" />
-                        <span>{feat}</span>
-                      </div>
+                        <span className="underline">{svc.name}</span>
+                      </Link>
                     ))}
                   </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button asChild className="gap-2 text-xs">
-                    <Link href="/districts">
-                      Explorer tous les dômes
+                    <Link href={`/districts?quartier=${encodeURIComponent(currentCity.name)}`}>
+                      Explorer ce quartier
                       <ArrowRight className="size-3.5" />
                     </Link>
                   </Button>

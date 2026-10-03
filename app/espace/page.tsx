@@ -138,6 +138,9 @@ function EspaceContent() {
   const [securityError, setSecurityError] = useState<string | null>(null);
 
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+  // Lazy initial state (appelé une seule fois) : évite d'appeler Date.now()
+  // directement pendant le rendu (règle react-hooks/purity).
+  const [nowRef] = useState(() => Date.now());
   const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
 
@@ -153,6 +156,7 @@ function EspaceContent() {
   const [confirmation, setConfirmation] = useState<CitizenMessage | null>(null);
 
   // Complétion du profil (D12, F35)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileDistrict, setProfileDistrict] = useState<District>(DISTRICTS[0]);
   const [profileLanguage, setProfileLanguage] = useState("fr");
   const [profileVulnerable, setProfileVulnerable] = useState(false);
@@ -301,6 +305,7 @@ function EspaceContent() {
       });
       await refreshUser();
       toast.success("Profil complété, merci !");
+      setProfileDialogOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer votre profil.");
     } finally {
@@ -535,59 +540,74 @@ function EspaceContent() {
       {/* Complétion du profil (D12, F35) */}
       {!user.profileCompleted && (
         <Card className="mt-6 border-primary/40">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="flex items-center gap-2.5">
               <UserCog className="size-4 text-primary" />
-              Complétez votre profil
-            </CardTitle>
-            <CardDescription>
-              Votre quartier et votre langue préférée permettent de mieux cibler les alertes et
-              services qui vous concernent.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSaveProfile} className="grid gap-4 sm:grid-cols-3 sm:items-end">
-              <div className="space-y-1.5">
-                <Label htmlFor="profileDistrict">Quartier</Label>
-                <Select value={profileDistrict} onValueChange={(v) => setProfileDistrict(v as District)}>
-                  <SelectTrigger id="profileDistrict" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DISTRICTS.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div>
+                <p className="text-sm font-semibold">Complétez votre profil</p>
+                <p className="text-xs text-muted-foreground">
+                  Quartier et langue préférée, pour mieux cibler ce qui vous concerne.
+                </p>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="profileLanguage">Langue préférée</Label>
-                <Input
-                  id="profileLanguage"
-                  value={profileLanguage}
-                  onChange={(e) => setProfileLanguage(e.target.value)}
-                  placeholder="fr"
-                  maxLength={50}
-                />
-              </div>
-              <div className="flex items-center gap-2 sm:pb-2">
-                <input
-                  id="profileVulnerable"
-                  type="checkbox"
-                  checked={profileVulnerable}
-                  onChange={(e) => setProfileVulnerable(e.target.checked)}
-                  className="size-4 rounded border-input"
-                />
-                <Label htmlFor="profileVulnerable" className="text-xs font-normal">
-                  Je souhaite être identifié comme personne vulnérable (priorité sur les alertes)
-                </Label>
-              </div>
-              <Button type="submit" className="sm:col-span-3" disabled={savingProfile}>
-                {savingProfile ? "Enregistrement…" : "Enregistrer mon profil"}
-              </Button>
-            </form>
+            </div>
+            <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">Compléter mon profil</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Compléter votre profil</DialogTitle>
+                  <DialogDescription>
+                    Votre quartier et votre langue préférée permettent de mieux cibler les alertes
+                    et services qui vous concernent.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profileDistrict">Quartier</Label>
+                    <Select value={profileDistrict} onValueChange={(v) => setProfileDistrict(v as District)}>
+                      <SelectTrigger id="profileDistrict" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DISTRICTS.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profileLanguage">Langue préférée</Label>
+                    <Input
+                      id="profileLanguage"
+                      value={profileLanguage}
+                      onChange={(e) => setProfileLanguage(e.target.value)}
+                      placeholder="fr"
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="profileVulnerable"
+                      type="checkbox"
+                      checked={profileVulnerable}
+                      onChange={(e) => setProfileVulnerable(e.target.checked)}
+                      className="size-4 rounded border-input"
+                    />
+                    <Label htmlFor="profileVulnerable" className="text-xs font-normal">
+                      Je souhaite être identifié comme personne vulnérable (priorité sur les alertes)
+                    </Label>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={savingProfile}>
+                      {savingProfile ? "Enregistrement…" : "Enregistrer mon profil"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       )}
@@ -698,70 +718,95 @@ function EspaceContent() {
                   service dans <Link href="/districts" className="text-primary underline">Services</Link>.
                 </p>
               )}
-              {appointments && appointments.length > 0 && (
-                <div className="space-y-2">
-                  {appointments.map((a) => (
-                    <div
-                      key={a.id}
-                      className={`rounded-lg border border-border p-3 text-xs ${a.status === "annule" ? "opacity-60" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {a.service?.name ?? "Service municipal"}
-                          </p>
+              {appointments && appointments.length > 0 && (() => {
+                const now = nowRef;
+                const upcoming = appointments
+                  .filter((a) => a.status === "confirme" && new Date(a.startsAt).getTime() > now)
+                  .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+                const past = appointments
+                  .filter((a) => a.status === "annule" || new Date(a.startsAt).getTime() <= now)
+                  .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+
+                const renderAppointment = (a: Appointment) => (
+                  <div
+                    key={a.id}
+                    className={`rounded-lg border border-border p-3 text-xs ${a.status === "annule" ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {a.service?.name ?? "Service municipal"}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="size-3" />
+                          {new Date(a.startsAt).toLocaleString("fr-FR", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </div>
+                        {a.location && (
                           <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <Clock className="size-3" />
-                            {new Date(a.startsAt).toLocaleString("fr-FR", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })}
+                            <MapPin className="size-3" />
+                            {a.location}
                           </div>
-                          {a.location && (
-                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                              <MapPin className="size-3" />
-                              {a.location}
-                            </div>
-                          )}
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            a.status === "confirme"
-                              ? "border-success/40 text-success bg-success/10 text-[10px]"
-                              : "border-border text-muted-foreground text-[10px]"
-                          }
-                        >
-                          {a.status === "confirme" ? "Confirmé" : "Annulé"}
-                        </Badge>
+                        )}
                       </div>
-                      {a.status === "confirme" && (
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1.5 text-xs"
-                            onClick={() => downloadAppointmentIcs(token!, a.id)}
-                          >
-                            <Download className="size-3.5" />
-                            .ics
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-                            disabled={cancelingId === a.id}
-                            onClick={() => handleCancelAppointment(a.id)}
-                          >
-                            <X className="size-3.5" />
-                            {cancelingId === a.id ? "Annulation…" : "Annuler"}
-                          </Button>
-                        </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          a.status === "confirme"
+                            ? "border-success/40 text-success bg-success/10 text-[10px]"
+                            : "border-border text-muted-foreground text-[10px]"
+                        }
+                      >
+                        {a.status === "confirme" ? "Confirmé" : "Annulé"}
+                      </Badge>
+                    </div>
+                    {a.status === "confirme" && new Date(a.startsAt).getTime() > now && (
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1.5 text-xs"
+                          onClick={() => downloadAppointmentIcs(token!, a.id)}
+                        >
+                          <Download className="size-3.5" />
+                          .ics
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                          disabled={cancelingId === a.id}
+                          onClick={() => handleCancelAppointment(a.id)}
+                        >
+                          <X className="size-3.5" />
+                          {cancelingId === a.id ? "Annulation…" : "Annuler"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground">À venir</p>
+                      {upcoming.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">Aucun rendez-vous à venir.</p>
+                      ) : (
+                        <div className="space-y-2">{upcoming.map(renderAppointment)}</div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {past.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground">Passés</p>
+                        <div className="space-y-2">{past.map(renderAppointment)}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Demandes relatives aux données personnelles (F51) */}
