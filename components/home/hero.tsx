@@ -27,7 +27,7 @@ export default function Hero() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {user ? (
               <Button asChild>
-                <Link href="/espace">Accéder à mon espace</Link>
+                <Link href="/dashboard">Accéder au Cockpit Urbain</Link>
               </Button>
             ) : (
               <>

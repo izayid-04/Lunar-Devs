@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Info,
   LogIn,
-  LogOut,
-  Satellite,
-  ShieldCheck,
-  User,
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -64,9 +60,18 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
 }
 
 export default function DockNav() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
+
+  const isConnectedRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/espace") ||
+    pathname.startsWith("/agent") ||
+    pathname.startsWith("/admin");
+
+  if (!loading && (user || isConnectedRoute)) {
+    return null;
+  }
 
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
@@ -74,23 +79,7 @@ export default function DockNav() {
   ];
 
   if (!loading) {
-    if (user) {
-      items.push({ href: "/espace", label: "Mon espace", icon: User });
-      if (user.role === "agent" || user.role === "admin") {
-        items.push({ href: "/agent", label: "Agent", icon: Satellite });
-      }
-      if (user.role === "admin") {
-        items.push({ href: "/admin", label: "Admin", icon: ShieldCheck });
-      }
-      items.push({
-        label: "Déconnexion",
-        icon: LogOut,
-        onClick: () => {
-          logout();
-          router.push("/");
-        },
-      });
-    } else {
+    if (!user) {
       items.push({ href: "/connexion", label: "Connexion", icon: LogIn });
       items.push({ href: "/inscription", label: "Inscription", icon: UserPlus });
     }

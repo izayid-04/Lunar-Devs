@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import DockNav from "@/components/dock-nav";
 import "./globals.css";
 
@@ -32,11 +33,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AuthProvider>
-            <div className="flex flex-1 flex-col pb-24">{children}</div>
-            <DockNav />
-          </AuthProvider>
-          <Toaster />
+          <TooltipProvider delayDuration={150}>
+            <AuthProvider>
+              <div className="flex flex-1 flex-col">{children}</div>
+              <DockNav />
+            </AuthProvider>
+            <Toaster />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
