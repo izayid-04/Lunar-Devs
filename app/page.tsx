@@ -1,4 +1,6 @@
 import Hero from "@/components/home/hero";
+import PlanetShowcase from "@/components/home/planet-showcase";
+import CitizenPrivileges from "@/components/home/citizen-privileges";
 import DistrictMap from "@/components/home/district-map";
 import HowItWorks from "@/components/home/how-it-works";
 import Reveal from "@/components/home/reveal";
@@ -6,11 +8,15 @@ import ClosingCta from "@/components/home/closing-cta";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex flex-1 flex-col pb-24">
       <Hero />
+
+      {/* Holographic Planet Showcase & Live Telemetry */}
+      <PlanetShowcase />
 
       <HowItWorks />
 
+      {/* Interactive District Map */}
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
@@ -20,7 +26,7 @@ export default function Home() {
             Six quartiers, un seul espace
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Survolez ou touchez un quartier pour découvrir ses services.
+            Survolez ou touchez un quartier pour découvrir ses services et sa spécialisation.
           </p>
         </Reveal>
 
@@ -28,6 +34,9 @@ export default function Home() {
           <DistrictMap />
         </Reveal>
       </section>
+
+      {/* Citizen Privileges & Call to Action */}
+      <CitizenPrivileges />
 
       <section className="px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">

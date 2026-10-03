@@ -12,6 +12,7 @@ import {
   Satellite,
   ShieldCheck,
   UserPlus,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import ModeToggle from "@/components/mode-toggle";
@@ -81,6 +82,7 @@ export default function DockNav() {
 
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
+    { href: "/districts", label: "Districts", icon: Compass },
     { href: "/a-propos", label: "À propos", icon: Info },
   ];
 
