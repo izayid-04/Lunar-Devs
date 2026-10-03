@@ -4,6 +4,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import PublicFooter from "@/components/public-footer";
 import DockNav from "@/components/dock-nav";
 import "./globals.css";
 
@@ -22,6 +23,10 @@ const inter = localFont({
 export const metadata: Metadata = {
   title: "Nova Terra",
   description: "La plateforme numérique de la ville de Nova Terra",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -36,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <TooltipProvider delayDuration={150}>
             <AuthProvider>
               <div className="flex flex-1 flex-col">{children}</div>
+              <PublicFooter />
               <DockNav />
             </AuthProvider>
             <Toaster />

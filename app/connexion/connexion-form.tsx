@@ -65,7 +65,7 @@ export default function ConnexionForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="citoyen@novaterra.sol"
+                placeholder="exemple@domaine.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

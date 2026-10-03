@@ -109,7 +109,7 @@ export default function InscriptionPage() {
                   id="firstName"
                   autoComplete="given-name"
                   aria-invalid={!!errors.firstName}
-                  placeholder="Amina"
+                  placeholder="Votre prénom"
                   value={fields.firstName}
                   onChange={(e) => update("firstName", e.target.value)}
                 />
@@ -123,7 +123,7 @@ export default function InscriptionPage() {
                   id="lastName"
                   autoComplete="family-name"
                   aria-invalid={!!errors.lastName}
-                  placeholder="Ali"
+                  placeholder="Votre nom"
                   value={fields.lastName}
                   onChange={(e) => update("lastName", e.target.value)}
                 />
@@ -140,7 +140,7 @@ export default function InscriptionPage() {
                 type="email"
                 autoComplete="email"
                 aria-invalid={!!errors.email}
-                placeholder="amina.ali@novaterra.sol"
+                placeholder="exemple@domaine.com"
                 value={fields.email}
                 onChange={(e) => update("email", e.target.value)}
               />
@@ -154,7 +154,7 @@ export default function InscriptionPage() {
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
-                placeholder="Au moins 8 caractères"
+                placeholder="Minimum 8 caractères"
                 value={fields.password}
                 onChange={(e) => update("password", e.target.value)}
               />
@@ -170,7 +170,7 @@ export default function InscriptionPage() {
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.confirmPassword}
-                placeholder="Répétez votre mot de passe"
+                placeholder="Confirmez votre mot de passe"
                 value={fields.confirmPassword}
                 onChange={(e) => update("confirmPassword", e.target.value)}
               />
