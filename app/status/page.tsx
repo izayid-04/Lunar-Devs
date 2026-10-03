@@ -10,7 +10,7 @@ export default function StatusPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold">État du déploiement</h1>
+      <h1>État du déploiement</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Page de test technique : build courant + connexion à l&apos;API.
       </p>

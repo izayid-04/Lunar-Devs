@@ -13,10 +13,10 @@ export default function Home() {
 
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-nova-2">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
             Carte de la ville
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2 className="mt-2">
             Six quartiers, un seul espace
           </h2>
           <p className="mt-3 text-muted-foreground">
@@ -31,7 +31,7 @@ export default function Home() {
 
       <section className="px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
-          <h2 className="text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2>
             Prêt·e à rejoindre Nova Terra ?
           </h2>
           <p className="mt-3 text-muted-foreground">

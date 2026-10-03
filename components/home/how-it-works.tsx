@@ -23,10 +23,10 @@ export default function HowItWorks() {
   return (
     <section className="border-b border-border px-6 py-20">
       <Reveal className="mx-auto max-w-xl text-center">
-        <p className="text-sm font-medium uppercase tracking-widest text-nova-2">
+        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
           En pratique
         </p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-wide sm:text-3xl">
+        <h2 className="mt-2">
           Comment ça marche
         </h2>
       </Reveal>
@@ -35,10 +35,10 @@ export default function HowItWorks() {
         {STEPS.map((step, i) => (
           <Reveal key={step.title} delay={i * 0.1}>
             <div className="flex h-full flex-col items-center gap-2 rounded-xl border border-border bg-card p-6 text-center">
-              <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <step.icon className="size-5" aria-hidden="true" />
               </span>
-              <p className="font-heading text-sm font-semibold tracking-wide">
+              <p className="font-heading text-sm font-semibold">
                 {i + 1}. {step.title}
               </p>
               <p className="text-sm text-muted-foreground">{step.text}</p>

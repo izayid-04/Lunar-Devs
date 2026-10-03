@@ -12,39 +12,32 @@ import {
 
 type District = {
   name: string;
-  color: string;
   services: string[];
 };
 
 const DISTRICTS: District[] = [
   {
     name: "Port Spatial",
-    color: "var(--district-1)",
     services: ["Transports en commun", "Mobilité urbaine", "Navettes inter-quartiers"],
   },
   {
     name: "Centre Administratif",
-    color: "var(--district-2)",
     services: ["Mairie en ligne", "État civil", "Démarches citoyennes"],
   },
   {
     name: "Parc Écologique",
-    color: "var(--district-3)",
     services: ["Espaces verts", "Environnement", "Recyclage"],
   },
   {
     name: "District Culturel",
-    color: "var(--district-4)",
     services: ["Événements", "Bibliothèques", "Musées"],
   },
   {
     name: "Zone Industrielle",
-    color: "var(--district-5)",
     services: ["Économie locale", "Emploi", "Entreprises"],
   },
   {
     name: "Secteur Résidentiel",
-    color: "var(--district-6)",
     services: ["Logement", "État civil", "Vie de quartier"],
   },
 ];
@@ -87,8 +80,7 @@ export default function DistrictMap() {
           <motion.path
             key={district.name}
             d={sectorPath(i, DISTRICTS.length)}
-            fill={district.color}
-            fillOpacity={hovered === i ? 0.95 : 0.65}
+            fill={hovered === i ? "var(--primary)" : "var(--card)"}
             stroke="var(--background)"
             strokeWidth={2}
             role="button"
@@ -113,7 +105,7 @@ export default function DistrictMap() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.6, delay: i * 0.08, ease: "easeOut" }}
             style={{
-              transition: "fill-opacity 0.15s ease",
+              transition: "fill 0.15s ease",
               transformOrigin: "150px 150px",
             }}
           />
@@ -150,8 +142,7 @@ export default function DistrictMap() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span
-                className="inline-block size-2.5 rounded-full"
-                style={{ background: active?.color }}
+                className="inline-block size-2.5 rounded-full bg-primary"
                 aria-hidden="true"
               />
               {active?.name}

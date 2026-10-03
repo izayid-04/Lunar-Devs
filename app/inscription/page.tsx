@@ -92,7 +92,7 @@ export default function InscriptionPage() {
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Créer un compte habitant</CardTitle>
+          <CardTitle className="text-h2">Créer un compte habitant</CardTitle>
           <CardDescription>
             Déjà inscrit ?{" "}
             <Link href="/connexion" className="text-primary underline">

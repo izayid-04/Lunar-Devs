@@ -22,7 +22,7 @@ function EspaceContent() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold">Bonjour {user.firstName} 👋</h1>
+      <h1>Bonjour {user.firstName} 👋</h1>
       <p className="mt-1 text-muted-foreground">
         Voici votre espace personnel sur la plateforme de Nova Terra.
       </p>

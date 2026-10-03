@@ -4,91 +4,55 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Direction artistique "Nova Terra" : ville spatiale sobre.
-   Sombre = identité principale (fond spatial, cyan néon). Clair = variante
-   diurne qui garde les mêmes accents. Le mode est piloté par next-themes
-   via la classe .dark sur <html> (pas par prefers-color-scheme directement :
-   next-themes s'en sert pour le choix par défaut, mais le rendu est piloté
-   par la classe pour permettre le bouton clair/sombre explicite). */
+/* Identité "Nova Terra" : neutre et sobre, une seule couleur d'action
+   (l'orange). Elle ne sert jamais de grand aplat — seulement boutons,
+   liens, focus, et un point de mise en avant ponctuel. C'est la rareté
+   de la couleur qui rend l'interface "designée". */
 :root {
-  --background: #f3f5fc;
-  --foreground: #0b0f1f;
-  --card: rgba(255, 255, 255, 0.72);
+  --background: #e8ebed;
+  --foreground: #333333;
+  --card: #f3f4f5;
   --card-foreground: var(--foreground);
-  --popover: rgba(255, 255, 255, 0.96);
+  --popover: #ffffff;
   --popover-foreground: var(--foreground);
-  --primary: #4338ca;
+  --primary: #e05d38;
   --primary-foreground: #ffffff;
-  --secondary: #e7e9f6;
-  --secondary-foreground: #1b2140;
-  --muted: #e9ebf5;
-  --muted-foreground: #5b6478;
-  --accent: #e0f7fb;
-  --accent-foreground: #0b4a56;
-  --destructive: #dc2626;
+  --secondary: #dddfe1;
+  --secondary-foreground: #333333;
+  --muted: #dddfe1;
+  --muted-foreground: #777879;
+  --accent: #d7d9db;
+  --accent-foreground: #333333;
+  --destructive: #b3261e;
   --destructive-foreground: #ffffff;
-  --border: rgba(15, 23, 42, 0.12);
-  --input: rgba(15, 23, 42, 0.16);
-  --ring: #4338ca;
+  --success: #3f7d52;
+  --border: #cccfd1;
+  --input: #c3c6c8;
+  --ring: #e05d38;
   --radius: 0.75rem;
-
-  /* Accents de marque, constants d'identité dans les deux modes. */
-  --nova: #4338ca;
-  --nova-2: #0891b2;
-  --success: #15803d;
-  --warning: #b45309;
-
-  /* Champ d'étoiles / halos : éteints de jour. */
-  --starfield-opacity: 0;
-  --halo-1: rgba(67, 56, 202, 0.05);
-  --halo-2: rgba(8, 145, 178, 0.05);
-
-  /* Accents des 6 quartiers de la carte interactive — mêmes teintes dans
-     les deux modes, assombries en clair pour rester lisibles. */
-  --district-1: #0891b2;
-  --district-2: #4338ca;
-  --district-3: #047857;
-  --district-4: #db2777;
-  --district-5: #b45309;
-  --district-6: #6d28d9;
 }
 
 .dark {
-  --background: #05060f;
-  --foreground: #eef1fb;
-  --card: rgba(255, 255, 255, 0.045);
+  --background: #1c1c1d;
+  --foreground: #ededee;
+  --card: #262627;
   --card-foreground: var(--foreground);
-  --popover: rgba(10, 13, 28, 0.92);
+  --popover: #2c2c2e;
   --popover-foreground: var(--foreground);
-  --primary: #22d3ee;
-  --primary-foreground: #04131a;
-  --secondary: #1b2454;
-  --secondary-foreground: #e6e9f5;
-  --muted: #141a33;
-  --muted-foreground: #9aa3c4;
-  --accent: #241a52;
-  --accent-foreground: #e6e9f5;
-  --destructive: #f43f5e;
-  --destructive-foreground: #fff1f2;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.16);
-  --ring: #22d3ee;
-
-  --nova: #a5b4fc;
-  --nova-2: #22d3ee;
-  --success: #4ade80;
-  --warning: #fbbf24;
-
-  --starfield-opacity: 1;
-  --halo-1: rgba(34, 211, 238, 0.16);
-  --halo-2: rgba(139, 92, 246, 0.16);
-
-  --district-1: #22d3ee;
-  --district-2: #818cf8;
-  --district-3: #34d399;
-  --district-4: #f472b6;
-  --district-5: #fbbf24;
-  --district-6: #a78bfa;
+  --primary: #e4703f;
+  --primary-foreground: #1c1c1d;
+  --secondary: #2f2f30;
+  --secondary-foreground: #ededee;
+  --muted: #2a2a2b;
+  --muted-foreground: #9a9b9c;
+  --accent: #333335;
+  --accent-foreground: #ededee;
+  --destructive: #d9534f;
+  --destructive-foreground: #1c1c1d;
+  --success: #5aa876;
+  --border: #38383a;
+  --input: #414143;
+  --ring: #e4703f;
 }
 
 @theme inline {
@@ -108,43 +72,19 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-nova: var(--nova);
-  --color-nova-2: var(--nova-2);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-orbitron);
-  --animate-orbit: orbit calc(var(--duration)*1s) linear infinite;
-  --animate-meteor: meteor 5s linear infinite;
-  @keyframes orbit {
-  0% {
-    transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg));
-    }
-  100% {
-    transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg));
-    }
-  }
-  @keyframes meteor {
-  0% {
-    transform: rotate(var(--angle)) translateX(0);
-    opacity: 1;
-    }
-  70% {
-    opacity: 1;
-    }
-  100% {
-    transform: rotate(var(--angle)) translateX(-500px);
-    opacity: 0;
-    }
-  }
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-inter);
+  --text-h1: 36px;
+  --text-h2: 24px;
+  --text-body: 14px;
 }
 
 @layer base {
@@ -157,15 +97,18 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    position: relative;
+    @apply bg-background text-foreground text-body;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  h1,
-  h2,
+  h1 {
+    @apply font-heading text-h1 font-semibold tracking-tight;
+  }
+  h2 {
+    @apply font-heading text-h2 font-semibold tracking-tight;
+  }
   h3 {
-    @apply font-heading tracking-wide;
+    @apply font-heading font-semibold;
   }
 
   /* Tailwind ne met pas cursor:pointer sur les boutons par défaut — on le
@@ -178,67 +121,11 @@
   [role="button"][aria-disabled="true"] {
     cursor: not-allowed;
   }
-
-  /* Champ d'étoiles (grille de points tuilée, pas d'image/JS) + halos
-     de nébuleuse discrets derrière le contenu. Désactivés en mode clair
-     via --starfield-opacity. */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: -5%;
-    z-index: -2;
-    pointer-events: none;
-    opacity: var(--starfield-opacity);
-    background-image: radial-gradient(
-        1.3px 1.3px at 20px 30px,
-        rgba(255, 255, 255, 0.9),
-        transparent 60%
-      ),
-      radial-gradient(1px 1px at 90px 80px, rgba(255, 255, 255, 0.7), transparent 60%),
-      radial-gradient(
-        1.1px 1.1px at 150px 20px,
-        rgba(255, 255, 255, 0.8),
-        transparent 60%
-      ),
-      radial-gradient(0.8px 0.8px at 60px 160px, rgba(255, 255, 255, 0.55), transparent 60%),
-      radial-gradient(
-        1px 1px at 190px 140px,
-        rgba(255, 255, 255, 0.65),
-        transparent 60%
-      );
-    background-size: 220px 220px;
-    background-repeat: repeat;
-    transition: opacity 0.4s ease;
-  }
-
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -3;
-    pointer-events: none;
-    background: radial-gradient(600px circle at 12% 8%, var(--halo-1), transparent 60%),
-      radial-gradient(700px circle at 88% 92%, var(--halo-2), transparent 60%);
-    transition: background-color 0.4s ease;
-  }
 }
 
-/* Panneaux "interface de vaisseau" : verre dépoli + fine bordure lumineuse,
-   appliqué à toutes les Card shadcn sans toucher à leur code source. */
+/* Cartes : aplat uni + bordure fine + ombre légère, pas de verre/néon. */
 [data-slot="card"] {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 0 0 1px var(--border), 0 20px 50px -24px rgba(0, 0, 0, 0.45);
-}
-
-/* Halo discret sur l'action principale de chaque page. */
-[data-slot="button"][data-variant="default"] {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
-    0 0 20px -4px var(--primary);
-}
-[data-slot="button"][data-variant="default"]:hover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent),
-    0 0 28px -4px var(--primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,5 +136,159 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Indicateur de chargement "boule qui orbite" (components/ui/
+   snow-ball-loading-spinner.tsx). L'anneau reste neutre ; seule la boule
+   en mouvement porte la couleur d'action — cohérent avec la règle de
+   rareté de la couleur. */
+.pl {
+  position: relative;
+  display: inline-block;
+  width: 7.5em;
+  height: 7.5em;
+  font-size: 7px;
+}
+
+.pl__outer-ring,
+.pl__inner-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 0.18em solid var(--border);
+  transform: translate(-50%, -50%);
+}
+.pl__outer-ring {
+  width: 13em;
+  height: 13em;
+}
+.pl__inner-ring {
+  width: 10.4em;
+  height: 10.4em;
+  opacity: 0.6;
+}
+
+.pl__track-cover {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13em;
+  height: 13em;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 300deg,
+    var(--background) 300deg 360deg
+  );
+  animation: trackCover 2.4s linear infinite;
+}
+
+.pl__ball {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.2em;
+  height: 2.2em;
+  margin: -1.1em;
+  border-radius: 50%;
+  overflow: hidden;
+  transform-origin: center;
+  animation: ball 2.4s ease-in-out infinite;
+}
+
+.pl__ball-texture {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--primary) 0 0.5em,
+    color-mix(in srgb, var(--primary) 70%, black) 0.5em 1em
+  );
+  animation: ballTexture 0.8s linear infinite;
+}
+
+.pl__ball-outer-shadow,
+.pl__ball-inner-shadow,
+.pl__ball-side-shadows {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.pl__ball-outer-shadow {
+  background: radial-gradient(
+    circle at 50% 85%,
+    rgba(0, 0, 0, 0.45),
+    transparent 70%
+  );
+  animation: ballOuterShadow 2.4s linear infinite;
+}
+
+.pl__ball-inner-shadow {
+  background: radial-gradient(
+    circle at 32% 25%,
+    rgba(255, 255, 255, 0.55),
+    transparent 60%
+  );
+  animation: ballInnerShadow 2.4s linear infinite;
+}
+
+.pl__ball-side-shadows {
+  box-shadow:
+    inset 0.5em 0 0.5em -0.4em rgba(0, 0, 0, 0.35),
+    inset -0.5em 0 0.5em -0.4em rgba(0, 0, 0, 0.35);
+}
+
+@keyframes ball {
+  from {
+    transform: rotate(0) translateY(-6.5em);
+  }
+  50% {
+    transform: rotate(180deg) translateY(-6em);
+  }
+  to {
+    transform: rotate(360deg) translateY(-6.5em);
+  }
+}
+
+@keyframes ballInnerShadow {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes ballOuterShadow {
+  from {
+    transform: rotate(20deg);
+  }
+  to {
+    transform: rotate(-340deg);
+  }
+}
+
+@keyframes ballTexture {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+
+@keyframes trackCover {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

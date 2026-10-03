@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BorderBeam } from "@/components/ui/border-beam";
 
 type Statut = "nouvelle" | "en_cours" | "resolue";
 
@@ -29,9 +28,9 @@ const STATUT_LABEL: Record<Statut, string> = {
 };
 
 const STATUT_DOT: Record<Statut, string> = {
-  nouvelle: "bg-nova-2 shadow-[0_0_6px_var(--nova-2)]",
-  en_cours: "bg-warning shadow-[0_0_6px_var(--warning)]",
-  resolue: "bg-success shadow-[0_0_6px_var(--success)]",
+  nouvelle: "bg-primary",
+  en_cours: "bg-muted-foreground",
+  resolue: "bg-success",
 };
 
 // Données de démonstration — en attente du flux réel des demandes
@@ -84,32 +83,16 @@ function AgentContent() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-nova-2">
-            Centre de contrôle
-          </p>
-          <h1 className="text-2xl font-semibold tracking-wide">
-            Bonjour {user.firstName}
-          </h1>
-        </div>
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
-          <span className="relative inline-flex size-2 rounded-full bg-success" />
-        </span>
+      <div className="mb-8">
+        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Centre de contrôle
+        </p>
+        <h1>Bonjour {user.firstName}</h1>
       </div>
 
-      <Card className="relative overflow-hidden">
-        <BorderBeam
-          size={80}
-          duration={10}
-          colorFrom="var(--nova-2)"
-          colorTo="var(--nova)"
-        />
+      <Card>
         <CardHeader>
-          <CardTitle className="font-mono text-sm tracking-widest text-muted-foreground">
-            JOURNAL DES TRANSMISSIONS
-          </CardTitle>
+          <CardTitle>Journal des transmissions</CardTitle>
           <CardDescription>
             Demandes entrantes des habitants — données de démonstration.
           </CardDescription>
@@ -118,7 +101,7 @@ function AgentContent() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-mono">ID</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Expéditeur</TableHead>
                 <TableHead>Objet</TableHead>
                 <TableHead className="hidden sm:table-cell">Quartier</TableHead>
@@ -128,9 +111,9 @@ function AgentContent() {
             <TableBody>
               {TRANSMISSIONS.map((tx) => (
                 <TableRow key={tx.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="text-xs text-muted-foreground">
                     {tx.id}
-                    <div className="font-mono text-[10px]">{tx.horodatage}</div>
+                    <div className="text-[10px]">{tx.horodatage}</div>
                   </TableCell>
                   <TableCell>{tx.expediteur}</TableCell>
                   <TableCell className="max-w-48 truncate">{tx.objet}</TableCell>

@@ -10,7 +10,7 @@ function AdminContent() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold">Espace administrateur</h1>
+      <h1>Espace administrateur</h1>
       <p className="mt-1 text-muted-foreground">
         Bonjour {user.firstName}, cet espace est réservé aux
         administrateurs.

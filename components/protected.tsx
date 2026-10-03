@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import type { Role } from "@/lib/api";
+import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 
 // Expérience uniquement : redirige si pas connecté / mauvais rôle.
 // La vraie protection (403/401) est assurée par l'API, pas par ce composant.
@@ -32,9 +33,13 @@ export default function Protected({
 
   if (loading) {
     return (
-      <p className="text-muted-foreground px-6 py-16 text-center">
-        Chargement…
-      </p>
+      <div
+        role="status"
+        className="flex flex-col items-center gap-4 px-6 py-16 text-center"
+      >
+        <LoadingSpinner />
+        <span className="sr-only">Chargement…</span>
+      </div>
     );
   }
 

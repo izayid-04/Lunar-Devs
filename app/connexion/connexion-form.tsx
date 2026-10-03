@@ -49,7 +49,7 @@ export default function ConnexionForm() {
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Connexion</CardTitle>
+          <CardTitle className="text-h2">Connexion</CardTitle>
           <CardDescription>
             Pas encore de compte ?{" "}
             <Link href="/inscription" className="text-primary underline">

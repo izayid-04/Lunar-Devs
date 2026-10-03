@@ -65,10 +65,10 @@ export default function AProposPage() {
     <main className="flex flex-1 flex-col">
       <section className="border-b border-border px-6 py-20 text-center">
         <Reveal className="mx-auto max-w-2xl">
-          <p className="text-sm font-medium uppercase tracking-widest text-nova-2">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
             À propos
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-wide sm:text-4xl">
+          <h1 className="mt-2">
             Nova Terra, la ville qui se construit en ligne
           </h1>
           <p className="mt-4 text-muted-foreground">
@@ -82,7 +82,7 @@ export default function AProposPage() {
 
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
-          <h2 className="text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2>
             Ce que vous pouvez déjà faire
           </h2>
         </Reveal>
@@ -91,10 +91,10 @@ export default function AProposPage() {
             <Reveal key={f.title} delay={i * 0.1}>
               <Card className="h-full">
                 <CardContent className="flex flex-col items-center gap-2 text-center">
-                  <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                     <f.icon className="size-5" aria-hidden="true" />
                   </span>
-                  <p className="font-heading text-sm font-semibold tracking-wide">
+                  <p className="font-heading text-sm font-semibold">
                     {f.title}
                   </p>
                   <p className="text-sm text-muted-foreground">{f.text}</p>
@@ -107,7 +107,7 @@ export default function AProposPage() {
 
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
-          <h2 className="text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2>
             Qui utilise la plateforme
           </h2>
           <p className="mt-2 text-muted-foreground">
@@ -119,10 +119,10 @@ export default function AProposPage() {
             <Reveal key={r.title} delay={i * 0.1}>
               <Card className="h-full">
                 <CardContent className="flex flex-col items-center gap-2 text-center">
-                  <span className="flex size-10 items-center justify-center rounded-full bg-nova-2/10 text-nova-2">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                     <r.icon className="size-5" aria-hidden="true" />
                   </span>
-                  <p className="font-heading text-sm font-semibold tracking-wide">
+                  <p className="font-heading text-sm font-semibold">
                     {r.title}
                   </p>
                   <p className="text-sm text-muted-foreground">{r.text}</p>
@@ -135,10 +135,10 @@ export default function AProposPage() {
 
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-nova-2">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
             Prochaines étapes
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2 className="mt-2">
             La plateforme continue de grandir
           </h2>
         </Reveal>
@@ -158,7 +158,7 @@ export default function AProposPage() {
 
       <section className="px-6 py-20 text-center">
         <Reveal className="mx-auto max-w-xl">
-          <h2 className="text-2xl font-semibold tracking-wide sm:text-3xl">
+          <h2>
             Rejoignez Nova Terra
           </h2>
           <ClosingCta />
