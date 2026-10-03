@@ -31,13 +31,16 @@ import {
   Plus,
   Clock,
   PartyPopper,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchMyMessages,
+  fetchMySecurity,
   postMessage,
   type CitizenMessage,
   type MessageStatus,
+  type MySecurity,
 } from "@/lib/api";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import {
@@ -86,6 +89,9 @@ function EspaceContent() {
   const [messages, setMessages] = useState<CitizenMessage[] | null>(null);
   const [messagesError, setMessagesError] = useState<string | null>(null);
 
+  const [security, setSecurity] = useState<MySecurity | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [subject, setSubject] = useState("");
@@ -105,6 +111,14 @@ function EspaceContent() {
   useEffect(() => {
     Promise.resolve().then(() => loadMessages());
   }, [loadMessages]);
+
+  useEffect(() => {
+    if (!token) return;
+    Promise.resolve()
+      .then(() => fetchMySecurity(token))
+      .then(setSecurity)
+      .catch((err: Error) => setSecurityError(err.message));
+  }, [token]);
 
   if (!user) return null;
 
@@ -380,6 +394,46 @@ function EspaceContent() {
                 Compte actif depuis le{" "}
                 {new Date(user.createdAt).toLocaleDateString("fr-FR")}.
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldAlert className="size-4 text-primary" />
+                Sécurité du compte
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {securityError && <p className="text-xs text-destructive">{securityError}</p>}
+              {!securityError && !security && (
+                <p className="text-xs text-muted-foreground">Chargement…</p>
+              )}
+              {security && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Dernière connexion :{" "}
+                    <span className="font-medium text-foreground">
+                      {security.lastLoginAt
+                        ? new Date(security.lastLoginAt).toLocaleString("fr-FR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "jamais enregistrée"}
+                    </span>
+                  </p>
+                  {security.recentFailures.length > 0 ? (
+                    <p className="text-xs text-destructive">
+                      {security.recentFailures.length} tentative
+                      {security.recentFailures.length > 1 ? "s" : ""} échouée
+                      {security.recentFailures.length > 1 ? "s" : ""} récente
+                      {security.recentFailures.length > 1 ? "s" : ""}.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-success">Aucune tentative échouée récente.</p>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 

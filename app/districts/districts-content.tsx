@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
+import { AvailabilityBadge } from "@/components/services/availability-badge";
 import {
   Select,
   SelectContent,
@@ -114,7 +115,10 @@ export default function DistrictsContent() {
                     <Link key={s.id} href={`/services/${s.slug}`}>
                       <Card className="h-full transition-colors hover:border-primary/50">
                         <CardContent className="p-5">
-                          <h3 className="font-semibold">{s.name}</h3>
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold">{s.name}</h3>
+                            <AvailabilityBadge availability={s.availability} />
+                          </div>
                           <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                             {s.description}
                           </p>

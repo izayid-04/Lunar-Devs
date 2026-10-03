@@ -1,55 +1,69 @@
 "use client"
 
-import React, { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import DashboardLayout from "@/components/dashboard-layout"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import {
-  Zap,
-  Wind,
   ShieldAlert,
-  Users,
   Radio,
-  ArrowUpRight,
-  RefreshCw,
-  Flame,
-  CheckCircle2,
-  Clock,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   Megaphone,
   AlertTriangle,
   FileText,
-  UserCheck
+  UserCheck,
+  Clock,
+  CalendarClock,
 } from "lucide-react"
-import AccessibleTerm from "@/components/ui/accessible-term"
+import {
+  fetchActiveAlerts,
+  fetchAnnouncements,
+  fetchMyAppointments,
+  fetchMyMessages,
+  type Alert,
+  type Announcement,
+  type Appointment,
+  type CitizenMessage,
+} from "@/lib/api"
+import { SEVERITY_BADGE } from "@/lib/alerts"
+import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const [purifying, setPurifying] = useState(false)
-  const [purifyCount, setPurifyCount] = useState(99.4)
+  const { user, token } = useAuth()
 
-  const handlePurify = () => {
-    setPurifying(true)
-    setTimeout(() => {
-      setPurifying(false)
-      setPurifyCount(99.9)
-    }, 1200)
-  }
+  const [alerts, setAlerts] = useState<Alert[] | null>(null);
+  const [messages, setMessages] = useState<CitizenMessage[] | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+  const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
+
+  const load = useCallback(() => {
+    if (!token) return;
+    fetchActiveAlerts(token).then(setAlerts).catch(() => setAlerts([]));
+    fetchAnnouncements().then(setAnnouncements).catch(() => setAnnouncements([]));
+    if (user?.role === "citizen") {
+      fetchMyMessages(token).then(setMessages).catch(() => setMessages([]));
+      fetchMyAppointments(token).then(setAppointments).catch(() => setAppointments([]));
+    }
+  }, [token, user?.role]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => load());
+  }, [load]);
+
+  const ongoingCount = messages?.filter((m) => m.status !== "traite").length ?? null;
+  const nextAppointment = appointments
+    ?.filter((a) => a.status === "confirme" && new Date(a.startsAt) > new Date())
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
 
   return (
     <DashboardLayout>
-      {/* Salutation & Status header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              Console de Contrôle — Nova Terra
-            </h1>
+            <h1>Vue d&apos;ensemble</h1>
             {user?.role && (
               <Badge
                 variant="outline"
@@ -61,77 +75,35 @@ export default function DashboardPage() {
                     : "border-border text-muted-foreground text-xs"
                 }
               >
-                {user.role === "citizen"
-                  ? "Habitant"
-                  : user.role === "agent"
-                  ? "Agent Municipal"
-                  : "Administrateur"}
+                {user.role === "citizen" ? "Habitant" : user.role === "agent" ? "Agent municipal" : "Administrateur"}
               </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            Bienvenue, <span className="font-semibold text-foreground">{user?.firstName} {user?.lastName}</span>. Surveillance orbitale et gestion municipale en temps réel.
+            Bienvenue, <span className="font-semibold text-foreground">{user?.firstName} {user?.lastName}</span>.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1.5 px-3 py-1 font-mono text-xs">
-            <span className="size-2 rounded-full bg-primary animate-ping" />
-            CYCLE SOLAIRE 14.8
-          </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handlePurify}
-            disabled={purifying}
-            className="gap-2"
-          >
-            <RefreshCw className={`size-3.5 ${purifying ? "animate-spin" : ""}`} />
-            Recalibrer capteurs
-          </Button>
         </div>
       </div>
 
-      {/* Module Métier & Raccourcis selon le Rôle */}
+      {/* Raccourcis selon le rôle */}
       {user?.role === "admin" && (
         <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-destructive/20">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-destructive" />
-              <div>
-                <h2 className="text-base font-bold text-foreground">Console de Haute Administration</h2>
-                <p className="text-xs text-muted-foreground">Privilèges suprêmes : audit de sécurité, gestion des agents et du registre.</p>
-              </div>
-            </div>
-            <Badge variant="destructive" className="w-fit text-xs">Accès Niveau 3</Badge>
+          <div className="flex items-center gap-2 pb-3 border-b border-destructive/20">
+            <ShieldCheck className="size-5 text-destructive" />
+            <h2 className="text-base font-bold text-foreground">Administration</h2>
           </div>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link
-              href="/admin"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
-            >
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link href="/admin" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="size-4 text-destructive" />
-                <span className="text-xs font-semibold">Console Admin & Audit</span>
+                <span className="text-xs font-semibold">Administration</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/agent/alertes"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
-            >
+            <Link href="/agent/alertes" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="size-4 text-destructive" />
-                <span className="text-xs font-semibold">Gestion & Suppression Alertes</span>
-              </div>
-              <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/agent"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-destructive/60 hover:bg-card transition-all group"
-            >
-              <div className="flex items-center gap-2.5">
-                <Radio className="size-4 text-destructive" />
-                <span className="text-xs font-semibold">Supervision des Demandes</span>
+                <span className="text-xs font-semibold">Gestion des alertes</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -141,44 +113,29 @@ export default function DashboardPage() {
 
       {user?.role === "agent" && (
         <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-primary/20">
-            <div className="flex items-center gap-2">
-              <Radio className="size-5 text-primary" />
-              <div>
-                <h2 className="text-base font-bold text-foreground">Poste Opérationnel Municipal</h2>
-                <p className="text-xs text-muted-foreground">Outils agents : traitement des signalements, publication d&apos;annonces et d&apos;alertes d&apos;urgence.</p>
-              </div>
-            </div>
-            <Badge variant="outline" className="w-fit text-xs border-primary/40 text-primary">Agent de garde</Badge>
+          <div className="flex items-center gap-2 pb-3 border-b border-primary/20">
+            <Radio className="size-5 text-primary" />
+            <h2 className="text-base font-bold text-foreground">Poste agent</h2>
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link
-              href="/agent"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
-            >
+            <Link href="/agent" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <FileText className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Traiter les Demandes</span>
+                <span className="text-xs font-semibold">Traiter les demandes</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/agent/annonces"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
-            >
+            <Link href="/agent/annonces" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <Megaphone className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Créer une Annonce</span>
+                <span className="text-xs font-semibold">Créer une annonce</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/agent/alertes"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 hover:bg-card transition-all group"
-            >
+            <Link href="/agent/alertes" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/80 hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Diffuser une Alerte (IA)</span>
+                <span className="text-xs font-semibold">Diffuser une alerte</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -188,44 +145,29 @@ export default function DashboardPage() {
 
       {user?.role === "citizen" && (
         <div className="mt-6 rounded-xl border border-border bg-card/60 p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <UserCheck className="size-5 text-primary" />
-              <div>
-                <h2 className="text-base font-bold text-foreground">Services aux Citoyens</h2>
-                <p className="text-xs text-muted-foreground">Accédez rapidement à vos démarches, à l&apos;annuaire municipal et à vos signalements.</p>
-              </div>
-            </div>
-            <Badge variant="outline" className="w-fit text-xs">Espace Habitant</Badge>
+          <div className="flex items-center gap-2 pb-3 border-b border-border">
+            <UserCheck className="size-5 text-primary" />
+            <h2 className="text-base font-bold text-foreground">Services aux citoyens</h2>
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link
-              href="/espace"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
-            >
+            <Link href="/espace" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <FileText className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Mes Démarches & Suivi</span>
+                <span className="text-xs font-semibold">Mes démarches</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/districts"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
-            >
+            <Link href="/districts" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
-                <Users className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Annuaire des Services</span>
+                <Radio className="size-4 text-primary" />
+                <span className="text-xs font-semibold">Services municipaux</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/alertes"
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group"
-            >
+            <Link href="/alertes" className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:border-primary/60 transition-all group">
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="size-4 text-primary" />
-                <span className="text-xs font-semibold">Vigilance & Alertes</span>
+                <span className="text-xs font-semibold">Alertes</span>
               </div>
               <ArrowRight className="size-3.5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -233,253 +175,159 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* KPI Stats Cards */}
+      {/* Données réelles : alertes actives, démarches, rendez-vous, annonces */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Qualité Atmosphérique
+              Alertes actives
             </CardTitle>
-            <Wind className="size-4 text-primary" />
+            <ShieldAlert className="size-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{purifyCount}%</div>
-            <p className="mt-1 flex items-center text-xs text-success">
-              <ArrowUpRight className="mr-1 size-3.5" />
-              +0.3% O₂ recyclé via biogerme
-            </p>
-            <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
-              <div
-                className="h-1.5 rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${purifyCount}%` }}
-              />
-            </div>
+            <div className="text-2xl font-bold">{alerts === null ? "…" : alerts.length}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Vous concernant actuellement.</p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Réseau Électrique Fusion
-            </CardTitle>
-            <Zap className="size-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4.28 GW</div>
-            <p className="mt-1 flex items-center text-xs text-muted-foreground">
-              Capacité totale: 5.00 GW (85% charge)
-            </p>
-            <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
-              <div className="h-1.5 w-[85%] rounded-full bg-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Dôme et Bouclier Défensif
-            </CardTitle>
-            <ShieldAlert className="size-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">100% Intègre</div>
-            <p className="mt-1 flex items-center text-xs text-success">
-              <CheckCircle2 className="mr-1 size-3.5" />
-              0 brèche micrométéorite
-            </p>
-            <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
-              <div className="h-1.5 w-full rounded-full bg-success" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Citoyens Enregistrés
-            </CardTitle>
-            <Users className="size-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">48 920</div>
-            <p className="mt-1 flex items-center text-xs text-muted-foreground">
-              +142 nouveaux arrivants ce cycle
-            </p>
-            <div className="mt-3 h-1.5 w-full rounded-full bg-muted">
-              <div className="h-1.5 w-[76%] rounded-full bg-primary" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Grid: Districts & Live Communications */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* District Status Card (Span 2) */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Secteurs Urbains & Surveillance des Dômes</CardTitle>
-                <CardDescription>
-                  Télémétrie en temps réel des infrastructures modulaires de Nova Terra.
-                </CardDescription>
-              </div>
-              <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
-                <Sparkles className="size-3" />
-                Dômes Actifs
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-primary/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">Dôme Alpha</span>
-                  <Badge className="bg-success text-success-foreground text-[10px] px-1.5 py-0">Nominal</Badge>
-                </div>
-                <div className="mt-2 text-lg font-bold">Cœur Urbain</div>
-                <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                  <span>Pression: 1013 hPa</span>
-                  <span>Pop: 24.1k</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-primary/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">Dôme Beta</span>
-                  <Badge className="bg-success text-success-foreground text-[10px] px-1.5 py-0">Nominal</Badge>
-                </div>
-                <div className="mt-2 text-lg font-bold">Bio-Agri & Serres</div>
-                <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                  <span>Hydro: 78%</span>
-                  <span>Pop: 8.4k</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-primary/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">Dôme Gamma</span>
-                  <Badge variant="secondary" className="text-primary text-[10px] px-1.5 py-0">Maintenance</Badge>
-                </div>
-                <div className="mt-2 text-lg font-bold">Port Spatial & Fret</div>
-                <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                  <span>Sas: Calibré</span>
-                  <span>Pop: 16.4k</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-lg border border-dashed border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold">Distribution de la Grille d&apos;Énergie Solaire</span>
-                <span className="text-xs font-mono text-muted-foreground">Rendement : 94.2%</span>
-              </div>
-              <div className="space-y-2">
-                <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>
-                      Secteur Résidentiel (<AccessibleTerm term="Dôme" definition="Structure pressurisée transparente abritant un quartier de la colonie." /> Alpha)
-                    </span>
-                    <span>42%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted">
-                    <div className="h-2 w-[42%] rounded-full bg-primary" />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Systèmes de Support de Vie (Atmosphère & Eau)</span>
-                    <span>38%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted">
-                    <div className="h-2 w-[38%] rounded-full bg-primary/70" />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>
-                      <AccessibleTerm term="Maglev" definition="Train à sustentation magnétique reliant les quartiers à grande vitesse." /> & Propulseurs Portuaires
-                    </span>
-                    <span>14%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted">
-                    <div className="h-2 w-[14%] rounded-full bg-primary/40" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Live municipal transmissions & alerts */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Radio className="size-4 text-primary" />
-                Annonces et alertes municipales
+        {user?.role === "citizen" && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Demandes en cours
               </CardTitle>
-              <Badge variant="secondary" className="text-xs">Direct</Badge>
-            </div>
-            <CardDescription>
-              Flux des informations prioritaires diffusées par les services.
-            </CardDescription>
+              <FileText className="size-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{ongoingCount === null ? "…" : ongoingCount}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <Link href="/espace" className="underline hover:text-primary">Voir mes demandes</Link>
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "citizen" && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Prochain rendez-vous
+              </CardTitle>
+              <CalendarClock className="size-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              {appointments === null ? (
+                <div className="text-sm text-muted-foreground">…</div>
+              ) : nextAppointment ? (
+                <>
+                  <div className="text-sm font-semibold">
+                    {new Date(nextAppointment.startsAt).toLocaleDateString("fr-FR", { dateStyle: "medium" })}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {new Date(nextAppointment.startsAt).toLocaleTimeString("fr-FR", { timeStyle: "short" })}
+                    {nextAppointment.service ? ` — ${nextAppointment.service.name}` : ""}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucun rendez-vous prévu.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Dernière annonce
+            </CardTitle>
+            <Megaphone className="size-4 text-primary" />
           </CardHeader>
-          <CardContent className="flex-1 space-y-3">
-            <div className="flex items-start gap-3 rounded-lg border border-border/80 p-3">
-              <div className="rounded-full bg-primary/10 p-2 text-primary">
-                <Flame className="size-4" />
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Éruptions Solaires détectées</span>
-                  <span className="text-[10px] text-muted-foreground">Il y a 4m</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">
-                  Bouclier magnétique commuté en mode haute densité. Aucune interruption Maglev.
-                </p>
-              </div>
-            </div>
+          <CardContent>
+            {announcements === null ? (
+              <div className="text-sm text-muted-foreground">…</div>
+            ) : announcements[0] ? (
+              <Link href={`/annonces/${announcements[0].id}`} className="text-sm font-medium hover:text-primary line-clamp-2">
+                {announcements[0].title}
+              </Link>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune annonce.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-            <div className="flex items-start gap-3 rounded-lg border border-border/80 p-3">
-              <div className="rounded-full bg-success/10 p-2 text-success">
-                <CheckCircle2 className="size-4" />
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Sas Nord réouvert</span>
-                  <span className="text-[10px] text-muted-foreground">Il y a 18m</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">
-                  Cycle de dépressurisation terminé avec succès au terminal fret Alpha.
-                </p>
-              </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="size-4 text-destructive" />
+              Alertes actives
+            </CardTitle>
+            <CardDescription>Celles qui vous concernent, les plus récentes d&apos;abord.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {alerts === null && (
+              <div className="flex justify-center py-6"><LoadingSpinner /></div>
+            )}
+            {alerts?.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Aucune alerte active.</p>
+            )}
+            <div className="space-y-2">
+              {alerts?.slice(0, 4).map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/alertes/${a.id}`}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 hover:border-primary/40"
+                >
+                  <div className="text-xs">
+                    <p className="font-semibold text-foreground">{a.title}</p>
+                    <p className="mt-1 text-muted-foreground line-clamp-1">{a.body}</p>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 text-[10px] ${SEVERITY_BADGE[a.severity]}`}>
+                    {a.severity}
+                  </Badge>
+                </Link>
+              ))}
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="flex items-start gap-3 rounded-lg border border-border/80 p-3">
-              <div className="rounded-full bg-muted p-2 text-muted-foreground">
-                <Clock className="size-4" />
-              </div>
-              <div className="flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Recalibrage Nocturne</span>
-                  <span className="text-[10px] text-muted-foreground">Prévu 22:00</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">
-                  Ajustement des cycles de photopériode dans les serres hydroponiques.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <Button variant="outline" className="w-full text-xs" asChild>
-                <a href="/espace">Accéder à mes démarches citoyennes</a>
-              </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Megaphone className="size-4 text-primary" />
+              Dernières annonces
+            </CardTitle>
+            <CardDescription>Actualités de la mairie.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {announcements === null && (
+              <div className="flex justify-center py-6"><LoadingSpinner /></div>
+            )}
+            {announcements?.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Aucune annonce.</p>
+            )}
+            <div className="space-y-2">
+              {announcements?.slice(0, 4).map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/annonces/${a.id}`}
+                  className="flex items-start gap-3 rounded-lg border border-border/80 p-3 hover:border-primary/40"
+                >
+                  <Clock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <div className="text-xs">
+                    <p className="font-semibold text-foreground">{a.title}</p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {new Date(a.publishedAt).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
+
     </DashboardLayout>
   )
 }

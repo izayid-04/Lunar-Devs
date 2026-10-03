@@ -67,6 +67,32 @@ export async function loginRequest(email: string, password: string): Promise<str
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error("Trop de tentatives de connexion. Merci de réessayer dans quelques minutes.");
+    }
+    if (res.status === 403) {
+      // Compte verrouillé après 5 échecs consécutifs (F37) — le corps
+      // porte l'heure de déverrouillage exacte.
+      let lockedUntil: string | null = null;
+      try {
+        const data: unknown = await res.json();
+        if (data && typeof data === "object" && "lockedUntil" in data) {
+          lockedUntil = (data as { lockedUntil: unknown }).lockedUntil as string;
+        }
+      } catch {
+        // ignore
+      }
+      if (lockedUntil) {
+        const heure = new Date(lockedUntil).toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        throw new Error(
+          `Compte temporairement verrouillé après plusieurs tentatives infructueuses. Réessayez après ${heure}.`
+        );
+      }
+      throw new Error("Compte temporairement verrouillé. Merci de réessayer plus tard.");
+    }
     throw new Error(await readErrorMessage(res, "Connexion impossible pour le moment."));
   }
   const data: unknown = await res.json();
@@ -213,21 +239,77 @@ export async function fetchWebcupRequests(token: string): Promise<WebcupRequests
 
 // --- Contenu de la ville : services + annonces (Bloc 4 — D05, D06) ---
 
+export type ServiceCategory =
+  | "sante"
+  | "securite"
+  | "administratif"
+  | "culture"
+  | "education"
+  | "voirie"
+  | "eau-energie"
+  | "tourisme";
+
+export type ServiceAvailability = "disponible" | "maintenance" | "incident";
+
 export type Service = {
   id: number;
   slug: string;
   name: string;
+  category: ServiceCategory;
   description: string;
   details: string;
   contact: string;
   horaires: string;
   district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  featured: boolean;
+  isEmergency: boolean;
+  availability: ServiceAvailability;
+  availabilityMessage: string | null;
+  availableAgainAt: string | null;
+  alternative: string | null;
 };
 
-export async function fetchServices(): Promise<Service[]> {
-  const res = await fetch(apiUrl("/services"));
+export async function fetchServices(params?: {
+  q?: string;
+  category?: string;
+  district?: string;
+  featured?: boolean;
+  emergency?: boolean;
+}): Promise<Service[]> {
+  const qs = new URLSearchParams();
+  if (params?.q) qs.set("q", params.q);
+  if (params?.category) qs.set("category", params.category);
+  if (params?.district) qs.set("district", params.district);
+  if (params?.featured !== undefined) qs.set("featured", String(params.featured));
+  if (params?.emergency !== undefined) qs.set("emergency", String(params.emergency));
+  const query = qs.toString();
+  const res = await fetch(apiUrl(`/services${query ? `?${query}` : ""}`));
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de récupérer les services municipaux."));
+  }
+  return res.json();
+}
+
+export async function patchServiceAvailability(
+  token: string,
+  idOrSlug: string | number,
+  payload: {
+    availability: ServiceAvailability;
+    availabilityMessage?: string | null;
+    availableAgainAt?: string | null;
+    alternative?: string | null;
+  }
+): Promise<Service> {
+  const res = await authFetch(`/services/${idOrSlug}/availability`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de mettre à jour la disponibilité."));
   }
   return res.json();
 }
@@ -479,6 +561,28 @@ export async function markNotificationAsRead(token: string, id: number): Promise
 
 // --- Sécurité & Administration (F37) ---
 
+export type SecurityLoginAttempt = {
+  id: number;
+  ip: string;
+  date: string;
+  success?: boolean;
+};
+
+export type MySecurity = {
+  lastLoginAt: string | null;
+  lastLoginIp: string | null;
+  recentFailures: SecurityLoginAttempt[];
+  history: SecurityLoginAttempt[];
+};
+
+export async function fetchMySecurity(token: string): Promise<MySecurity> {
+  const res = await authFetch("/me/security", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer vos informations de sécurité."));
+  }
+  return res.json();
+}
+
 export type TargetedAccount = {
   email: string;
   failedAttemptsCount: number;
@@ -489,6 +593,103 @@ export async function fetchTargetedAccounts(token: string): Promise<TargetedAcco
   const res = await authFetch("/agent/security/targeted-accounts", token);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de récupérer les comptes ciblés."));
+  }
+  return res.json();
+}
+
+// --- Rendez-vous municipaux (F39, F40) ---
+
+export type AppointmentSlot = {
+  id: number;
+  startsAt: string;
+  endsAt?: string;
+  isAvailable: boolean;
+};
+
+export type AppointmentStatus = "confirme" | "annule";
+
+export type Appointment = {
+  id: number;
+  status: AppointmentStatus;
+  reason: string;
+  requiredDocuments?: string | null;
+  startsAt: string;
+  endsAt?: string;
+  service?: { id: number; name: string; slug: string };
+  agent?: { id: string; firstName: string; lastName: string } | null;
+  createdAt: string;
+};
+
+export async function fetchAppointmentSlots(serviceSlugOrId: string | number): Promise<AppointmentSlot[]> {
+  const res = await fetch(apiUrl(`/appointments/slots?service=${encodeURIComponent(String(serviceSlugOrId))}`));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les créneaux disponibles."));
+  }
+  return res.json();
+}
+
+export async function bookAppointment(
+  token: string,
+  slotId: number,
+  payload: { reason: string; requiredDocuments?: string }
+): Promise<Appointment> {
+  const res = await authFetch(`/appointments/book/${slotId}`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 409) {
+      throw new Error("Ce créneau vient d'être réservé par quelqu'un d'autre. Merci d'en choisir un autre.");
+    }
+    if (res.status === 404) {
+      throw new Error("Ce créneau n'existe plus.");
+    }
+    throw new Error(await readErrorMessage(res, "Impossible de réserver ce rendez-vous."));
+  }
+  return res.json();
+}
+
+export async function fetchMyAppointments(token: string): Promise<Appointment[]> {
+  const res = await authFetch("/appointments/mine", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer vos rendez-vous."));
+  }
+  return res.json();
+}
+
+export async function cancelAppointment(token: string, id: number): Promise<Appointment> {
+  const res = await authFetch(`/appointments/${id}/cancel`, token, { method: "PATCH" });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'annuler ce rendez-vous."));
+  }
+  return res.json();
+}
+
+// Télécharge le .ics via fetch (authentifié) puis déclenche l'enregistrement
+// côté client — la route exige un Bearer token, donc un simple lien <a>
+// ne fonctionnerait pas (voir docs/API.md).
+export async function downloadAppointmentIcs(token: string, id: number): Promise<void> {
+  const res = await authFetch(`/appointments/${id}/ics`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de télécharger ce rendez-vous."));
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rendez-vous-${id}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchAgentAppointments(token: string, serviceId?: number): Promise<Appointment[]> {
+  const qs = serviceId ? `?serviceId=${serviceId}` : "";
+  const res = await authFetch(`/agent/appointments${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les rendez-vous."));
   }
   return res.json();
 }

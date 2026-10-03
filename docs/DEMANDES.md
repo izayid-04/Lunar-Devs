@@ -218,3 +218,52 @@ Panneau d'accessibilité accessible partout via l'icône oeil dans le dock flott
 
 
 
+
+## Rattrapage fonctionnalités backend sans écran — par rentabilité
+
+### 1. F38 — Disponibilité des services
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F38** | Badge de disponibilité (icône + texte), message, date de retour, alternative ; agents : modifier la dispo. | `components/services/availability-badge.tsx`, `components/services/availability-manager.tsx`, `/districts`, `/services/[slug]` | ✅ Fait |
+
+Badge (disponible / en maintenance / indisponible, icône + texte, jamais
+la couleur seule) sur les cartes `/districts` et en tête de
+`/services/[slug]`. Si indisponible : message, date de retour formatée,
+et alternative affichés dans un encart dédié. Les agents/admin voient un
+bouton « Modifier la disponibilité » (`PATCH /services/:idOrSlug/availability`)
+directement sur la fiche du service.
+
+Vérifié contre l'API réelle : les 8 services en prod portent bien
+`availability`/`availabilityMessage`/`availableAgainAt`/`alternative`
+(tous actuellement `disponible`/`null`). Voir `docs/BESOINS-API.md` pour
+un écart constaté sur ce même endpoint (champs d'un bloc plus tardif
+absents en prod) — sans impact sur ce point.
+
+Pas encore de bouton « démarrer une démarche/RDV » à bloquer : les
+rendez-vous (point 6 de cette liste) n'existent pas encore côté front. La
+vérification de disponibilité sera ajoutée au flux de réservation quand
+il sera construit.
+
+### 2. F37 — Sécurité (429, compte verrouillé, audit)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F37** | Message clair sur 429/compte verrouillé ; dernière connexion + échecs dans l'espace citoyen ; tableau « Sécurité » agents. | `lib/api.ts` (`loginRequest`, `fetchMySecurity`, `fetchTargetedAccounts`), `/espace`, `/agent`, `/admin` | ✅ Fait |
+
+`loginRequest` traite spécifiquement `429` (trop de tentatives) et `403`
+(compte verrouillé — lit `lockedUntil` dans le corps pour afficher l'heure
+exacte de déverrouillage), sans changer le comportement générique des
+`403` ailleurs dans l'app. `/espace` affiche désormais une carte «
+Sécurité du compte » (`GET /me/security` : dernière connexion, tentatives
+échouées récentes). Le tableau « comptes ciblés » (`GET
+/agent/security/targeted-accounts`) était déjà câblé sur `/admin` par un
+travail précédent mais **absent de `/agent`** alors que l'API l'autorise
+pour ce rôle — extrait dans un composant partagé
+(`components/security/targeted-accounts-card.tsx`) et ajouté aux deux
+pages.
+
+Vérifié contre l'API réelle avec le code exact de `lib/api.ts` :
+`GET /me/security` renvoie bien la dernière connexion et l'historique ;
+un mot de passe incorrect renvoie le message générique attendu (pas de
+fuite d'information).

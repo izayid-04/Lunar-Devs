@@ -34,6 +34,7 @@ import { Radio, CheckCircle, Clock, RotateCw, RefreshCw } from "lucide-react";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import TargetedAccountsCard from "@/components/security/targeted-accounts-card";
 
 const STATUS_LABEL: Record<MessageStatus, string> = {
   nouveau: "Nouveau",
@@ -236,7 +237,7 @@ function AgentContent() {
                       className={cn(
                         "text-xs gap-1.5 h-8 font-medium transition-all",
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm font-semibold"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                       )}
                     >
@@ -411,6 +412,10 @@ function AgentContent() {
             })()}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <TargetedAccountsCard />
       </div>
     </>
   );
