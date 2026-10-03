@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,10 +13,13 @@ import {
   ShieldCheck,
   UserPlus,
   Compass,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import ModeToggle from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "motion/react";
 
 type Item = {
   href?: string;
@@ -68,16 +72,14 @@ export default function DockNav() {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
 
-  // On cache le dock du bas UNIQUEMENT quand on se trouve à l'intérieur du dashboard
+  // Dans le dashboard, le dock est rétractable (minimisé par défaut pour laisser place à la sidebar)
   const isInsideDashboard =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/espace") ||
     pathname.startsWith("/agent") ||
     pathname.startsWith("/admin");
 
-  if (isInsideDashboard) {
-    return null;
-  }
+  const [isExpandedInDashboard, setIsExpandedInDashboard] = useState(false);
 
   const items: Item[] = [
     { href: "/", label: "Accueil", icon: Home },
@@ -105,6 +107,59 @@ export default function DockNav() {
     }
   }
 
+  // CAS DASHBOARD : mini-bouton rétractable avec flèche
+  if (isInsideDashboard) {
+    return (
+      <aside
+        aria-label="Navigation rapide"
+        className="fixed inset-x-0 bottom-4 z-50 flex flex-col items-center pointer-events-none"
+      >
+        <AnimatePresence>
+          {isExpandedInDashboard && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="pointer-events-auto mb-2 flex items-center gap-1 rounded-full border border-border bg-card/95 p-1.5 shadow-2xl backdrop-blur-md"
+            >
+              {items.map((item) => (
+                <DockItem
+                  key={item.label}
+                  item={item}
+                  active={!!item.href && pathname === item.href}
+                />
+              ))}
+              <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+              <ModeToggle />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bouton flèche flottant pour ouvrir / fermer le menu */}
+        <button
+          type="button"
+          onClick={() => setIsExpandedInDashboard((prev) => !prev)}
+          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur-md transition-all hover:bg-card hover:text-foreground hover:border-primary/50 group"
+          title={isExpandedInDashboard ? "Replier le menu" : "Afficher le menu de navigation"}
+        >
+          {isExpandedInDashboard ? (
+            <>
+              <ChevronDown className="size-3.5 text-primary transition-transform group-hover:translate-y-0.5" />
+              <span>Masquer</span>
+            </>
+          ) : (
+            <>
+              <ChevronUp className="size-3.5 text-primary transition-transform group-hover:-translate-y-0.5" />
+              <span>Menu</span>
+            </>
+          )}
+        </button>
+      </aside>
+    );
+  }
+
+  // CAS HORS DASHBOARD (pages publiques) : Dock normal visible
   return (
     <nav
       aria-label="Navigation principale"
