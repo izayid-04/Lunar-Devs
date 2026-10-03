@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, ArrowRight, Pause, Play } from "lucide-react";
+import { MapPin, ArrowRight, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface ZoneSlide {
   id: string;
@@ -83,7 +83,16 @@ export default function CurvedPlanetCarousel() {
   }, []);
 
   return (
-    <div className="relative w-full py-8 select-none">
+    <section
+      aria-label="Carrousel panoramique des quartiers et infrastructures de Nova Terra"
+      aria-roledescription="carrousel"
+      className="relative w-full py-8 select-none"
+    >
+      <div className="sr-only" aria-live="polite">
+        {activeZone
+          ? `Secteur sélectionné : ${activeZone.name}. ${activeZone.description}. Coordonnées : ${activeZone.coordinates}.`
+          : "Carrousel en défilement automatique des dômes de Nova Terra. Survolez ou naviguez au clavier pour figer une zone."}
+      </div>
       {/* Curved Perspective CSS */}
       <style jsx>{`
         @keyframes curvedMarquee {
@@ -205,21 +214,64 @@ export default function CurvedPlanetCarousel() {
         </div>
       </div>
 
-      {/* Contrôle de pause explicite (clavier/tactile inclus) */}
-      <div className="mt-2 flex items-center justify-center gap-3 text-xs text-muted-foreground">
+      {/* Contrôle de pause explicite et navigation clavier */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const curIdx = activeZone ? ZONES.findIndex((z) => z.id === activeZone.id) : 0;
+            const prevIdx = (curIdx - 1 + ZONES.length) % ZONES.length;
+            setActiveZone(ZONES[prevIdx]);
+            setPaused(true);
+          }}
+          className="h-7 gap-1 px-2.5 text-xs"
+          aria-label="Zone précédente du carrousel"
+        >
+          <ChevronLeft className="size-3.5" aria-hidden="true" />
+          <span>Précédent</span>
+        </Button>
+
         <Button
           size="sm"
           variant="ghost"
           onClick={() => setPaused((p) => !p)}
           className="h-7 gap-1.5 px-2 text-xs"
+          aria-label={paused ? "Reprendre le défilement automatique du carrousel" : "Mettre en pause le défilement automatique du carrousel"}
         >
-          {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
-          {paused ? "Reprendre le défilement" : "Mettre en pause"}
+          {paused ? <Play className="size-3.5" aria-hidden="true" /> : <Pause className="size-3.5" aria-hidden="true" />}
+          {paused ? "Reprendre" : "Pause"}
         </Button>
-        {activeZone && !paused && (
-          <span className="hidden sm:inline">En pause sur : {activeZone.name}</span>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const curIdx = activeZone ? ZONES.findIndex((z) => z.id === activeZone.id) : 0;
+            const nextIdx = (curIdx + 1) % ZONES.length;
+            setActiveZone(ZONES[nextIdx]);
+            setPaused(true);
+          }}
+          className="h-7 gap-1 px-2.5 text-xs"
+          aria-label="Zone suivante du carrousel"
+        >
+          <span>Suivant</span>
+          <ChevronRight className="size-3.5" aria-hidden="true" />
+        </Button>
+
+        {activeZone && (
+          <span className="hidden sm:inline font-medium text-foreground">
+            Zone affichée : {activeZone.name}
+          </span>
         )}
       </div>
-    </div>
+
+      <div className="mt-2 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-2">
+        <span>Lexique Nova Terra :</span>
+        <abbr title="Structure pressurisée transparente abritant un quartier complet de la colonie." className="underline decoration-dotted cursor-help text-foreground font-medium">Dôme</abbr>
+        <span>•</span>
+        <abbr title="Train à sustentation magnétique reliant à grande vitesse les dômes et les gares." className="underline decoration-dotted cursor-help text-foreground font-medium">Maglev</abbr>
+      </div>
+    </section>
   );
 }

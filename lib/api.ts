@@ -246,6 +246,7 @@ export type Announcement = {
   title: string;
   body: string;
   category: string;
+  isImportant?: boolean;
   publishedAt: string;
 };
 
@@ -268,7 +269,7 @@ export async function fetchAnnouncement(id: number | string): Promise<Announceme
 
 export async function postAnnouncement(
   token: string,
-  payload: { title: string; body: string; category: string }
+  payload: { title: string; body: string; category: string; isImportant?: boolean }
 ): Promise<Announcement> {
   const res = await authFetch("/announcements", token, {
     method: "POST",
@@ -284,7 +285,7 @@ export async function postAnnouncement(
 export async function patchAnnouncement(
   token: string,
   id: number,
-  payload: Partial<{ title: string; body: string; category: string }>
+  payload: Partial<{ title: string; body: string; category: string; isImportant: boolean }>
 ): Promise<Announcement> {
   const res = await authFetch(`/announcements/${id}`, token, {
     method: "PATCH",
@@ -302,4 +303,176 @@ export async function deleteAnnouncement(token: string, id: number): Promise<voi
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de supprimer cette annonce."));
   }
+}
+
+// --- Alertes municipales (Bloc Alertes — D18, F29, F30, F31) ---
+
+export type AlertSeverity = "info" | "important" | "urgent";
+export type AlertTarget = "all" | "district" | "vulnerable";
+
+export type Alert = {
+  id: number;
+  title: string;
+  body: string;
+  instructions: string;
+  severity: AlertSeverity;
+  target: AlertTarget;
+  targetDistrict: string | null;
+  startsAt: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateAlertPayload = {
+  title: string;
+  body: string;
+  instructions: string;
+  severity: AlertSeverity;
+  target: AlertTarget;
+  targetDistrict?: string | null;
+  startsAt: string;
+  expiresAt: string;
+};
+
+export async function fetchActiveAlerts(token?: string | null): Promise<Alert[]> {
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(apiUrl("/alerts/active"), { headers });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les alertes actives."));
+  }
+  return res.json();
+}
+
+export async function fetchAlerts(): Promise<Alert[]> {
+  const res = await fetch(apiUrl("/alerts"));
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer l'historique des alertes."));
+  }
+  return res.json();
+}
+
+export async function fetchAlert(id: number | string): Promise<Alert> {
+  const res = await fetch(apiUrl(`/alerts/${id}`));
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Cette alerte n'existe pas.");
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer cette alerte."));
+  }
+  return res.json();
+}
+
+export async function createAlert(token: string, payload: CreateAlertPayload): Promise<Alert> {
+  const res = await authFetch("/alerts", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de publier l'alerte."));
+  }
+  return res.json();
+}
+
+export async function patchAlert(
+  token: string,
+  id: number,
+  payload: Partial<CreateAlertPayload>
+): Promise<Alert> {
+  const res = await authFetch(`/alerts/${id}`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier cette alerte."));
+  }
+  return res.json();
+}
+
+export async function terminateAlert(token: string, id: number): Promise<Alert> {
+  const res = await authFetch(`/alerts/${id}/terminate`, token, {
+    method: "PATCH",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de clore cette alerte."));
+  }
+  return res.json();
+}
+
+export async function deleteAlert(token: string, id: number): Promise<void> {
+  const res = await authFetch(`/alerts/${id}`, token, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de supprimer cette alerte."));
+  }
+}
+
+// --- Recommandations IA pour les alertes (F31) ---
+
+export type AiRecommendationsPayload = {
+  situation: string;
+  district?: string;
+  targetAudience?: string;
+};
+
+export type AiRecommendationsResponse = {
+  situation: string;
+  recommendations: string[];
+  suggestedInstructions: string;
+  model: string;
+};
+
+export async function generateAiAlertRecommendations(
+  token: string,
+  payload: AiRecommendationsPayload
+): Promise<AiRecommendationsResponse> {
+  const res = await authFetch("/agent/alerts/ai-recommendations", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    if (res.status === 503) {
+      throw new Error("Le service IA n'est pas configuré sur le serveur (clé API manquante).");
+    }
+    if (res.status === 504) {
+      throw new Error("L'assistant IA a mis trop de temps à répondre (délai dépassé).");
+    }
+    if (res.status === 502) {
+      throw new Error("Le fournisseur de service IA est temporairement indisponible.");
+    }
+    throw new Error(await readErrorMessage(res, "Échec de génération des recommandations IA."));
+  }
+  return res.json();
+}
+
+// --- Notifications (D18, F30) ---
+
+export type AppNotification = {
+  id: number;
+  type: string;
+  title: string;
+  link: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchNotifications(token: string): Promise<AppNotification[]> {
+  const res = await authFetch("/notifications", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les notifications."));
+  }
+  return res.json();
+}
+
+export async function markNotificationAsRead(token: string, id: number): Promise<AppNotification> {
+  const res = await authFetch(`/notifications/${id}/read`, token, {
+    method: "PATCH",
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de marquer la notification comme lue."));
+  }
+  return res.json();
 }

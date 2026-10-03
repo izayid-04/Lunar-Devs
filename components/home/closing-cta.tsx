@@ -12,7 +12,7 @@ export default function ClosingCta() {
     <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
       {user ? (
         <Button asChild>
-          <Link href="/dashboard">Accéder au Cockpit Urbain</Link>
+          <Link href="/espace">Accéder à mon espace</Link>
         </Button>
       ) : (
         <Button asChild>

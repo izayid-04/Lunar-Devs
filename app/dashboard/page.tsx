@@ -19,6 +19,7 @@ import {
   Clock,
   Sparkles
 } from "lucide-react"
+import AccessibleTerm from "@/components/ui/accessible-term"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -228,7 +229,9 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Secteur Résidentiel (Dôme Alpha)</span>
+                    <span>
+                      Secteur Résidentiel (<AccessibleTerm term="Dôme" definition="Structure pressurisée transparente abritant un quartier de la colonie." /> Alpha)
+                    </span>
                     <span>42%</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted">
@@ -246,7 +249,9 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Maglevs & Propulseurs Portuaires</span>
+                    <span>
+                      <AccessibleTerm term="Maglev" definition="Train à sustentation magnétique reliant les quartiers à grande vitesse." /> & Propulseurs Portuaires
+                    </span>
                     <span>14%</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted">
@@ -264,12 +269,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Radio className="size-4 text-primary" />
-                Transmissions Municipales
+                Annonces et alertes municipales
               </CardTitle>
               <Badge variant="secondary" className="text-xs">Direct</Badge>
             </div>
             <CardDescription>
-              Flux des signaux prioritaires émis par les services.
+              Flux des informations prioritaires diffusées par les services.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 space-y-3">

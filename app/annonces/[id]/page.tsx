@@ -38,7 +38,7 @@ export default async function AnnonceDetailPage({ params }: PageProps<"/annonces
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
+    <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -70,6 +70,6 @@ export default async function AnnonceDetailPage({ params }: PageProps<"/annonces
       <p className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
         {announcement.body}
       </p>
-    </main>
+    </div>
   );
 }

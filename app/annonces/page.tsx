@@ -24,7 +24,7 @@ export default async function AnnoncesPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <section className="border-b border-border px-6 py-20 text-center">
         <div className="mx-auto max-w-2xl">
           <Badge variant="outline" className="border-primary/40 text-primary gap-1.5 px-3 py-1 text-xs">
@@ -52,9 +52,16 @@ export default async function AnnoncesPage() {
                 <Card className="transition-colors hover:border-primary/50">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between gap-3">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {a.category}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {a.category}
+                        </Badge>
+                        {a.isImportant && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Important
+                          </Badge>
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground">
                         {new Date(a.publishedAt).toLocaleDateString("fr-FR")}
                       </span>
@@ -68,6 +75,6 @@ export default async function AnnoncesPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

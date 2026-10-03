@@ -143,3 +143,44 @@ sans lien avec une route API) a été retiré de l'en-tête du dashboard.
 
 Panneau d'accessibilité accessible partout via l'icône oeil dans le dock flottant et l'en-tête du dashboard. Rétention des préférences dans `localStorage`. Mode mouvement réduit forcé également disponible. Focus clavier épais et visible partout.
 
+### Passe de vérification F21 / F24 sur l'ensemble du site (achevée) :
+- **Boutons & liens sans texte visible** : tous dotés d'un `aria-label` descriptif en français (ex. `DockNav`, `ModeToggle`, `SidebarTrigger`, boutons d'action sur `/agent/annonces` et `/agent`).
+- **Descriptions textuelles alternatives** : toutes les balises `Image` disposent d'un `alt` approprié ; le globe 3D interactif (`components/home/planet-showcase.tsx`) et le carrousel orbital (`components/home/curved-planet-carousel.tsx`) disposent de zones `<div className="sr-only" aria-live="polite">` pour restituer l'état et le contenu aux lecteurs d'écran.
+- **Landmarks HTML5** : unique `<main id="main-content" tabIndex={-1}>` dans `app/layout.tsx` englobant toutes les pages ; suppression des balises `<main>` imbriquées redondantes ; balises `<header>`, `<nav>`, `<footer>` clairement isolées.
+- **Hiérarchie des titres** : exactement un seul `h1` par page (accueil, inscription, connexion, espace citoyen, espace agent, espace admin, services, annonces, à propos, districts, status), suivi de niveaux d'en-têtes logiques (`h2`, `h3`).
+- **Annonces dynamiques (`aria-live`)** : confirmations de soumission formulaires (référence `NT-XXXX` dans `/espace`), erreurs d'authentification (`connexion-form.tsx`), et erreurs de validation de champ (`inscription/page.tsx`) connectées via `aria-live` / `role="status"` / `role="alert"`.
+- **Modales & dialogues** : les dialogues Radix (`Dialog`, `AlertDialog`) capturent et restaurent automatiquement le focus à la fermeture.
+
+## Vague 6 — Inclusion & Accessibilité avancée (D13, F41, F42, F43, F44, D20 — 3 720 XP)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D13** | Remplacement du jargon dans les libellés de navigation et d'action par des mots simples (« Cockpit » → « Mon espace », « Transmissions » → « Annonces et alertes », « Découvrir le Cockpit » → « Accéder à mon espace »). Infobulles explicatives pour les termes de la colonie (Dôme, Maglev). | `components/dock-nav.tsx`, `components/home/how-it-works.tsx`, `components/home/closing-cta.tsx`, `app/dashboard/page.tsx`, `app/connexion/connexion-form.tsx`, `components/ui/accessible-term.tsx`, `components/home/curved-planet-carousel.tsx` | ✅ Fait |
+| **F41** | Tout le site utilisable au clavier seul : ordre de tabulation séquentiel, focus visible partout (`*:focus-visible`), aucun piège clavier, dock navigable et infobulles révélées au focus, alternative au globe sous forme de liste de boutons sélecteurs, carrousel contrôlable avec Précédent/Pause/Suivant et défilement mis en pause au focus. | `components/dock-nav.tsx`, `components/home/curved-planet-carousel.tsx`, `components/home/planet-showcase.tsx`, `app/globals.css` | ✅ Fait |
+| **F42** | Formulaires accessibles : libellés visibles avec indication textuelle explicite `(obligatoire)` (pas uniquement un astérisque ou une couleur), résumé d'erreurs en haut (`role="alert"` + `aria-live="assertive"`), champs reliés via `aria-invalid` et `aria-describedby`, attributs `autocomplete` standards (`given-name`, `family-name`, `email`, `new-password`, `current-password`). | `app/inscription/page.tsx`, `app/connexion/connexion-form.tsx`, `app/espace/page.tsx` | ✅ Fait |
+| **F43** | Aucune information transmise uniquement par la couleur : statuts et gravités accompagnés d'icônes et de textes explicites, liens textuels soulignés dans le contenu (`text-decoration: underline`), messages d'erreur enrichis d'icônes `AlertCircle`. | `app/globals.css`, `app/inscription/page.tsx`, `app/connexion/connexion-form.tsx`, `app/agent/page.tsx`, `app/espace/page.tsx` | ✅ Fait |
+| **F44** | Zoom navigateur à 200 % et 400 % (et largeur 320 px) sans défilement horizontal ni chevauchement ni contenu tronqué : `overflow-x: hidden`, césure automatique des textes longs (`overflow-wrap: break-word`), images/canvas `max-width: 100%`, flex/grid responsives. | `app/globals.css`, `app/connexion/connexion-form.tsx`, `components/dock-nav.tsx`, `components/home/curved-planet-carousel.tsx` | ✅ Fait |
+| **D20** | Vérification de parcours complets réels (accueil → inscription → connexion → démarche/envoi de message → suivi dans « Mes demandes » → déconnexion) dans l'interface unifiée et accessible sans version séparée. | Parcours utilisateur complet testé et validé | ✅ Fait |
+
+### Comment tester la Vague 6 :
+1. **D13 (Langage clair & infobulles)** :
+   - Observer le dock de navigation en bas : il affiche « Mon espace » et « Services » au lieu de termes jargonneux.
+   - Sur l'accueil `/` et le carrousel : survoler ou tabuler sur les termes « Dôme » et « Maglev » pour voir l'infobulle explicative accessible.
+   - Dans le cockpit/dashboard : le bloc d'informations s'intitule « Annonces et alertes municipales ».
+2. **F41 (Navigation clavier)** :
+   - Naviguer uniquement avec la touche `Tab` / `Shift+Tab` et `Entrée` / `Espace`.
+   - Constater le halo de focus bien visible (`outline: 2px solid var(--ring)`).
+   - Dans le carrousel panoramique : tabuler sur les boutons « Précédent », « Pause » et « Suivant » pour changer de zone ou figer l'animation.
+   - Sur la section Globe 3D : tabuler sur les boutons des différents dômes pour inspecter chaque quartier sans souris.
+3. **F42 (Accessibilité des formulaires)** :
+   - Aller sur `/inscription`, soumettre le formulaire vide : le résumé global des erreurs apparaît en haut en rouge avec icône, et chaque champ invalide a son message d'erreur avec `aria-invalid="true"`.
+   - Constater la mention textuelle explicite `(obligatoire)` sur chaque étiquette.
+4. **F43 (Indicateurs non basés sur la seule couleur)** :
+   - Vérifier les liens dans les paragraphes : ils sont clairement soulignés.
+   - Les badges d'état (Nouveau, En cours, Traité) et alertes comportent du texte et une icône dédiée en plus du code couleur.
+5. **F44 (Zoom 200% et 400%)** :
+   - Tester avec le zoom navigateur (Ctrl + +) à 200% et 400%, ou régler la vue responsive sur 320px de large : aucun défilement horizontal parasite n'apparaît, tous les textes s'adaptent sans rupture ni chevauchement.
+6. **D20 (Parcours complet)** :
+   - Inscription d'un citoyen sur `/inscription` → Connexion sur `/connexion` → Envoi d'un message municipal dans `/espace` → Suivi de la référence dans « Mes demandes » → Déconnexion via le dock. Tout fonctionne sur l'interface principale standard sans mode séparé.
+
+

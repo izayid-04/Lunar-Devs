@@ -62,7 +62,7 @@ const ROADMAP = [
 
 export default function AProposPage() {
   return (
-    <main className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <section className="border-b border-border px-6 py-20 text-center">
         <Reveal className="mx-auto max-w-2xl">
           <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
@@ -164,6 +164,6 @@ export default function AProposPage() {
           <ClosingCta />
         </Reveal>
       </section>
-    </main>
+    </div>
   );
 }

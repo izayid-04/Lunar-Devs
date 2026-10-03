@@ -31,7 +31,7 @@ const STEPS = [
     badge: "Temps réel",
     title: "Pilotez votre Quotidien",
     text: "Participez aux consultations, signalez des incidents et profitez de vos crédits d'énergie.",
-    linkText: "Découvrir le Cockpit",
+    linkText: "Accéder à mon espace",
     href: "/connexion",
   },
 ];

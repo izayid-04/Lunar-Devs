@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PublicFooter from "@/components/public-footer";
 import DockNav from "@/components/dock-nav";
+import AlertBanner from "@/components/alert-banner";
 import "./globals.css";
 
 // Une seule famille, pour les titres et le texte courant. Fichier vendoré
@@ -53,9 +54,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 {/* pb-24 : la barre de navigation flottante est fixe, elle ne
                     doit jamais recouvrir le bas du contenu ou du pied de page. */}
                 <div className="flex flex-1 flex-col pb-24">
-                  <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+                  <AlertBanner scope="public" />
+                  <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
                     {children}
-                  </div>
+                  </main>
                   <PublicFooter />
                 </div>
                 <DockNav />

@@ -162,7 +162,14 @@ export default function PlanetShowcase() {
         {/* 3D Globe + Visual Inspector Grid */}
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center rounded-3xl border border-border/80 bg-card/40 p-4 sm:p-6 lg:p-8 backdrop-blur-md shadow-2xl">
           {/* Interactive 3D Globe with Clickable Beacon Pins */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+          <div
+            className="lg:col-span-5 flex flex-col items-center justify-center relative"
+            role="region"
+            aria-label="Représentation 3D interactive de la planète Nova Terra et de ses dômes"
+          >
+            <div className="sr-only" aria-live="polite">
+              Dôme sélectionné sur la planète : {currentCity.name}. {currentCity.description}.
+            </div>
             <div className="relative size-[290px] sm:size-[360px] md:size-[400px] flex items-center justify-center">
               <InteractiveGlobe
                 className="w-full h-full"
@@ -173,7 +180,7 @@ export default function PlanetShowcase() {
             </div>
 
             <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
-              <RotateCcw className="size-3.5 text-primary animate-spin" style={{ animationDuration: "12s" }} />
+              <RotateCcw className="size-3.5 text-primary animate-spin" style={{ animationDuration: "12s" }} aria-hidden="true" />
               <span>Cliquez sur un point lumineux ou glissez le globe</span>
             </div>
           </div>

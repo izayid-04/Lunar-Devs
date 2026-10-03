@@ -43,8 +43,8 @@ import {
 
 const CATEGORIES = ["Municipal", "Travaux", "Événement", "Sécurité", "Autre"];
 
-type Draft = { title: string; body: string; category: string };
-const EMPTY_DRAFT: Draft = { title: "", body: "", category: CATEGORIES[0] };
+type Draft = { title: string; body: string; category: string; isImportant: boolean };
+const EMPTY_DRAFT: Draft = { title: "", body: "", category: CATEGORIES[0], isImportant: false };
 
 function AgentAnnoncesContent() {
   const { user, token } = useAuth();
@@ -80,7 +80,7 @@ function AgentAnnoncesContent() {
 
   function openEdit(a: Announcement) {
     setEditing(a);
-    setDraft({ title: a.title, body: a.body, category: a.category });
+    setDraft({ title: a.title, body: a.body, category: a.category, isImportant: !!a.isImportant });
     setDialogOpen(true);
   }
 
@@ -181,6 +181,11 @@ function AgentAnnoncesContent() {
                       <Badge variant="secondary" className="text-[10px]">
                         {a.category}
                       </Badge>
+                      {a.isImportant && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          Important
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {new Date(a.publishedAt).toLocaleDateString("fr-FR")}
                       </span>
@@ -188,16 +193,24 @@ function AgentAnnoncesContent() {
                     <p className="mt-1 truncate text-sm font-medium">{a.title}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(a)}>
-                      <Pencil className="size-3.5" />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => openEdit(a)}
+                      aria-label={`Modifier l'annonce ${a.title}`}
+                      title="Modifier"
+                    >
+                      <Pencil className="size-3.5" aria-hidden="true" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={() => handleDelete(a)}
                       disabled={deletingId === a.id}
+                      aria-label={`Supprimer l'annonce ${a.title}`}
+                      title="Supprimer"
                     >
-                      <Trash2 className="size-3.5 text-destructive" />
+                      <Trash2 className="size-3.5 text-destructive" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -251,6 +264,18 @@ function AgentAnnoncesContent() {
                 onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="isImportant"
+                checked={draft.isImportant}
+                onChange={(e) => setDraft((d) => ({ ...d, isImportant: e.target.checked }))}
+                className="size-4 rounded border-input text-primary focus:ring-ring"
+              />
+              <Label htmlFor="isImportant" className="cursor-pointer text-sm font-medium">
+                Annonce importante (diffuse une notification à tous les citoyens)
+              </Label>
             </div>
             <DialogFooter className="pt-2">
               <Button type="submit" className="w-full" disabled={submitting}>
