@@ -1,5 +1,6 @@
 import Hero from "@/components/home/hero";
 import DistrictMap from "@/components/home/district-map";
+import HowItWorks from "@/components/home/how-it-works";
 import Reveal from "@/components/home/reveal";
 import ClosingCta from "@/components/home/closing-cta";
 
@@ -7,6 +8,8 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <Hero />
+
+      <HowItWorks />
 
       <section className="border-b border-border px-6 py-20">
         <Reveal className="mx-auto max-w-xl text-center">

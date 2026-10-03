@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import Nav from "@/components/nav";
+import DockNav from "@/components/dock-nav";
 import "./globals.css";
 
 // Lisibilité : Geist pour tout le texte courant (vendue localement par
@@ -49,8 +49,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            <Nav />
-            {children}
+            <div className="flex flex-1 flex-col pb-24">{children}</div>
+            <DockNav />
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

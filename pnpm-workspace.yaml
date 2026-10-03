@@ -1,3 +1,8 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+
+# Hodifly (cPanel/CloudLinux) limite le nombre de processus par compte ;
+# pnpm par défaut lance trop de threads de build en parallèle et plante
+# avec ERR_PNPM_BUILD_THREAD_POOL. Voir docs/DEPLOIEMENT.md.
+childConcurrency: 1

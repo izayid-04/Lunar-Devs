@@ -154,6 +154,28 @@ est ajoutée plus tard via `next/font/google`, préférer le même traitement
 (télécharger une fois, vendorer, charger en local) plutôt que de dépendre
 du réseau à chaque build sur Hodifly.
 
+## Piège Hodifly + pnpm : `ERR_PNPM_BUILD_THREAD_POOL`
+
+Le déploiement a échoué une fois avec :
+
+```
+ERR_PNPM_BUILD_THREAD_POOL — Resource temporarily unavailable (os error 11)
+help: Lower childConcurrency in pnpm-workspace.yaml, or raise RLIMIT_NPROC.
+```
+
+Cause : l'hébergement cPanel de Hodifly tourne sous CloudLinux, qui limite
+le nombre de processus autorisés par compte. Par défaut, pnpm lance
+plusieurs threads/processus en parallèle pour construire les dépendances
+natives, ce qui dépasse cette limite sur un compte partagé — on n'a pas la
+main sur `RLIMIT_NPROC` (c'est une limite serveur), donc la seule option
+côté projet est de réduire la concurrence de pnpm.
+
+Correction : `childConcurrency: 1` dans `pnpm-workspace.yaml`, pour que
+pnpm construise les dépendances une par une plutôt qu'en parallèle. Un peu
+plus lent, mais fiable sur ce type d'hébergement contraint. Vérifié après
+coup : `pnpm install` (réinstallation complète) et `npm run build` passent
+toujours en local avec ce réglage.
+
 ## Variables d'environnement en local
 
 1. Copier `.env.example` vers `.env.local` (déjà ignoré par Git).
