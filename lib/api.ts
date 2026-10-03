@@ -210,6 +210,8 @@ export type CitizenMessage = {
   preciseLocation?: string;
   status: MessageStatus;
   supportCount?: number;
+  supportedByMe?: boolean;
+  isMine?: boolean;
   createdAt: string;
   updatedAt: string;
   history?: MessageHistoryItem[];
@@ -252,6 +254,15 @@ export async function fetchMyMessages(token: string): Promise<CitizenMessage[]> 
   const res = await authFetch("/messages/mine", token);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de récupérer vos messages."));
+  }
+  return res.json();
+}
+
+// Signalements des autres citoyens, anonymisés, pour soutien communautaire (F52).
+export async function fetchPublicMessages(token: string): Promise<CitizenMessage[]> {
+  const res = await authFetch("/messages/public", token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de récupérer les signalements du quartier."));
   }
   return res.json();
 }
@@ -1087,6 +1098,65 @@ export async function patchCitizenStatus(
   isActive: boolean
 ): Promise<CitizenUser> {
   const res = await authFetch(`/agent/citizens/${id}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isActive }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier le statut de ce compte."));
+  }
+  return res.json();
+}
+
+// --- Gestion des comptes par l'administrateur (D08, D09) ---
+// Même forme de pagination que /agent/citizens, mais sur tous les rôles.
+
+export async function fetchAdminUsers(
+  token: string,
+  options?: { page?: number; limit?: number; q?: string; role?: Role }
+): Promise<CitizensPaginationResponse> {
+  const params = new URLSearchParams();
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.q) params.set("q", options.q);
+  if (options?.role) params.set("role", options.role);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await authFetch(`/admin/users${qs}`, token);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de charger la liste des comptes."));
+  }
+  return res.json();
+}
+
+export async function createAdminUser(
+  token: string,
+  payload: { email: string; password: string; firstName: string; lastName: string; role: Role; district?: District }
+): Promise<CitizenUser> {
+  const res = await authFetch("/admin/users", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de créer ce compte."));
+  }
+  return res.json();
+}
+
+export async function patchAdminUserRole(token: string, id: string, role: Role): Promise<CitizenUser> {
+  const res = await authFetch(`/admin/users/${id}/role`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible de modifier le rôle de ce compte."));
+  }
+  return res.json();
+}
+
+export async function patchAdminUserStatus(token: string, id: string, isActive: boolean): Promise<CitizenUser> {
+  const res = await authFetch(`/admin/users/${id}/status`, token, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ isActive }),

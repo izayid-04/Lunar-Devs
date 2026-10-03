@@ -747,3 +747,115 @@ lint` passent sans erreur.
 - **Sobriété GPU** : Halos décoratifs flous (`blur-3xl`), `backdrop-filter` et canvas d'ambiance désactivés en mode léger.
 - **Stabilité de mise en page** : Zéro CLS grâce aux conteneurs à dimensions réservées et `loading="lazy"`.
 
+## Vérification du travail récent (agents Gemini) + nouveaux écrans — 2026-10-04, 00h35
+
+Gel des fonctionnalités à 5h00. Vérification ciblée + corrections des
+bugs évidents, puis préparation des deux écrans dont les routes
+arrivent côté backend.
+
+### Vérifié sans bug trouvé
+- **Changement de mot de passe** (`PATCH /me/password`) : testé en
+  direct contre la prod (mauvais mot de passe → 401, mot de passe
+  faible → 400 avec le détail, succès → 200). Correctement branché
+  dans `/espace`.
+- **F55 / F56 — Exports** : contenu généré uniquement à partir des
+  données réellement chargées (`user`, `messages`, `appointments`,
+  `security`, `privacyInquiries`), aucune donnée inventée.
+- **F63 / F64 — Mettre hors / remettre en service**
+  (`components/services/availability-manager.tsx`) : bien branché sur
+  `PATCH /services/:idOrSlug/availability` ; la prise de rendez-vous
+  (`AppointmentBooking`) et la prise de contact (`ContactServiceButton`)
+  sont toutes les deux bloquées avec message clair quand le service
+  n'est pas `disponible`.
+- **Mode Léger (F59, F62)** : vérifié que les sélecteurs de quartier du
+  globe 3D restent cliquables et fonctionnels en mode léger (seul le
+  rendu visuel du globe est remplacé par un encart texte) ; aucun canvas
+  fonctionnel (seulement décoratifs) n'est masqué par la règle CSS
+  `.light-eco-mode canvas { display:none }`. Rien d'essentiel ne
+  disparaît.
+
+### Bugs trouvés et corrigés
+- **Liste de démarrage (D12, F35)** : l'étape 1 mentionnait déjà
+  « quartier et langue », pas de téléphone — rien à corriger sur ce
+  point précis. En revanche, le compteur « X / 3 terminées » comptait
+  l'étape 2 (« Trouver un service ») comme **toujours terminée** via un
+  `true` codé en dur, sans rapport avec un vrai comportement de
+  l'utilisateur : compteur mensonger. Corrigé avec un indicateur réel
+  (mémorisé en `localStorage`, posé au clic sur « Consulter
+  l'annuaire ») : l'étape se coche seulement quand l'habitant a
+  effectivement suivi le lien.
+- **Confirmation d'envoi de message sans lien vers la demande**
+  (scénario section 6) : la boîte de confirmation affichait la
+  référence mais aucun lien vers `/espace/demandes/[id]`. Ajouté un
+  bouton « Voir ma demande ».
+- **Annulation de rendez-vous sans confirmation** (scénario section 7 :
+  « confirmation demandée ») : le bouton « Annuler » appelait
+  directement `PATCH /appointments/:id/cancel` sans aucune étape de
+  confirmation. Ajouté une `AlertDialog` de confirmation avant
+  l'annulation effective.
+- **Erreur de demande introuvable non annoncée aux lecteurs d'écran**
+  (`/espace/demandes/[id]`) : ajouté `role="alert"` sur le message
+  d'erreur (404 si la demande n'existe pas ou appartient à un autre
+  citoyen).
+
+### Écarts documentés (non corrigibles côté front ou pas faits ce soir)
+Voir `docs/BESOINS-API.md` pour le détail : `PATCH /me` ne permet pas de
+modifier prénom/nom (contrat à étendre côté backend), « Mes demandes »
+n'est pas filtrable par statut/type (réalisable côté front, pas fait
+faute de temps), notification de nouvelle connexion (F54) toujours
+absente du backend.
+
+## Nouveaux écrans — routes backend en cours (F52, D08/D09)
+
+Construits par anticipation du contrat exact donné pour les deux routes
+en cours de déploiement, avec gestion propre de l'absence de route
+(message d'erreur clair, jamais de page cassée).
+
+### F52 — Signalements du quartier
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **F52** | Liste des signalements des autres habitants avec soutien/retrait de soutien, filtrage par quartier. | `app/espace/signalements/page.tsx`, `lib/api.ts` (`fetchPublicMessages`) | ✅ Fait (route pas encore déployée en prod) |
+
+Nouvelle page `/espace/signalements` (lien depuis `/espace`, section
+« Mes demandes »), branchée sur `GET /messages/public` : tri par
+nombre de soutiens décroissant, filtre par quartier, bouton
+« Soutenir » (`POST /messages/:id/support`, toggle immédiat côté
+client avec le nouveau compte renvoyé par l'API). Quand `isMine` est
+vrai, le bouton est remplacé par un encart « C'est votre signalement »
+(non cliquable) plutôt que d'exposer un bouton qui renverrait
+toujours une erreur 400. Testé en direct contre la prod le 2026-10-04 :
+la route renvoie `404 Cannot GET /messages/public` (pas encore
+déployée) — la page affiche un message d'erreur clair (`role="alert"`),
+aucun crash.
+
+Ajouté aussi, dans le formulaire « Nouveau message » (signalement
+uniquement) : la mention « Votre signalement sera visible par les
+autres habitants, sans votre nom. N'y indiquez pas d'informations
+personnelles. », pour prévenir tout dépôt accidentel de données
+personnelles dans un contenu désormais public.
+
+### D08 / D09 — Gestion des comptes (Administration)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D08 / D09** | Liste/recherche de tous les comptes, création d'un compte agent, changement de rôle, activation/désactivation, avec confirmations. | `app/admin/users/page.tsx`, `lib/api.ts` (`fetchAdminUsers`, `createAdminUser`, `patchAdminUserRole`, `patchAdminUserStatus`) | ✅ Fait |
+
+Nouvelle page `/admin/users` (lien depuis `/admin`), sur le même modèle
+que `/agent/citizens` déjà existant : recherche, filtre par rôle,
+pagination, création de compte (formulaire avec validation du mot de
+passe identique à celle du contrat), changement de rôle via un sélecteur
+par ligne avec confirmation modale, activation/désactivation avec
+confirmation modale. Les actions sur son propre compte (changer son
+propre rôle, se désactiver soi-même) sont désactivées côté front en
+plus de la règle `400` déjà appliquée côté API.
+
+Vérifié en direct contre la prod le 2026-10-04 : `GET /admin/users`
+existe déjà (`401` sans jeton, `403` testé avec un compte citoyen —
+conforme au contrat). Les actions d'écriture (création, changement de
+rôle, activation) n'ont pas pu être testées en direct : aucun compte
+admin de démonstration disponible pour cette session (l'inscription
+publique ne crée que des comptes citoyens).
+
+Build + lint : clean après chaque changement de ce soir.
+

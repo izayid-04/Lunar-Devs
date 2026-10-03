@@ -44,7 +44,11 @@ function DemandeContent() {
   }, [load]);
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-destructive">{error}</p>;
+    return (
+      <p role="alert" className="py-16 text-center text-sm text-destructive">
+        {error}
+      </p>
+    );
   }
 
   if (!message) {

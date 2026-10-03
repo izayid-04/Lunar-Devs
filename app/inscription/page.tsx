@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Orbit,
@@ -307,20 +308,16 @@ export default function InscriptionPage() {
                   </Label>
                   <span className="text-[11px] text-muted-foreground">Min. 8 car.</span>
                 </div>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : undefined}
-                    placeholder="Minimum 8 caractères"
-                    className="pl-9"
-                    value={fields.password}
-                    onChange={(e) => update("password", e.target.value)}
-                  />
-                </div>
+                <PasswordInput
+                  id="password"
+                  autoComplete="new-password"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  placeholder="Minimum 8 caractères"
+                  startIcon={<Lock className="size-4" />}
+                  value={fields.password}
+                  onChange={(e) => update("password", e.target.value)}
+                />
                 {errors.password && (
                   <p id="password-error" role="alert" className="text-[11px] text-destructive flex items-center gap-1">
                     <AlertCircle className="size-3 shrink-0" aria-hidden="true" />
@@ -333,20 +330,16 @@ export default function InscriptionPage() {
                 <Label htmlFor="confirmPassword" className="text-xs font-semibold">
                   Confirmer le mot de passe <span className="text-muted-foreground font-normal">(obligatoire)</span>
                 </Label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    aria-invalid={!!errors.confirmPassword}
-                    aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
-                    placeholder="Confirmez votre mot de passe"
-                    className="pl-9"
-                    value={fields.confirmPassword}
-                    onChange={(e) => update("confirmPassword", e.target.value)}
-                  />
-                </div>
+                <PasswordInput
+                  id="confirmPassword"
+                  autoComplete="new-password"
+                  aria-invalid={!!errors.confirmPassword}
+                  aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                  placeholder="Confirmez votre mot de passe"
+                  startIcon={<Lock className="size-4" />}
+                  value={fields.confirmPassword}
+                  onChange={(e) => update("confirmPassword", e.target.value)}
+                />
                 {errors.confirmPassword && (
                   <p id="confirmPassword-error" role="alert" className="text-[11px] text-destructive flex items-center gap-1">
                     <AlertCircle className="size-3 shrink-0" aria-hidden="true" />

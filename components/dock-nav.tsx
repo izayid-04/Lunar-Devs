@@ -21,7 +21,6 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import ModeToggle from "@/components/mode-toggle";
 import AccessibilityPanel from "@/components/accessibility-panel";
-import LanguageSwitcher from "@/components/language-switcher";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -147,7 +146,6 @@ export default function DockNav() {
                 />
               ))}
               <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-              <LanguageSwitcher />
               <AccessibilityPanel />
               <ModeToggle />
             </motion.div>
@@ -192,7 +190,6 @@ export default function DockNav() {
           />
         ))}
         <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-        <LanguageSwitcher />
         <AccessibilityPanel />
         <ModeToggle />
       </div>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -48,6 +49,7 @@ import {
   Printer,
   Compass,
   ListChecks,
+  ThumbsUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -151,6 +153,18 @@ function EspaceContent() {
   const [nowRef] = useState(() => Date.now());
   const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+
+  // Étape 2 du guide de démarrage : aucune route API ne trace la
+  // consultation de l'annuaire, donc on retient localement (par
+  // navigateur) que le lien a bien été suivi, plutôt que de la compter
+  // comme "faite" par défaut.
+  const [visitedDirectory, setVisitedDirectory] = useState(false);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setVisitedDirectory(window.localStorage.getItem("novaterra.visitedDirectory") === "1");
+    });
+  }, []);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [messageType, setMessageType] = useState<MessageType>("question");
@@ -166,14 +180,12 @@ function EspaceContent() {
   // Complétion du profil (D12, F35)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileDistrict, setProfileDistrict] = useState<District>(DISTRICTS[0]);
-  const [profileLanguage, setProfileLanguage] = useState("fr");
   const [profileVulnerable, setProfileVulnerable] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // Édition complète du profil (nom, email, quartier, langue, etc.)
+  // Édition complète du profil (quartier, vulnérabilité)
   const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false);
   const [editDistrict, setEditDistrict] = useState<District>(user?.district || DISTRICTS[0]);
-  const [editLanguage, setEditLanguage] = useState(user?.preferredLanguage || "fr");
   const [editVulnerable, setEditVulnerable] = useState(user?.isVulnerable || false);
   const [savingEditProfile, setSavingEditProfile] = useState(false);
 
@@ -318,6 +330,7 @@ function EspaceContent() {
       toast.error(err instanceof Error ? err.message : "Impossible d'annuler ce rendez-vous.");
     } finally {
       setCancelingId(null);
+      setAppointmentToCancel(null);
     }
   }
 
@@ -328,7 +341,6 @@ function EspaceContent() {
     try {
       await patchMe(token, {
         district: profileDistrict,
-        preferredLanguage: profileLanguage.trim() || "fr",
         isVulnerable: profileVulnerable,
       });
       await refreshUser();
@@ -348,7 +360,6 @@ function EspaceContent() {
     try {
       await patchMe(token, {
         district: editDistrict,
-        preferredLanguage: editLanguage.trim() || "fr",
         isVulnerable: editVulnerable,
       });
       await refreshUser();
@@ -695,6 +706,17 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                     {confirmation.reference}
                   </p>
                 </div>
+                <Button asChild variant="outline" className="w-full gap-2">
+                  <Link
+                    href={`/espace/demandes/${confirmation.id}`}
+                    onClick={() => {
+                      setDialogOpen(false);
+                      resetForm();
+                    }}
+                  >
+                    Voir ma demande
+                  </Link>
+                </Button>
                 <DialogFooter className="pt-2">
                   <Button
                     className="w-full"
@@ -778,6 +800,13 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
 
                   {messageType === "signalement" && (
                     <>
+                      <p
+                        role="note"
+                        className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs text-muted-foreground"
+                      >
+                        Votre signalement sera visible par les autres habitants, sans votre nom.
+                        N&apos;y indiquez pas d&apos;informations personnelles.
+                      </p>
                       <div className="space-y-1.5">
                         <Label htmlFor="district">
                           Quartier <span className="text-muted-foreground font-normal">(obligatoire)</span>
@@ -894,37 +923,6 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profileLanguage">Langue préférée (Interface & Alertes)</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={profileLanguage === "fr" ? "default" : "outline"}
-                        onClick={() => setProfileLanguage("fr")}
-                        className="flex items-center justify-start gap-2.5 h-11 px-3 border"
-                      >
-                        <span className="text-xl">🇫🇷</span>
-                        <div className="text-left">
-                          <p className="text-xs font-semibold leading-tight">Français</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">FR (Défaut)</p>
-                        </div>
-                        {profileLanguage === "fr" && <Check className="ml-auto size-4" />}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={profileLanguage === "en" ? "default" : "outline"}
-                        onClick={() => setProfileLanguage("en")}
-                        className="flex items-center justify-start gap-2.5 h-11 px-3 border"
-                      >
-                        <span className="text-xl">🇬🇧</span>
-                        <div className="text-left">
-                          <p className="text-xs font-semibold leading-tight">English</p>
-                          <p className="text-[10px] text-muted-foreground leading-tight">EN</p>
-                        </div>
-                        {profileLanguage === "en" && <Check className="ml-auto size-4" />}
-                      </Button>
-                    </div>
-                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       id="profileVulnerable"
@@ -966,7 +964,7 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                 </div>
               </div>
               <Badge variant="outline" className="border-primary/40 text-primary font-mono text-xs">
-                {[user.profileCompleted, true, (messages && messages.length > 0)].filter(Boolean).length} / 3 terminées
+                {[user.profileCompleted, visitedDirectory, Boolean(messages && messages.length > 0)].filter(Boolean).length} / 3 terminées
               </Badge>
             </div>
           </CardHeader>
@@ -1021,15 +1019,26 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
               </div>
 
               {/* Étape 2 : Explorer l'annuaire des services */}
-              <div className="flex flex-col justify-between p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 transition-all">
+              <div
+                className={`flex flex-col justify-between p-3.5 rounded-lg border transition-all ${
+                  visitedDirectory ? "border-success/40 bg-success/5" : "border-border bg-card hover:border-primary/40"
+                }`}
+              >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Étape 2
                     </span>
-                    <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
-                      Découverte
-                    </Badge>
+                    {visitedDirectory ? (
+                      <Badge variant="outline" className="border-success/40 text-success bg-success/10 text-[10px] gap-1">
+                        <Check className="size-3" />
+                        Visité
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
+                        À faire
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-foreground">Trouver un service municipal</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1037,10 +1046,19 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                   </p>
                 </div>
                 <div className="mt-3 pt-2 border-t border-border/60">
-                  <Button asChild variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs gap-1.5"
+                    onClick={() => {
+                      window.localStorage.setItem("novaterra.visitedDirectory", "1");
+                      setVisitedDirectory(true);
+                    }}
+                  >
                     <Link href="/districts">
                       <Compass className="size-3.5 text-primary" />
-                      Consulter l&apos;annuaire ↗
+                      {visitedDirectory ? "Revoir l'annuaire ↗" : "Consulter l'annuaire ↗"}
                     </Link>
                   </Button>
                 </div>
@@ -1122,7 +1140,6 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                       className="gap-1.5 h-8 text-xs"
                       onClick={() => {
                         setEditDistrict(user.district || DISTRICTS[0]);
-                        setEditLanguage(user.preferredLanguage || "fr");
                         setEditVulnerable(user.isVulnerable || false);
                       }}
                     >
@@ -1137,7 +1154,7 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                         Modifier mon profil
                       </DialogTitle>
                       <DialogDescription>
-                        Ajustez votre quartier de résidence, votre langue d&apos;usage et votre situation.
+                        Ajustez votre quartier de résidence et vos préférences d&apos;accompagnement.
                       </DialogDescription>
                     </DialogHeader>
 
@@ -1178,39 +1195,6 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                         </p>
                       </div>
 
-                      {/* Langue préférée avec drapeaux */}
-                      <div className="space-y-1.5">
-                        <Label>Langue préférée (Interface & Alertes)</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            type="button"
-                            variant={editLanguage === "fr" ? "default" : "outline"}
-                            onClick={() => setEditLanguage("fr")}
-                            className="flex items-center justify-start gap-2.5 h-12 px-3 border"
-                          >
-                            <span className="text-2xl">🇫🇷</span>
-                            <div className="text-left">
-                              <p className="text-xs font-semibold leading-tight">Français</p>
-                              <p className="text-[10px] text-muted-foreground leading-tight">Langue par défaut</p>
-                            </div>
-                            {editLanguage === "fr" && <Check className="ml-auto size-4" />}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={editLanguage === "en" ? "default" : "outline"}
-                            onClick={() => setEditLanguage("en")}
-                            className="flex items-center justify-start gap-2.5 h-12 px-3 border"
-                          >
-                            <span className="text-2xl">🇬🇧</span>
-                            <div className="text-left">
-                              <p className="text-xs font-semibold leading-tight">English</p>
-                              <p className="text-[10px] text-muted-foreground leading-tight">International</p>
-                            </div>
-                            {editLanguage === "en" && <Check className="ml-auto size-4" />}
-                          </Button>
-                        </div>
-                      </div>
-
                       {/* Statut personne vulnérable */}
                       <div className="flex items-start gap-2.5 p-3 rounded-lg border bg-amber-500/5 border-amber-500/20">
                         <input
@@ -1249,7 +1233,7 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               <div className="rounded-lg border border-border p-3.5">
                 <span className="text-xs text-muted-foreground block">Nom & Prénom</span>
                 <p className="text-sm font-semibold truncate">
@@ -1264,20 +1248,6 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                 <span className="text-xs text-muted-foreground block">Quartier</span>
                 <p className="text-sm font-semibold text-foreground">
                   {user.district || <span className="text-muted-foreground italic font-normal">Non défini</span>}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-3.5">
-                <span className="text-xs text-muted-foreground block">Langue préférée</span>
-                <p className="text-sm font-semibold flex items-center gap-1.5 mt-0.5">
-                  {user.preferredLanguage === "en" ? (
-                    <>
-                      <span>🇬🇧</span> English
-                    </>
-                  ) : (
-                    <>
-                      <span>🇫🇷</span> Français
-                    </>
-                  )}
                 </p>
               </div>
             </div>
@@ -1311,6 +1281,12 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                   >
                     <Download className="size-3.5 text-primary" />
                     Télécharger mes données
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                    <Link href="/espace/signalements">
+                      <ThumbsUp className="size-3.5 text-primary" />
+                      Signalements du quartier
+                    </Link>
                   </Button>
                   {messages && (
                     <span className="text-xs text-muted-foreground hidden sm:inline ml-1">
@@ -1445,7 +1421,7 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                           size="sm"
                           className="h-7 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
                           disabled={cancelingId === a.id}
-                          onClick={() => handleCancelAppointment(a.id)}
+                          onClick={() => setAppointmentToCancel(a)}
                         >
                           <X className="size-3.5" />
                           {cancelingId === a.id ? "Annulation…" : "Annuler"}
@@ -1644,9 +1620,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                     <form onSubmit={handleChangePassword} className="space-y-3.5 pt-1">
                       <div className="space-y-1.5">
                         <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-                        <Input
+                        <PasswordInput
                           id="currentPassword"
-                          type="password"
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           placeholder="••••••••••••"
@@ -1657,9 +1632,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
 
                       <div className="space-y-1.5">
                         <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-                        <Input
+                        <PasswordInput
                           id="newPassword"
-                          type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="••••••••••••"
@@ -1670,9 +1644,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
 
                       <div className="space-y-1.5">
                         <Label htmlFor="confirmNewPassword">Confirmer le nouveau mot de passe</Label>
-                        <Input
+                        <PasswordInput
                           id="confirmNewPassword"
-                          type="password"
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
                           placeholder="••••••••••••"
@@ -1766,9 +1739,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                   </AlertDialogHeader>
                   <div className="space-y-1.5">
                     <Label htmlFor="deletePassword">Mot de passe</Label>
-                    <Input
+                    <PasswordInput
                       id="deletePassword"
-                      type="password"
                       value={deletePassword}
                       onChange={(e) => setDeletePassword(e.target.value)}
                       autoComplete="current-password"
@@ -1794,6 +1766,41 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
           </Card>
         </div>
       </div>
+
+      {/* Confirmation d'annulation de rendez-vous */}
+      <AlertDialog open={!!appointmentToCancel} onOpenChange={(open) => !open && setAppointmentToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler ce rendez-vous ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {appointmentToCancel && (
+                <>
+                  Le rendez-vous du{" "}
+                  {new Date(appointmentToCancel.startsAt).toLocaleString("fr-FR", {
+                    dateStyle: "long",
+                    timeStyle: "short",
+                  })}{" "}
+                  pour {appointmentToCancel.service?.name ?? "ce service"} sera annulé et le créneau
+                  redeviendra disponible pour d&apos;autres habitants.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelingId !== null}>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelingId !== null}
+              onClick={(e) => {
+                e.preventDefault();
+                if (appointmentToCancel) handleCancelAppointment(appointmentToCancel.id);
+              }}
+            >
+              {cancelingId !== null ? "Annulation…" : "Confirmer l'annulation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

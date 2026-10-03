@@ -22,6 +22,30 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="size-4 text-primary" />
+              Gestion des comptes
+            </CardTitle>
+            <CardDescription>
+              Citoyens, agents et administrateurs : recherche, création, rôle et activation (D08, D09).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs font-semibold hover:border-primary/50 transition-colors"
+            >
+              <Users className="size-4 text-primary" />
+              <span>Ouvrir la gestion des comptes</span>
+              <ArrowRight className="size-3.5 text-muted-foreground" />
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-6">
         <TargetedAccountsCard />
       </div>
 

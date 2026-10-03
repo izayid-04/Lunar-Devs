@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import {
@@ -271,23 +272,19 @@ export default function ConnexionForm() {
                   </Label>
                   <span className="text-[11px] text-muted-foreground">Min. 8 caractères</span>
                 </div>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    aria-invalid={!!error}
-                    aria-describedby={error ? "connexion-error" : undefined}
-                    placeholder="••••••••"
-                    className="pl-9"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (error) setError(null);
-                    }}
-                  />
-                </div>
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "connexion-error" : undefined}
+                  placeholder="••••••••"
+                  startIcon={<Lock className="size-4" />}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
+                />
               </div>
 
               <Button type="submit" className="w-full gap-2 mt-2" disabled={submitting}>

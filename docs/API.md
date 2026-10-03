@@ -32,7 +32,7 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 | **Profil** | `PATCH /me` | `connecté` | **D12** | Mise à jour quartier, langue, vulnérabilité |
 | **Profil** | `PATCH /me/password` | `connecté` | **D03, F37** | Modification de mot de passe sécurisée avec audit |
 | **Profil** | `DELETE /me` | `connecté` | **F33** | Suppression définitive du compte avec mot de passe |
-| **Sécurité** | `GET /me/security` | `connecté` | **F37** | Audit des accès personnels et échecs récents |
+| **Sécurité** | `GET /me/security` | `connecté` | **F37, F54** | Audit des accès personnels, appareils connus et échecs récents |
 | **Sécurité** | `GET /agent/security/targeted-accounts` | `agent`, `admin` | **F37** | Comptes ciblés par tentatives frauduleuses (24h) |
 | **Rôles** | `GET /agent/ping` | `agent`, `admin` | **D09** | Vérification des privilèges agent / admin |
 | **Rôles** | `GET /admin/ping` | `admin` | **D09** | Vérification des privilèges administrateur |
@@ -43,6 +43,7 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
 | **Administration** | `PATCH /admin/users/:id/role` | `admin` | **D08, D09** | Modification de rôle (citoyen / agent / admin) |
 | **Administration** | `PATCH /admin/users/:id/status` | `admin` | **D08, D09** | Activation / désactivation de n'importe quel compte (sauf soi-même) |
 | **Messages** | `POST /messages` | `citizen` | **D04, F22, F25** | Dépôt d'une question ou d'un signalement |
+| **Messages** | `GET /messages/public` | `citizen` | **F52** | Liste publique des signalements des autres citoyens pour soutien |
 | **Messages** | `GET /messages/mine` | `citizen` | **F22** | Historique personnel des demandes |
 | **Messages** | `GET /messages/mine/:id` | `citizen` | **D11** | Détail d'une demande avec étapes de traitement |
 | **Messages** | `POST /messages/:id/support` | `citizen` | **F52** | Soutien citoyen ("upvote") à un signalement |
@@ -148,13 +149,22 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
   ```
 - **`429`** si la limite de débit est dépassée.
 
-### `GET /me/security` (F37)
+### `GET /me/security` (F37, F54)
 - **Rôle** : connecté (tout rôle).
-- **Réponse `200`** : audit de sécurité du citoyen connecté (dernière connexion réussie, échecs récents, historique des 10 dernières tentatives) :
+- **Réponse `200`** : audit de sécurité du citoyen connecté (dernière connexion réussie, appareils connus avec date/ip, échecs récents, historique des 10 dernières tentatives) :
   ```json
   {
     "lastLoginAt": "2026-10-03T12:00:00.000Z",
     "lastLoginIp": "192.168.1.1",
+    "devices": [
+      {
+        "id": 1,
+        "label": "Chrome sur Windows",
+        "firstSeenAt": "2026-10-03T10:00:00.000Z",
+        "lastSeenAt": "2026-10-03T12:00:00.000Z",
+        "lastIp": "192.168.1.1"
+      }
+    ],
     "recentFailures": [
       { "id": 14, "ip": "192.168.1.1", "date": "2026-10-03T11:58:00.000Z" }
     ],
@@ -163,6 +173,14 @@ Erreurs : toutes les erreurs suivent le format standard NestJS :
     ]
   }
   ```
+
+#### Notification de connexion depuis un nouvel appareil (F54)
+- À chaque connexion réussie (`POST /auth/login`), l'empreinte de l'user-agent est vérifiée.
+- Si l'appareil est déjà connu, `last_seen_at` et `last_ip` sont simplement mis à jour.
+- Si l'appareil est nouveau, il est enregistré et une **notification de sécurité** est immédiatement générée :
+  `Nouvelle connexion à votre compte depuis [libellé], le [date et heure]. Si ce n'est pas vous, changez immédiatement votre mot de passe.` avec lien direct vers `/me/security`.
+- Une entrée correspondante est également consignée dans le journal d'audit (`auth.new_device_login`).
+- Lors de l'inscription initiale (`POST /auth/register`), l'appareil est enregistré sans déclencher de notification.
 
 ### `GET /agent/security/targeted-accounts` (F37)
 - **Rôle** : `agent`, `admin`.
@@ -435,6 +453,32 @@ Un habitant envoie une question ou un signalement d'incident à un service de la
   ```
 - **`403`** pour `agent`/`admin` (route réservée aux citoyens). **`400`** si validation échoue (ex. catégorie inconnue ou champ manquant pour un signalement).
 
+### `GET /messages/public` (F52)
+- **Rôle** : `citizen`.
+- **Description** : Renvoie la liste de tous les signalements d'incidents publics déposés par les habitants afin de permettre le soutien communautaire ("upvoting"). **Aucune donnée personnelle de l'auteur n'est exposée** (anonymisation stricte).
+- **Réponse `200`** :
+  ```json
+  [
+    {
+      "id": 1,
+      "reference": "NT-0001",
+      "type": "signalement",
+      "subject": "Lampadaire défaillant",
+      "body": "Le lampadaire scintille...",
+      "category": "eclairage",
+      "district": "Port Stellaire",
+      "preciseLocation": "12 avenue de la Mer",
+      "status": "en_cours",
+      "supportCount": 4,
+      "supportedByMe": false,
+      "isMine": false,
+      "createdAt": "2026-10-03T12:00:00.000Z",
+      "updatedAt": "2026-10-03T12:00:00.000Z"
+    }
+  ]
+  ```
+- **`401`** sans token, **`403`** pour `agent`/`admin`.
+
 ### `GET /messages/mine`
 - **Rôle** : `citizen`.
 - **Réponse `200`** : liste des messages de l'habitant avec leur chronologie d'étapes (`history`), triés du plus récent au plus ancien.
@@ -467,14 +511,16 @@ Un habitant envoie une question ou un signalement d'incident à un service de la
 
 ### `POST /messages/:id/support` (F52)
 - **Rôle** : `citizen`.
-- **Description** : Permet à un habitant d'apporter son soutien (ou retirer son soutien en cliquant à nouveau, système toggle) à un signalement d'incident ou une question déposée.
-- **Réponse `200`** / **`201`** :
+- **Description** : Permet à un habitant d'apporter son soutien (ou retirer son soutien en cliquant à nouveau, système toggle) à un signalement d'incident déposé par un autre citoyen.
+- **Règle stricte** : Il est interdit de soutenir sa propre demande (**`400 Bad Request`** avec message *"Vous ne pouvez pas soutenir votre propre demande"*).
+- **Réponse `200`** :
   ```json
   {
     "supported": true,
     "supportCount": 4
   }
   ```
+- **`400`** si tentative de soutenir son propre signalement.
 - **`404`** si message non trouvé. **`401`** sans token.
 
 ### `GET /agent/messages?status=&type=&sort=`

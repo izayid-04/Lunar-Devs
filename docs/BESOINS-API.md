@@ -54,43 +54,43 @@ proposer cette fonction en attendant une route dédiée côté backend
 
 ## Écarts trouvés en vérifiant `docs/SCENARIOS.md` (2026-10-03)
 
-Confrontation du front au cahier de scénarios (section « Mon espace et
-mon profil », « Inscription et connexion », « Demandes et signalements »).
-Trois besoins n'ont **aucune route correspondante** dans `docs/API.md`,
-donc impossibles à construire côté front en attendant :
+### ✅ RÉSOLU — Changer son mot de passe
+`PATCH /me/password` existe maintenant et fonctionne exactement comme
+documenté (401 mot de passe actuel incorrect, 400 validation, 200 avec
+message de succès) — vérifié en direct contre la prod. Branché dans
+`/espace` (`lib/api.ts#changePassword`).
 
-- **Changer son mot de passe** (scénario « Sécurité », section 3) : pas
-  de route `PATCH /me/password` (ou équivalent) dans le contrat. Seul
-  `DELETE /me` accepte un mot de passe (pour confirmer la suppression),
-  rien pour le modifier.
-- **Notification de nouvelle connexion depuis un appareil inconnu**
-  (F54, section 2) : absent du code source backend (recherché dans
-  `notifications.service.ts` — seuls `alert`, `announcement`,
-  `appointment_reminder`, `demande_statut` génèrent des notifications).
-- **Soutenir le signalement d'un autre habitant** (F52, section 6) :
-  `GET /messages/mine` et `GET /messages/mine/:id` ne renvoient **que**
-  les messages du citoyen connecté (confirmé par le contrat : 404 si le
-  message "n'appartient pas au citoyen connecté"). Il n'existe aucune
-  route publique ou citoyenne listant les signalements des autres
-  habitants. `POST /messages/:id/support` ne peut donc s'exercer
-  aujourd'hui que sur ses **propres** demandes — ce qui contredit le
-  scénario ("impossible de soutenir sa propre demande"). Front corrigé
-  pour ne plus afficher de bouton de soutien actionnable sur
-  `/espace/demandes/[id]` (affiche seulement le compteur), en attendant
-  une route de découverte côté backend (ex. `GET /messages/public` ou
-  `GET /messages?status=&supported=`).
+### ✅ RÉSOLU — Soutenir le signalement d'un autre habitant (F52)
+`GET /messages/public` est désormais documentée dans `docs/API.md`
+(champs `supportCount`, `supportedByMe`, `isMine`). **Pas encore
+déployée en prod** au moment de ce test (`404 Cannot GET
+/messages/public` constaté en direct le 2026-10-04) — nouvelle page
+`/espace/signalements` déjà branchée dessus, affiche une erreur propre
+en attendant (pas de crash). Bouton « Soutenir » masqué et remplacé par
+« C'est votre signalement » quand `isMine` est vrai.
 
-Deux besoins sont réalisables **côté front seul**, sans route
-supplémentaire, en combinant des endpoints déjà disponibles — pas
-encore construits,à prioriser si le temps le permet :
+### Toujours bloqué — Notification de nouvelle connexion depuis un appareil inconnu (F54)
+Re-vérifié le 2026-10-04 dans le code source backend
+(`notifications.service.ts`) : toujours aucune notification de type
+« nouvelle connexion ». Inchangé depuis le dernier passage.
+
+### Nouveau — `PATCH /me` ne permet pas de modifier le prénom/nom
+Le scénario « Mon espace et mon profil » (section 3) attend de pouvoir
+modifier prénom, nom, quartier, langue et vulnérabilité. Le contrat
+actuel de `PATCH /me` n'accepte que `district`, `preferredLanguage` et
+`isVulnerable` — aucun champ pour `firstName`/`lastName`. Pas de route
+alternative trouvée. Le formulaire de profil ne peut donc proposer que
+ces trois champs en attendant une extension du contrat.
+
+### Nouveau — Pas de filtre sur « Mes demandes » (F26)
+Le scénario demande une liste de demandes « filtrable » par statut/type
+dans `/espace`. Ceci est réalisable **entièrement côté front**
+(les données sont déjà dans `GET /messages/mine`) — identifié mais pas
+encore construit, faute de temps avant le gel de ce soir.
+
+Deux besoins restent réalisables côté front seul, désormais construits :
 
 - **F55 / F56 — export de mes données et récapitulatif de mes
-  demandes** : toute la donnée existe déjà (`GET /me`, `GET
-  /messages/mine`, `GET /appointments/mine`, `GET
-  /privacy/inquiries/mine`) ; il suffit de l'agréger et de proposer un
-  téléchargement (texte/HTML lisible) côté client.
-- **Liste de démarrage pour un nouveau citoyen** (compléter profil /
-  trouver un service / envoyer une première demande, chaque étape
-  cochée automatiquement) : calculable à partir de
-  `user.profileCompleted`, `GET /messages/mine` et de l'historique de
-  navigation — pas de route backend nécessaire.
+  demandes** : fait, vérifié (voir `docs/DEMANDES.md`).
+- **Liste de démarrage pour un nouveau citoyen** : fait, avec un bug
+  corrigé ce soir (voir `docs/DEMANDES.md`).
