@@ -57,26 +57,23 @@ export default function DashboardLayout({
   const roleBadge = user?.role === "admin" ? (
     <Badge
       variant="outline"
-      className="hidden sm:inline-flex items-center gap-1 border-destructive/50 bg-destructive/10 text-destructive text-[11px] font-semibold"
+      className="border-destructive/60 bg-destructive/15 text-destructive text-xs font-semibold px-2 py-0.5"
     >
-      <ShieldCheck className="size-3" aria-hidden="true" />
-      <span>Admin</span>
+      Admin
     </Badge>
   ) : user?.role === "agent" ? (
     <Badge
       variant="outline"
-      className="hidden sm:inline-flex items-center gap-1 border-primary/50 bg-primary/10 text-primary text-[11px] font-semibold"
+      className="border-primary/60 bg-primary/15 text-primary text-xs font-semibold px-2 py-0.5"
     >
-      <Radio className="size-3" aria-hidden="true" />
-      <span>Agent</span>
+      Agent
     </Badge>
   ) : user?.role === "citizen" ? (
     <Badge
       variant="outline"
-      className="hidden sm:inline-flex items-center gap-1 border-border text-muted-foreground text-[11px]"
+      className="border-border bg-muted/40 text-muted-foreground text-xs font-medium px-2 py-0.5"
     >
-      <User className="size-3" aria-hidden="true" />
-      <span>Citoyen</span>
+      Citoyen
     </Badge>
   ) : null
 
