@@ -183,4 +183,38 @@ Panneau d'accessibilité accessible partout via l'icône oeil dans le dock flott
 6. **D20 (Parcours complet)** :
    - Inscription d'un citoyen sur `/inscription` → Connexion sur `/connexion` → Envoi d'un message municipal dans `/espace` → Suivi de la référence dans « Mes demandes » → Déconnexion via le dock. Tout fonctionne sur l'interface principale standard sans mode séparé.
 
+## Alertes et Notifications municipales (D18, F29, F30, F31 — 3 080 XP)
+
+| Code | Besoin | Pages / fichiers concernés | Statut |
+| ---- | ------ | --------------------------- | ------ |
+| **D18** | Bandeau d'alerte global visible sur toutes les pages, différencié selon la gravité (`info`, `important`, `urgent`), avec consignes « quoi faire ». | `components/alert-banner.tsx`, `lib/alerts.ts`, `app/layout.tsx`, `components/dashboard-layout.tsx` | ✅ Fait |
+| **F29** | Page publique d'historique des alertes avec distinction actives / passées et détail complet d'une alerte avec consignes. | `app/alertes/page.tsx`, `app/alertes/[id]/page.tsx` | ✅ Fait |
+| **F30** | Cloche de notifications avec compteur non lues en temps réel, menu déroulant, lien direct vers la ressource et marquage individuel comme lu. | `components/notification-bell.tsx`, `components/dashboard-layout.tsx`, `lib/api.ts` (`fetchNotifications`, `markNotificationAsRead`) | ✅ Fait |
+| **F31** | Espace agents : déclenchement, ciblage (tous, quartier, vulnérables), modification et clôture d'alertes. Assistant IA pour générer des recommandations/instructions modifiables avant publication avec états d'erreur clairs. | `app/agent/alertes/page.tsx`, `lib/api.ts` (`generateAiAlertRecommendations`, `createAlert`, `patchAlert`, `terminateAlert`) | ✅ Fait |
+| **F26/D06** | Option « Annonce importante » (`isImportant`) dans le formulaire d'annonce pour déclencher automatiquement des notifications citoyennes. | `app/agent/annonces/page.tsx`, `app/annonces/page.tsx`, `lib/api.ts` | ✅ Fait |
+
+### Comment tester les Alertes & Notifications :
+1. **Bandeau d'alerte global (D18)** :
+   - Visible en haut de toutes les pages publiques et dans le tableau de bord (`DashboardLayout`).
+   - Sévérité visuelle adaptée (bleu/accent pour `info`, orange/ambre pour `important`, rouge destructif pour `urgent`).
+   - Les alertes urgentes utilisent `role="alert"` pour les lecteurs d'écran et ne peuvent pas être masquées.
+   - Les alertes d'info ou importantes disposent d'un bouton de fermeture temporaire par session.
+2. **Cloche de notifications (F30)** :
+   - Située dans l'en-tête du tableau de bord connecté.
+   - Affiche le nombre de notifications non lues en badge rouge contrasté avec `aria-label` descriptif.
+   - Clic sur la coche pour marquer comme lu (`PATCH /notifications/:id/read`).
+3. **Page publique des alertes (F29)** :
+   - Accessible via le dock public (`/alertes`) et le menu latéral.
+   - Sépare clairement les alertes en cours et l'historique des alertes clôturées.
+   - Page dédiée par alerte `/alertes/[id]` avec fil d'Ariane et encadré dédié pour les instructions.
+4. **Espace agent & Recommandations IA (F31)** :
+   - Rendez-vous sur `/agent/alertes` (avec un compte agent ou admin).
+   - Cliquer sur « Déclencher une alerte », renseigner une situation, puis cliquer sur « Générer des recommandations (IA) ».
+   - L'appel `POST /agent/alerts/ai-recommendations` pré-remplit les consignes. L'agent peut relire, éditer et ajuster avant de publier.
+   - En cas d'indisponibilité ou timeout de l'IA (codes 502, 503, 504), un message clair s'affiche sans bloquer la saisie manuelle.
+   - Bouton « Clôturer » pour clore prématurément une alerte active via `PATCH /alerts/:id/terminate`.
+5. **Annonce importante (isImportant)** :
+   - Dans `/agent/annonces`, cocher la case « Annonce importante » lors de la création ou modification d'une annonce.
+
+
 
