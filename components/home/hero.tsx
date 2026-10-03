@@ -3,38 +3,38 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { NumberTicker } from "@/components/ui/number-ticker";
-import Skyline from "@/components/home/skyline";
 import Reveal from "@/components/home/reveal";
-import { MapPin, Users, Gauge, Clock } from "lucide-react";
+import HeroCockpitPreview from "@/components/home/hero-cockpit-preview";
 
 export default function Hero() {
   const { user, loading } = useAuth();
 
   return (
-    <section className="border-b border-border px-6 py-20 sm:py-28">
-      <Reveal className="mx-auto max-w-2xl text-center">
+    <section className="relative overflow-hidden border-b border-border px-6 pt-20 pb-16 sm:pt-28 sm:pb-24">
+      <Reveal className="mx-auto max-w-3xl text-center">
         <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Ville de Nova Terra
+          Cité Spatiale de Nova Terra
         </p>
-        <h1 className="mt-3">Les services de la ville, en un seul endroit</h1>
-        <p className="mt-4 text-muted-foreground">
-          Créez votre compte habitant pour accéder à votre espace personnel
-          et suivre vos démarches auprès des services municipaux.
+        <h1 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+          Les services de la ville, en un seul endroit
+        </h1>
+        <p className="mt-4 text-base text-muted-foreground sm:text-lg max-w-2xl mx-auto">
+          Créez votre passeport habitant pour accéder à votre cockpit personnel,
+          suivre vos démarches et piloter vos accès aux dômes en temps réel.
         </p>
 
         {!loading && (
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {user ? (
-              <Button asChild>
+              <Button asChild size="lg">
                 <Link href="/dashboard">Accéder au Cockpit Urbain</Link>
               </Button>
             ) : (
               <>
-                <Button asChild>
-                  <Link href="/inscription">Créer un compte</Link>
+                <Button asChild size="lg">
+                  <Link href="/inscription">Créer mon passeport résident</Link>
                 </Button>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" size="lg">
                   <Link href="/connexion">Connexion</Link>
                 </Button>
               </>
@@ -43,42 +43,10 @@ export default function Hero() {
         )}
       </Reveal>
 
-      <Reveal delay={0.1}>
-        <Skyline className="mx-auto mt-16 w-full max-w-xl" />
+      {/* Remplacement des stats basiques par la Console Cockpit 3D Interactive */}
+      <Reveal delay={0.15}>
+        <HeroCockpitPreview />
       </Reveal>
-
-      <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-2 gap-6 sm:grid-cols-4">
-        <Stat icon={MapPin} value={6} label="Quartiers" />
-        <Stat icon={Users} value={3} label="Profils" />
-        <Stat icon={Clock} value={24} suffix="/7" label="Accès à l'espace" />
-        <Stat icon={Gauge} value={100} suffix="%" label="Auto-hébergé" />
-      </dl>
     </section>
-  );
-}
-
-function Stat({
-  icon: Icon,
-  value,
-  suffix,
-  label,
-}: {
-  icon: typeof MapPin;
-  value: number;
-  suffix?: string;
-  label: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-      <p className="text-h2 font-semibold text-foreground dark:text-foreground">
-        <NumberTicker
-          value={value}
-          className="text-foreground dark:text-foreground"
-        />
-        {suffix}
-      </p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
   );
 }
