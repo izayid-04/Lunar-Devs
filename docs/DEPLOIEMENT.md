@@ -92,6 +92,14 @@ actuellement). À vérifier avec un premier déploiement de test ; si besoin,
 soit générer et committer un `package-lock.json`, soit voir si Hodifly permet
 de choisir `pnpm` comme gestionnaire de paquets.
 
+ℹ️ `shadcn` et `tw-animate-css` sont volontairement en `dependencies` (pas
+`devDependencies`) dans `package.json` — `app/globals.css` importe
+`shadcn/tailwind.css` au moment du `next build`. Si l'installation en
+production tourne avec `npm ci --omit=dev` ou `NODE_ENV=production npm
+install` (courant sur ce genre d'hébergement), des `devDependencies`
+seraient ignorées et le build échouerait. Ne pas les déplacer vers
+`devDependencies` même si un linter le suggère.
+
 ## Piège Passenger + ESM (concerne l'API NestJS, pas ce dépôt front)
 
 Ce piège a été rencontré en déployant l'**API NestJS** (dépôt séparé) sur
@@ -124,6 +132,27 @@ Si un jour ce front redevient concerné (par ex. si on doit réintroduire un
 serveur personnalisé), la même règle que côté API s'appliquerait : fichier
 `.cjs`, uniquement `require(...)`, et `app.prepare()` enchaîné avec
 `.then(...)/.catch(...)` plutôt qu'un `await` au niveau racine.
+
+## Dépendance réseau au build (polices)
+
+`next/font/google` télécharge normalement les fichiers de police depuis
+Google au moment du `next build` (le résultat est ensuite auto-hébergé,
+mais ce téléchargement initial a besoin du réseau). Une coupure ponctuelle
+vers `fonts.googleapis.com` a fait échouer un build dans cet environnement
+de développement avec :
+
+```
+Error: next/font: error: Failed to fetch Orbitron from Google Fonts.
+```
+
+Correction : la police de titres (Orbitron) est maintenant vendorée dans
+`app/fonts/` et chargée via `next/font/local` — plus aucune requête réseau
+au build pour elle. Geist (texte courant) reste sur `next/font/google` sans
+risque équivalent : Next.js la vendore directement dans son propre paquet,
+elle n'est jamais récupérée depuis Google. Si une police supplémentaire
+est ajoutée plus tard via `next/font/google`, préférer le même traitement
+(télécharger une fois, vendorer, charger en local) plutôt que de dépendre
+du réseau à chaque build sur Hodifly.
 
 ## Variables d'environnement en local
 

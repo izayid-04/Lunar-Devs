@@ -1,17 +1,30 @@
-# Lunar Devs
+# Nova Terra
 
-Squelette technique pour le **Webcup Comores** (hackathon 24h, 3-4 octobre
-2026) — équipe **Lunar Devs**.
+Front Next.js de la plateforme numérique de la ville de **Nova Terra**,
+construit pendant le **Webcup Comores** (hackathon 24h, 3-4 octobre 2026)
+par l'équipe **Lunar Devs**.
 
-Le règlement de l'événement interdit de coder l'application du sujet avant
-le lancement du hackathon. Ce dépôt ne contient donc **volontairement pas**
-d'application : juste un socle Next.js prêt à déployer, avec une page de
-test qui valide la chaîne front ↔ API ↔ hébergement avant le top départ.
+## Fonctionnalités (Bloc 1 — Socle)
+
+- Inscription (`/inscription`) et connexion (`/connexion`) d'un compte
+  habitant, avec validation de formulaire et messages d'erreur clairs.
+- Espace personnel (`/espace`) : accueil personnalisé avec le nom de
+  l'habitant connecté.
+- Rôles `citizen` / `agent` / `admin` : navigation adaptée au rôle, pages
+  `/agent` et `/admin` protégées côté front (redirection si le rôle ne
+  convient pas — la vraie protection reste côté API).
+- Gestion du jeton (stocké côté client) et déconnexion.
+
+Détail code de demande → page concernée dans
+[`docs/DEMANDES.md`](docs/DEMANDES.md).
 
 ## Stack
 
 - [Next.js 16](https://nextjs.org) (App Router, TypeScript)
-- [Tailwind CSS 4](https://tailwindcss.com)
+- [Tailwind CSS 4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com)
+  pour les composants de base (bouton, champ, carte, badge…), thémés en
+  "ville spatiale" — voir [`docs/DESIGN.md`](docs/DESIGN.md)
+- Mode clair/sombre avec bouton de bascule ([next-themes](https://github.com/pacocoursey/next-themes))
 - Déployé sur cPanel/Hodifly en mode `next start` standard (mode
   `standalone` généré automatiquement par Hodifly — pas de serveur
   personnalisé côté front, voir `docs/DEPLOIEMENT.md`)
@@ -52,6 +65,10 @@ test post-déploiement sont documentées dans
 
 ## Éco-conception
 
-Le projet vise un score Ecoindex correct : pas de dépendance front lourde,
-pas d'image ni de police chargée à distance au runtime, un seul appel réseau
-sur la page de test.
+Le projet vise un score Ecoindex correct : pas d'image ni de vidéo (logo et
+fond étoilé en CSS/SVG), polices auto-hébergées (aucune requête runtime),
+formulaires en React simple (pas de `react-hook-form`/`zod`). Seule entorse
+volontaire à "pas de bibliothèque" : shadcn/ui (Radix + quelques
+utilitaires CSS) pour éviter de réinventer des composants accessibles —
+demande explicite de l'équipe, et ça reste nettement plus léger qu'une
+librairie de composants complète (MUI, Ant Design…).

@@ -1,26 +1,253 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* Direction artistique "Nova Terra" : ville spatiale sobre.
+   Sombre = identité principale (fond spatial, cyan néon). Clair = variante
+   diurne qui garde les mêmes accents. Le mode est piloté par next-themes
+   via la classe .dark sur <html> (pas par prefers-color-scheme directement :
+   next-themes s'en sert pour le choix par défaut, mais le rendu est piloté
+   par la classe pour permettre le bouton clair/sombre explicite). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f5fc;
+  --foreground: #0b0f1f;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-foreground: var(--foreground);
+  --popover: rgba(255, 255, 255, 0.96);
+  --popover-foreground: var(--foreground);
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --secondary: #e7e9f6;
+  --secondary-foreground: #1b2140;
+  --muted: #e9ebf5;
+  --muted-foreground: #5b6478;
+  --accent: #e0f7fb;
+  --accent-foreground: #0b4a56;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: rgba(15, 23, 42, 0.12);
+  --input: rgba(15, 23, 42, 0.16);
+  --ring: #4338ca;
+  --radius: 0.75rem;
+
+  /* Accents de marque, constants d'identité dans les deux modes. */
+  --nova: #4338ca;
+  --nova-2: #0891b2;
+  --success: #15803d;
+  --warning: #b45309;
+
+  /* Champ d'étoiles / halos : éteints de jour. */
+  --starfield-opacity: 0;
+  --halo-1: rgba(67, 56, 202, 0.05);
+  --halo-2: rgba(8, 145, 178, 0.05);
+
+  /* Accents des 6 quartiers de la carte interactive — mêmes teintes dans
+     les deux modes, assombries en clair pour rester lisibles. */
+  --district-1: #0891b2;
+  --district-2: #4338ca;
+  --district-3: #047857;
+  --district-4: #db2777;
+  --district-5: #b45309;
+  --district-6: #6d28d9;
+}
+
+.dark {
+  --background: #05060f;
+  --foreground: #eef1fb;
+  --card: rgba(255, 255, 255, 0.045);
+  --card-foreground: var(--foreground);
+  --popover: rgba(10, 13, 28, 0.92);
+  --popover-foreground: var(--foreground);
+  --primary: #22d3ee;
+  --primary-foreground: #04131a;
+  --secondary: #1b2454;
+  --secondary-foreground: #e6e9f5;
+  --muted: #141a33;
+  --muted-foreground: #9aa3c4;
+  --accent: #241a52;
+  --accent-foreground: #e6e9f5;
+  --destructive: #f43f5e;
+  --destructive-foreground: #fff1f2;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.16);
+  --ring: #22d3ee;
+
+  --nova: #a5b4fc;
+  --nova-2: #22d3ee;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --starfield-opacity: 1;
+  --halo-1: rgba(34, 211, 238, 0.16);
+  --halo-2: rgba(139, 92, 246, 0.16);
+
+  --district-1: #22d3ee;
+  --district-2: #818cf8;
+  --district-3: #34d399;
+  --district-4: #f472b6;
+  --district-5: #fbbf24;
+  --district-6: #a78bfa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-nova: var(--nova);
+  --color-nova-2: var(--nova-2);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --font-heading: var(--font-orbitron);
+  --animate-orbit: orbit calc(var(--duration)*1s) linear infinite;
+  --animate-meteor: meteor 5s linear infinite;
+  @keyframes orbit {
+  0% {
+    transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg));
+    }
+  100% {
+    transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg));
+    }
+  }
+  @keyframes meteor {
+  0% {
+    transform: rotate(var(--angle)) translateX(0);
+    opacity: 1;
+    }
+  70% {
+    opacity: 1;
+    }
+  100% {
+    transform: rotate(var(--angle)) translateX(-500px);
+    opacity: 0;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    position: relative;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-wide;
+  }
+
+  /* Tailwind ne met pas cursor:pointer sur les boutons par défaut — on le
+     fixe une fois ici plutôt que de le répéter sur chaque composant. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Champ d'étoiles (grille de points tuilée, pas d'image/JS) + halos
+     de nébuleuse discrets derrière le contenu. Désactivés en mode clair
+     via --starfield-opacity. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -5%;
+    z-index: -2;
+    pointer-events: none;
+    opacity: var(--starfield-opacity);
+    background-image: radial-gradient(
+        1.3px 1.3px at 20px 30px,
+        rgba(255, 255, 255, 0.9),
+        transparent 60%
+      ),
+      radial-gradient(1px 1px at 90px 80px, rgba(255, 255, 255, 0.7), transparent 60%),
+      radial-gradient(
+        1.1px 1.1px at 150px 20px,
+        rgba(255, 255, 255, 0.8),
+        transparent 60%
+      ),
+      radial-gradient(0.8px 0.8px at 60px 160px, rgba(255, 255, 255, 0.55), transparent 60%),
+      radial-gradient(
+        1px 1px at 190px 140px,
+        rgba(255, 255, 255, 0.65),
+        transparent 60%
+      );
+    background-size: 220px 220px;
+    background-repeat: repeat;
+    transition: opacity 0.4s ease;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    pointer-events: none;
+    background: radial-gradient(600px circle at 12% 8%, var(--halo-1), transparent 60%),
+      radial-gradient(700px circle at 88% 92%, var(--halo-2), transparent 60%);
+    transition: background-color 0.4s ease;
+  }
+}
+
+/* Panneaux "interface de vaisseau" : verre dépoli + fine bordure lumineuse,
+   appliqué à toutes les Card shadcn sans toucher à leur code source. */
+[data-slot="card"] {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 0 1px var(--border), 0 20px 50px -24px rgba(0, 0, 0, 0.45);
+}
+
+/* Halo discret sur l'action principale de chaque page. */
+[data-slot="button"][data-variant="default"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 0 20px -4px var(--primary);
+}
+[data-slot="button"][data-variant="default"]:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent),
+    0 0 28px -4px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
