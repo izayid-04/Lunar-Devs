@@ -94,6 +94,42 @@ function DockItem({ item, active }: { item: Item; active: boolean }) {
   );
 }
 
+// Liste verticale des items de navigation, utilisée dans le volet mobile
+// (Sheet) aussi bien hors tableau de bord que dans le tableau de bord —
+// un menu horizontal de 9-10 icônes ne tient pas sur un écran de téléphone.
+function MobileNavItems({ items, pathname }: { items: Item[]; pathname: string }) {
+  return (
+    <>
+      {items.map((item) => {
+        const active = !!item.href && pathname === item.href;
+        const itemClassName = cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+        );
+        return item.href ? (
+          <SheetClose key={item.label} asChild>
+            <Link href={item.href} className={itemClassName} aria-current={active ? "page" : undefined}>
+              <item.icon className="size-[18px]" aria-hidden="true" />
+              {item.label}
+            </Link>
+          </SheetClose>
+        ) : (
+          <SheetClose key={item.label} asChild>
+            <button type="button" onClick={item.onClick} className={itemClassName}>
+              <item.icon className="size-[18px]" aria-hidden="true" />
+              {item.label}
+            </button>
+          </SheetClose>
+        );
+      })}
+      <div className="mt-2 flex items-center gap-2 border-t border-border pt-3">
+        <AccessibilityPanel />
+        <ModeToggle />
+      </div>
+    </>
+  );
+}
+
 export default function DockNav() {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
@@ -138,56 +174,84 @@ export default function DockNav() {
     }
   }
 
-  // CAS DASHBOARD : mini-bouton rétractable avec flèche
+  // CAS DASHBOARD : sur mobile, un bouton fixé en bas ouvre un volet
+  // vertical (le dock horizontal de 9-10 icônes déborde sur un écran de
+  // téléphone) ; sur tablette/desktop, mini-bouton rétractable habituel.
   if (isInsideDashboard) {
     return (
-      <aside
-        aria-label="Navigation rapide"
-        className="fixed inset-x-0 bottom-4 z-50 flex flex-col items-center pointer-events-none"
-      >
-        <AnimatePresence>
-          {isExpandedInDashboard && (
-            <motion.div
-              initial={{ opacity: 0, y: 15, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 15, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="pointer-events-auto mb-2 flex items-center gap-1 rounded-full border border-border bg-card/95 p-1.5 shadow-2xl backdrop-blur-md"
-            >
-              {items.map((item) => (
-                <DockItem
-                  key={item.label}
-                  item={item}
-                  active={!!item.href && pathname === item.href}
-                />
-              ))}
-              <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-              <AccessibilityPanel />
-              <ModeToggle />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <>
+        {/* Mobile (< sm) : bouton en bas, volet vertical */}
+        <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center sm:hidden">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur-md transition-all hover:bg-card hover:text-foreground hover:border-primary/50"
+              >
+                <Menu className="size-3.5 text-primary" aria-hidden="true" />
+                <span>Menu</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Navigation</SheetTitle>
+              </SheetHeader>
+              <nav aria-label="Navigation rapide" className="flex flex-col gap-1 px-4 pb-4">
+                <MobileNavItems items={items} pathname={pathname} />
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
 
-        {/* Bouton flèche flottant pour ouvrir / fermer le menu */}
-        <button
-          type="button"
-          onClick={() => setIsExpandedInDashboard((prev) => !prev)}
-          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur-md transition-all hover:bg-card hover:text-foreground hover:border-primary/50 group"
-          title={isExpandedInDashboard ? "Replier le menu" : "Afficher le menu de navigation"}
+        {/* Tablette/desktop (≥ sm) : mini-bouton rétractable avec flèche */}
+        <aside
+          aria-label="Navigation rapide"
+          className="fixed inset-x-0 bottom-4 z-50 hidden flex-col items-center pointer-events-none sm:flex"
         >
-          {isExpandedInDashboard ? (
-            <>
-              <ChevronDown className="size-3.5 text-primary transition-transform group-hover:translate-y-0.5" />
-              <span>Masquer</span>
-            </>
-          ) : (
-            <>
-              <ChevronUp className="size-3.5 text-primary transition-transform group-hover:-translate-y-0.5" />
-              <span>Menu</span>
-            </>
-          )}
-        </button>
-      </aside>
+          <AnimatePresence>
+            {isExpandedInDashboard && (
+              <motion.div
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="pointer-events-auto mb-2 flex items-center gap-1 rounded-full border border-border bg-card/95 p-1.5 shadow-2xl backdrop-blur-md"
+              >
+                {items.map((item) => (
+                  <DockItem
+                    key={item.label}
+                    item={item}
+                    active={!!item.href && pathname === item.href}
+                  />
+                ))}
+                <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+                <AccessibilityPanel />
+                <ModeToggle />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Bouton flèche flottant pour ouvrir / fermer le menu */}
+          <button
+            type="button"
+            onClick={() => setIsExpandedInDashboard((prev) => !prev)}
+            className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur-md transition-all hover:bg-card hover:text-foreground hover:border-primary/50 group"
+            title={isExpandedInDashboard ? "Replier le menu" : "Afficher le menu de navigation"}
+          >
+            {isExpandedInDashboard ? (
+              <>
+                <ChevronDown className="size-3.5 text-primary transition-transform group-hover:translate-y-0.5" />
+                <span>Masquer</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp className="size-3.5 text-primary transition-transform group-hover:-translate-y-0.5" />
+                <span>Menu</span>
+              </>
+            )}
+          </button>
+        </aside>
+      </>
     );
   }
 
@@ -223,34 +287,7 @@ export default function DockNav() {
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
             <nav aria-label="Navigation principale" className="flex flex-col gap-1 px-4 pb-4">
-              {items.map((item) => {
-                const active = !!item.href && pathname === item.href;
-                const itemClassName = cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted"
-                );
-                return item.href ? (
-                  <SheetClose key={item.label} asChild>
-                    <Link href={item.href} className={itemClassName} aria-current={active ? "page" : undefined}>
-                      <item.icon className="size-[18px]" aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  </SheetClose>
-                ) : (
-                  <SheetClose key={item.label} asChild>
-                    <button type="button" onClick={item.onClick} className={itemClassName}>
-                      <item.icon className="size-[18px]" aria-hidden="true" />
-                      {item.label}
-                    </button>
-                  </SheetClose>
-                );
-              })}
-              <div className="mt-2 flex items-center gap-2 border-t border-border pt-3">
-                <AccessibilityPanel />
-                <ModeToggle />
-              </div>
+              <MobileNavItems items={items} pathname={pathname} />
             </nav>
           </SheetContent>
         </Sheet>

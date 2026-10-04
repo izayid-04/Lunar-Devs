@@ -29,22 +29,27 @@ Ce document décrit l'ensemble des mesures de renforcement de sécurité mises e
     ```
   - Requête depuis un domaine pirate :
     ```bash
-    curl -H "Origin: https://evil-site.com" -I http://localhost:3000/health
-    # Réponse : Origin https://evil-site.com not allowed by CORS (ou blocage préventif)
+    curl -H "Origin: https://evil-site.com" http://localhost:3000/health
+    # Réponse : 500, message générique (masqué par le GlobalExceptionFilter,
+    # section 5) — la requête est bien bloquée, sans en-tête
+    # access-control-allow-origin ; un navigateur rejette alors la réponse
+    # côté client quel que soit le code HTTP renvoyé.
     ```
 
 ---
 
-## 3. Validation des requêtes et rejet des données superflues (`ValidationPipe`)
+## 3. Rejet silencieux des champs superflus (`ValidationPipe` whitelist)
 - **Ce qu'elle protège** :
-  - Protection contre les injections de champs non prévus (**mass assignment**) : `whitelist: true` et `forbidNonWhitelisted: true`.
-  - Empêche un utilisateur malveillant de s'attribuer un rôle lors de l'inscription (`POST /auth/register` rejettera toute tentative d'envoyer `{ role: "admin" }` avec un code `400 Bad Request`).
+  - Protection contre les injections de champs non prévus (**mass assignment**) : `whitelist: true` supprime silencieusement tout champ du corps de requête qui n'est pas déclaré dans le DTO avant qu'il n'atteigne le service.
+  - Empêche par exemple un utilisateur malveillant de s'attribuer un rôle lors de l'inscription : un champ `role` envoyé sur `POST /auth/register` est simplement ignoré, jamais transmis au service.
+  - `forbidNonWhitelisted` (qui ferait échouer la requête avec `400` au lieu d'ignorer le champ) a été **volontairement omis** : à quelques heures de la fin du hackathon, le risque qu'un appel du front envoie un champ superflu légitime (et se voie bloqué entièrement) dépasse le bénéfice sécurité, alors que `whitelist` seul neutralise déjà le risque de mass assignment.
 - **Comment la vérifier** :
   ```bash
   curl -X POST http://localhost:3000/auth/register \
     -H "Content-Type: application/json" \
-    -d '{"email":"test@nova.local","password":"Password123!","firstName":"Test","lastName":"User","hackedField":true}'
-  # Doit répondre : 400 Bad Request (property hackedField should not exist)
+    -d '{"email":"test@nova.local","password":"Password123!","firstName":"Test","lastName":"User","role":"admin"}'
+  # Doit répondre 201 (inscription réussie) avec un rôle "citizen" dans la
+  # réponse — le champ "role" envoyé est ignoré, pas appliqué.
   ```
 
 ---
@@ -53,7 +58,7 @@ Ce document décrit l'ensemble des mesures de renforcement de sécurité mises e
 - **Ce qu'elle protège** :
   - Protection contre les dénis de service (**DoS**) par saturation de mémoire : les requêtes JSON et formulaires URL-encoded sont limitées à **2 Mo** (`express.json({ limit: '2mb' })`).
 - **Comment la vérifier** :
-  - L'envoi d'un corps de requête dépassant 2 Mo est automatiquement rejeté avec le statut HTTP `413 Payload Too Large`.
+  - L'envoi d'un corps de requête dépassant 2 Mo est automatiquement rejeté avant d'atteindre un contrôleur (réponse `500` au message générique, masquée par le `GlobalExceptionFilter` — voir section 5 ; le corps n'est jamais traité ni stocké).
 
 ---
 
@@ -90,3 +95,47 @@ Ce document décrit l'ensemble des mesures de renforcement de sécurité mises e
   - Durée de session de 8 heures (`expiresIn: '8h'`) permettant le confort d'évaluation pour le jury et les agents tout en limitant la fenêtre d'exposition en cas de compromission de jeton.
 - **Comment la vérifier** :
   - Se connecter via `POST /auth/login` et décoder le JWT retourné (ex. via `jwt.decode` ou inspecteur de token) : le champ `exp - iat` vaut exactement 28 800 secondes (8 heures).
+
+---
+
+## 8. Cache mémoire de 60 secondes sur les lectures publiques (F77)
+- **Ce qu'elle protège** :
+  - Protège la base de données et les ressources de l'application contre les pics de charge et les attaques par déni de service (DDoS) sur les consultations de données statiques ou peu volatiles.
+  - Endpoints couverts : `/services`, `/announcements`, `/alerts/active`, `/transports`, `/partners`, `/projects`.
+  - Durée : 60 secondes en mémoire (`HttpCacheInterceptor`).
+  - En-tête HTTP retourné : `X-Cache: HIT` avec `X-Cache-Age: Xs` lors d'un coup réussi, et `X-Cache: MISS` lors de la mise en cache initiale.
+- **Comment la vérifier** :
+  - Effectuer deux requêtes successives sur `GET /services` : la première produit `X-Cache: MISS`, la seconde renvoie instantanément `X-Cache: HIT`.
+
+---
+
+## 9. Compression des réponses HTTP (F78)
+- **Ce qu'elle protège** :
+  - Réduit la consommation de bande passante et accélère le temps de transfert des données vers les clients (`gzip` / `deflate` via `compression`).
+  - Protège l'infrastructure réseau contre la saturation par de gros flux de données JSON.
+- **Comment la vérifier** :
+  - Lancer une requête avec l'en-tête `Accept-Encoding: gzip` :
+    ```bash
+    curl -H "Accept-Encoding: gzip" -I http://localhost:3000/services
+    ```
+  - Vérifier la présence de l'en-tête `Content-Encoding: gzip`.
+
+---
+
+## 10. Piège Honeypot et protection anti-spam (F81 & F82)
+- **Ce qu'elle protège** :
+  - **Champ piège `website` (F81)** : accepté par les formulaires publics (`messages`, `ideas`, `feedback`, `register`). Si un robot malveillant remplit ce champ invisible, l'API renvoie un code 201 factice sans rien enregistrer en base de données.
+  - **Déduplication anti-spam (F82)** : un message identique (même auteur, même contenu) envoyé moins de 60 secondes après le précédent est immédiatement refusé avec une erreur `409 Conflict`.
+  - **Rate limit renforcé** : limitation stricte à 5 soumissions par minute par adresse IP sur les formulaires de dépôt public.
+- **Comment la vérifier** :
+  - Tenter de renvoyer le même message dans la minute : l'API répond `409 Conflict`.
+  - Envoyer un formulaire avec `"website": "http://spam.bot"` : l'API renvoie `201 Created` sans créer d'enregistrement.
+
+---
+
+## 11. Gestion des urgences médicales et priorisation (F80 & F86)
+- **Ce qu'elle protège** :
+  - **Priorité paramétrable (F80)** : `normale`, `haute`, `urgente` filtrable et triable par les agents municipaux (`?sort=priority`).
+  - **Urgence médicale automatique (F86)** : lorsqu'un citoyen coche l'urgence médicale, la priorité est automatiquement assignée à `"urgente"`, une alerte immédiate est transmise à tous les agents et administrateurs, et la réponse HTTP inclut les consignes d'urgence vitales (appel 15 / SAMU).
+- **Comment la vérifier** :
+  - Créer un message avec `"isMedicalEmergency": true` : constater le statut `201`, la priorité `urgente`, la présence de `emergencyInstructions` et la notification reçue par les agents.

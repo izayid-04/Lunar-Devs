@@ -1,8 +1,6 @@
 import Link from "next/link"
 import { Icons } from "@/components/ui/icons"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Siren } from "lucide-react"
 
 function StackedCircularFooter() {
   return (
@@ -35,50 +33,13 @@ function StackedCircularFooter() {
               Inscription
             </Link>
           </nav>
-          <div className="mb-8 flex space-x-4">
-            <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="#" aria-label="Facebook">
-                <Icons.facebook className="h-4 w-4" />
-                <span className="sr-only">Facebook</span>
-              </a>
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="#" aria-label="Twitter">
-                <Icons.twitter className="h-4 w-4" />
-                <span className="sr-only">Twitter</span>
-              </a>
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="#" aria-label="Instagram">
-                <Icons.instagram className="h-4 w-4" />
-                <span className="sr-only">Instagram</span>
-              </a>
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full" asChild>
-              <a href="#" aria-label="LinkedIn">
-                <Icons.linkedin className="h-4 w-4" />
-                <span className="sr-only">LinkedIn</span>
-              </a>
-            </Button>
-          </div>
-          <div className="mb-8 w-full max-w-md">
-            <form onSubmit={(e) => e.preventDefault()} className="flex space-x-2">
-              <div className="flex-grow">
-                <Label htmlFor="footer-email" className="sr-only">
-                  Email
-                </Label>
-                <Input
-                  id="footer-email"
-                  placeholder="exemple@domaine.com"
-                  type="email"
-                  className="rounded-full"
-                />
-              </div>
-              <Button type="submit" className="rounded-full">
-                S&apos;abonner
-              </Button>
-            </form>
-          </div>
+          <Link
+            href="/alertes"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/10"
+          >
+            <Siren className="size-4" />
+            Rester informé — Alertes et annonces
+          </Link>
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
               © 2026 Nova Terra • Équipe Lunar Devs. Tous droits réservés.
@@ -91,3 +52,4 @@ function StackedCircularFooter() {
 }
 
 export { StackedCircularFooter }
+

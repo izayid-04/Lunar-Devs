@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { Lightbulb, Plus, PartyPopper, MapPin, Send } from "lucide-react";
+import { HoneypotField } from "@/components/ui/honeypot-field";
 import { toast } from "sonner";
 
 const STATUS_LABEL: Record<IdeaStatus, string> = {
@@ -216,6 +217,7 @@ function IdeesContent() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <HoneypotField />
                   <DialogFooter className="pt-2">
                     <Button type="submit" className="w-full gap-2" disabled={submitting}>
                       <Send className="size-4" />

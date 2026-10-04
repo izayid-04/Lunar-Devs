@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Image from "next/image";
+import { HoneypotField } from "@/components/ui/honeypot-field";
 import { Badge } from "@/components/ui/badge";
 
 export default function ConnexionForm() {
@@ -286,6 +287,8 @@ export default function ConnexionForm() {
                   }}
                 />
               </div>
+
+              <HoneypotField />
 
               <Button type="submit" className="w-full gap-2 mt-2" disabled={submitting}>
                 {submitting ? (

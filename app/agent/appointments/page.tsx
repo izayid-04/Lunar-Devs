@@ -39,6 +39,18 @@ import {
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ExportCsvButton, type CsvColumn } from "@/components/ui/export-csv-button";
+
+const agentAppointmentCsvColumns: CsvColumn<Appointment>[] = [
+  { id: "id", label: "ID", getValue: (a) => a.id },
+  { id: "date", label: "Date & Heure", getValue: (a) => new Date(a.startsAt).toLocaleString("fr-FR") },
+  { id: "service", label: "Service", getValue: (a) => a.service?.name || "Service municipal" },
+  { id: "status", label: "Statut", getValue: (a) => a.status === "confirme" ? "Confirmé" : "Annulé" },
+  { id: "citizen", label: "Citoyen", getValue: (a) => a.user ? `${a.user.firstName} ${a.user.lastName}` : "Non renseigné" },
+  { id: "email", label: "Email", getValue: (a) => a.user?.email || "" },
+  { id: "reason", label: "Motif", getValue: (a) => a.reason || "" },
+  { id: "location", label: "Lieu", getValue: (a) => a.location || "" },
+];
 
 export default function AgentAppointmentsPage() {
   const { user, token } = useAuth();
@@ -114,6 +126,11 @@ export default function AgentAppointmentsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <ExportCsvButton
+              data={filtered}
+              columns={agentAppointmentCsvColumns}
+              filename="agent-rendez-vous"
+            />
             <Button
               variant="outline"
               size="sm"

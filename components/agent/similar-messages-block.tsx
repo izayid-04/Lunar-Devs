@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Layers, RefreshCw, AlertCircle, MapPin, CheckCircle2, Clock } from "lucide-react";
+import { Sparkles, Layers, RefreshCw, AlertCircle, MapPin } from "lucide-react";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
 import { cn } from "@/lib/utils";
 
@@ -57,8 +57,10 @@ export default function SimilarMessagesBlock({
   };
 
   useEffect(() => {
-    load();
-  }, [token, messageId]); // eslint-disable-line react-hooks/exhaustive-deps
+    Promise.resolve().then(() => {
+      load();
+    });
+  }, [token, messageId, isStaff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isStaff) return null;
 

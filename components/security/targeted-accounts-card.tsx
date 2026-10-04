@@ -51,35 +51,62 @@ export default function TargetedAccountsCard() {
           </div>
         )}
         {accounts && accounts.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border bg-muted/40 font-semibold text-muted-foreground">
-                <tr>
-                  <th className="p-3">Email du compte</th>
-                  <th className="p-3">Tentatives échouées</th>
-                  <th className="p-3">Dernier échec</th>
-                  <th className="p-3">État</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {accounts.map((account) => (
-                  <tr key={account.email} className="hover:bg-muted/20">
-                    <td className="p-3 font-mono font-medium text-foreground">{account.email}</td>
-                    <td className="p-3 font-bold text-destructive">{account.failedAttemptsCount}</td>
-                    <td className="p-3 text-muted-foreground">
-                      {new Date(account.lastFailedAt).toLocaleString("fr-FR")}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant="destructive" className="text-[10px]">
-                        {account.failedAttemptsCount >= 5 ? "Verrouillé (15 min)" : "Surveillance"}
-                      </Badge>
-                    </td>
+          <>
+            {/* Cartes sur mobile */}
+            <div className="block space-y-3 sm:hidden">
+              {accounts.map((account) => (
+                <div
+                  key={account.email}
+                  className="rounded-lg border border-border p-3 space-y-2 bg-card/60"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-xs font-semibold text-foreground break-all">
+                      {account.email}
+                    </span>
+                    <Badge variant="destructive" className="text-[10px] shrink-0">
+                      {account.failedAttemptsCount >= 5 ? "Verrouillé (15 min)" : "Surveillance"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Tentatives échouées : <strong className="text-destructive font-mono">{account.failedAttemptsCount}</strong></span>
+                    <span className="text-[11px]">{new Date(account.lastFailedAt).toLocaleString("fr-FR")}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tableau sur tablette et desktop */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-border bg-muted/40 font-semibold text-muted-foreground">
+                  <tr>
+                    <th className="p-3">Email du compte</th>
+                    <th className="p-3">Tentatives échouées</th>
+                    <th className="p-3">Dernier échec</th>
+                    <th className="p-3">État</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {accounts.map((account) => (
+                    <tr key={account.email} className="hover:bg-muted/20">
+                      <td className="p-3 font-mono font-medium text-foreground">{account.email}</td>
+                      <td className="p-3 font-bold text-destructive">{account.failedAttemptsCount}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {new Date(account.lastFailedAt).toLocaleString("fr-FR")}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="destructive" className="text-[10px]">
+                          {account.failedAttemptsCount >= 5 ? "Verrouillé (15 min)" : "Surveillance"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
+
       </CardContent>
     </Card>
   );

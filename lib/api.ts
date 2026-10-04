@@ -56,7 +56,9 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
   // on préfère un message générique plutôt que d'exposer un détail technique.
   if (res.status === 400 && serverMessage) return serverMessage;
   if (res.status === 401) return "Email ou mot de passe incorrect.";
-  if (res.status === 409) return "Un compte existe déjà avec cet email.";
+  if (res.status === 409) return serverMessage || "Cette demande a déjà été envoyée.";
+  if (res.status === 429) return "Trop de requêtes, veuillez patienter avant de réessayer.";
+  if (res.status === 503) return "La plateforme est très sollicitée, réessayez dans un instant.";
   return fallback;
 }
 
@@ -67,6 +69,9 @@ export async function registerRequest(payload: RegisterPayload): Promise<void> {
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
+    if (res.status === 409) {
+      throw new Error("Un compte existe déjà avec cet email.");
+    }
     throw new Error(await readErrorMessage(res, "Impossible de créer le compte pour le moment."));
   }
 }
@@ -190,6 +195,7 @@ function authFetch(path: string, token: string, init: RequestInit = {}): Promise
 
 export type MessageStatus = "nouveau" | "en_cours" | "traite";
 export type MessageType = "question" | "signalement";
+export type MessagePriority = "urgente" | "haute" | "normale" | "basse";
 
 export type MessageHistoryItem = {
   id: number;
@@ -209,6 +215,8 @@ export type CitizenMessage = {
   district?: string;
   preciseLocation?: string;
   status: MessageStatus;
+  priority?: MessagePriority;
+  isMedicalEmergency?: boolean;
   supportCount?: number;
   supportedByMe?: boolean;
   isMine?: boolean;
@@ -237,6 +245,7 @@ export async function postMessage(
     category: string;
     district?: District;
     preciseLocation?: string;
+    isMedicalEmergency?: boolean;
   }
 ): Promise<CitizenMessage> {
   const res = await authFetch("/messages", token, {
@@ -322,6 +331,59 @@ export async function patchMessageStatus(
   });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Impossible de changer le statut de ce message."));
+  }
+  return res.json();
+}
+
+// F80 : Changer la priorité d'une demande
+// Selon le backend / docs/API.md, la mise à jour s'effectue via PATCH /agent/messages/:id/status
+// avec le champ `priority` (et le statut optionnel ou conservé).
+export async function patchMessagePriority(
+  token: string,
+  id: number,
+  priority: MessagePriority,
+  currentStatus?: MessageStatus
+): Promise<AgentMessage> {
+  const payload: Record<string, unknown> = { priority };
+  if (currentStatus) {
+    payload.status = currentStatus;
+  }
+
+  // Tente d'abord la route officielle PATCH /agent/messages/:id/status
+  const res = await authFetch(`/agent/messages/${id}/status`, token, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    // Si /status échoue avec 400 ou 404, tenter la route dédiée /priority
+    const fallbackRes = await authFetch(`/agent/messages/${id}/priority`, token, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priority }),
+    });
+    if (!fallbackRes.ok) {
+      throw new Error(await readErrorMessage(res, "Impossible de modifier la priorité de cette demande."));
+    }
+    return fallbackRes.json();
+  }
+  return res.json();
+}
+
+// F84 : Répondre au citoyen depuis le détail d'une demande
+export async function replyAgentMessage(
+  token: string,
+  id: number,
+  message: string
+): Promise<{ success?: boolean; message?: string; historyItem?: MessageHistoryItem }> {
+  const res = await authFetch(`/agent/messages/${id}/reply`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Impossible d'envoyer la réponse au citoyen."));
   }
   return res.json();
 }

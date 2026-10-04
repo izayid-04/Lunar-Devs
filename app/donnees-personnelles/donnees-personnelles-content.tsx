@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { HoneypotField } from "@/components/ui/honeypot-field";
 
 const PRINCIPLES = [
   {
@@ -341,6 +342,8 @@ export default function DonneesPersonnellesContent() {
                           aria-invalid={!!error && description.trim().length < 15}
                         />
                       </div>
+
+                      <HoneypotField />
 
                       <div className="pt-2">
                         <Button type="submit" disabled={submitting} className="w-full gap-2">

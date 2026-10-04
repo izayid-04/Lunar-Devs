@@ -51,8 +51,11 @@ import {
   ListChecks,
   ThumbsUp,
   Lightbulb,
+  AlertTriangle,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
+import { HoneypotField } from "@/components/ui/honeypot-field";
 import {
   changePassword,
   fetchMyMessages,
@@ -73,7 +76,11 @@ import {
   type District,
 } from "@/lib/api";
 import { DISTRICTS } from "@/lib/alerts";
+import { printReceipt } from "@/lib/print-receipt";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
+import { BusyPlatformAlert } from "@/components/ui/busy-platform-alert";
+import { PriorityBadge, getMessageEffectivePriority, isMedicalEmergencyMessage } from "@/components/ui/priority-badge";
+import { ExportCsvButton, type CsvColumn } from "@/components/ui/export-csv-button";
 import {
   Select,
   SelectContent,
@@ -143,11 +150,13 @@ function EspaceContent() {
   const [messages, setMessages] = useState<CitizenMessage[] | null>(null);
   const [messagesError, setMessagesError] = useState<string | null>(null);
 
-  // Filtres "Mes demandes" (F26) — purement côté front, sur les données
+  // Filtres "Mes demandes" (F26, F80) — purement côté front, sur les données
   // déjà chargées via GET /messages/mine.
   const [requestSearch, setRequestSearch] = useState("");
   const [requestStatusFilter, setRequestStatusFilter] = useState<string>("all");
   const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
+  const [requestPriorityFilter, setRequestPriorityFilter] = useState<string>("all");
+  const [requestSort, setRequestSort] = useState<string>("priority");
 
   const [privacyInquiries, setPrivacyInquiries] = useState<PrivacyInquiry[] | null>(null);
 
@@ -181,6 +190,7 @@ function EspaceContent() {
   const [preciseLocation, setPreciseLocation] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [isMedicalEmergency, setIsMedicalEmergency] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<CitizenMessage | null>(null);
 
@@ -286,6 +296,7 @@ function EspaceContent() {
     setPreciseLocation("");
     setSubject("");
     setBody("");
+    setIsMedicalEmergency(false);
     setConfirmation(null);
   }
 
@@ -308,11 +319,16 @@ function EspaceContent() {
 
     setSubmitting(true);
     try {
+      const finalSubject = isMedicalEmergency && !subject.trim().startsWith("[URGENCE]")
+        ? `[URGENCE MÉDICALE] ${subject.trim()}`.slice(0, SUBJECT_MAX)
+        : subject.trim();
+
       const created = await postMessage(token, {
         type: messageType,
-        subject: subject.trim(),
+        subject: finalSubject,
         body: body.trim(),
-        category: messageType === "signalement" ? signalementCategory : category,
+        category: isMedicalEmergency ? "Santé & Urgences" : (messageType === "signalement" ? signalementCategory : category),
+        isMedicalEmergency: isMedicalEmergency ? true : undefined,
         ...(messageType === "signalement"
           ? { district, preciseLocation: preciseLocation.trim() }
           : {}),
@@ -663,19 +679,77 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
     toast.success("Dossier complet de données téléchargé avec succès.");
   }
 
-  const filteredMessages = (messages ?? []).filter((m) => {
-    if (requestStatusFilter !== "all" && m.status !== requestStatusFilter) return false;
-    if (requestTypeFilter !== "all" && (m.type ?? "question") !== requestTypeFilter) return false;
-    const q = requestSearch.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      m.reference.toLowerCase().includes(q) ||
-      m.subject.toLowerCase().includes(q) ||
-      m.body.toLowerCase().includes(q)
-    );
-  });
+  const citizenPriorityRank = (m: CitizenMessage): number => {
+    if (isMedicalEmergencyMessage(m)) return 4;
+    const p = getMessageEffectivePriority(m);
+    if (p === "urgente") return 3;
+    if (p === "haute") return 2;
+    if (p === "normale") return 1;
+    return 0;
+  };
+
+  const filteredMessages = (messages ?? [])
+    .filter((m) => {
+      if (requestStatusFilter !== "all" && m.status !== requestStatusFilter) return false;
+      if (requestTypeFilter !== "all" && (m.type ?? "question") !== requestTypeFilter) return false;
+      if (requestPriorityFilter !== "all") {
+        if (requestPriorityFilter === "urgente") {
+          if (!isMedicalEmergencyMessage(m) && getMessageEffectivePriority(m) !== "urgente") return false;
+        } else if (getMessageEffectivePriority(m) !== requestPriorityFilter) {
+          return false;
+        }
+      }
+      const q = requestSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        m.reference.toLowerCase().includes(q) ||
+        m.subject.toLowerCase().includes(q) ||
+        m.body.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (requestSort === "priority") {
+        const diff = citizenPriorityRank(b) - citizenPriorityRank(a);
+        if (diff !== 0) return diff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (requestSort === "recent") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (requestSort === "oldest") {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return 0;
+    });
+
   const requestFiltersActive =
-    requestSearch.trim() !== "" || requestStatusFilter !== "all" || requestTypeFilter !== "all";
+    requestSearch.trim() !== "" ||
+    requestStatusFilter !== "all" ||
+    requestTypeFilter !== "all" ||
+    requestPriorityFilter !== "all" ||
+    requestSort !== "priority";
+
+  // Colonnes CSV pour mes démarches (F88)
+  const citizenMessagesCsvColumns: CsvColumn<CitizenMessage>[] = [
+    { id: "reference", label: "Référence", getValue: (m) => m.reference },
+    { id: "date", label: "Date de dépôt", getValue: (m) => new Date(m.createdAt).toLocaleString("fr-FR") },
+    { id: "type", label: "Type", getValue: (m) => m.type === "signalement" ? "Signalement" : "Question" },
+    { id: "priority", label: "Priorité", getValue: (m) => isMedicalEmergencyMessage(m) ? "Urgence médicale" : getMessageEffectivePriority(m) },
+    { id: "status", label: "Statut", getValue: (m) => STATUS_LABEL[m.status] },
+    { id: "category", label: "Catégorie", getValue: (m) => m.category },
+    { id: "district", label: "Quartier", getValue: (m) => m.district || "" },
+    { id: "subject", label: "Objet", getValue: (m) => m.subject },
+    { id: "body", label: "Message", getValue: (m) => m.body },
+  ];
+
+  // Colonnes CSV pour mes rendez-vous (F88)
+  const citizenAppointmentsCsvColumns: CsvColumn<Appointment>[] = [
+    { id: "service", label: "Service", getValue: (a) => a.service?.name || "Service municipal" },
+    { id: "date", label: "Date & Heure", getValue: (a) => a.startsAt ? new Date(a.startsAt).toLocaleString("fr-FR") : "" },
+    { id: "agent", label: "Agent instructeur", getValue: (a) => a.agent ? `${a.agent.firstName} ${a.agent.lastName}` : "Non assigné" },
+    { id: "status", label: "Statut", getValue: (a) => a.status === "confirme" ? "Confirmé" : "Annulé" },
+    { id: "reason", label: "Motif", getValue: (a) => a.reason || "" },
+  ];
 
   return (
     <>
@@ -727,6 +801,15 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                     {confirmation.reference}
                   </p>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => printReceipt(confirmation)}
+                >
+                  <Download className="size-4" />
+                  Télécharger l&apos;accusé de réception
+                </Button>
                 <Button asChild variant="outline" className="w-full gap-2">
                   <Link
                     href={`/espace/demandes/${confirmation.id}`}
@@ -889,10 +972,58 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                     />
                   </div>
 
+                  {/* F86 : Case Urgence médicale */}
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={isMedicalEmergency}
+                        onChange={(e) => setIsMedicalEmergency(e.target.checked)}
+                        className="size-4 rounded border-input text-destructive accent-destructive"
+                      />
+                      <span className="flex items-center gap-1.5 text-destructive font-semibold">
+                        <AlertTriangle className="size-4 shrink-0" />
+                        Urgence médicale
+                      </span>
+                    </label>
+
+                    {isMedicalEmergency && (
+                      <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive space-y-2 animate-in fade-in-50"
+                      >
+                        <div className="flex items-center gap-2 font-bold text-sm">
+                          <Phone className="size-4 shrink-0" />
+                          Appelez d&apos;abord les secours avant toute démarche en ligne !
+                        </div>
+                        <p className="leading-relaxed">
+                          Ce formulaire ne remplace pas une intervention d&apos;urgence vitale. Pour tout secours immédiat :
+                        </p>
+                        <div className="flex flex-wrap gap-2 pt-1 font-mono font-bold text-foreground">
+                          <span className="rounded bg-background px-2 py-0.5 border border-border">15 (SAMU)</span>
+                          <span className="rounded bg-background px-2 py-0.5 border border-border">112 (Urgences EU)</span>
+                          <span className="rounded bg-background px-2 py-0.5 border border-border">18 (Pompiers)</span>
+                          <span className="rounded bg-background px-2 py-0.5 border border-border">911 (Nova Terra)</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground pt-1">
+                          En validant ce formulaire, votre demande sera traitée en priorité absolue par la régulation municipale.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <HoneypotField />
+
                   <DialogFooter className="pt-2">
-                    <Button type="submit" className="w-full gap-2" disabled={submitting}>
+                    <Button
+                      type="submit"
+                      variant={isMedicalEmergency ? "destructive" : "default"}
+                      className="w-full gap-2"
+                      disabled={submitting}
+                    >
                       <Send className="size-4" />
-                      {submitting ? "Envoi…" : "Envoyer"}
+                      {submitting ? "Envoi…" : isMedicalEmergency ? "Envoyer en urgence prioritaire" : "Envoyer"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -1322,19 +1453,49 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                         : `${messages.length} message${messages.length === 1 ? "" : "s"}`}
                     </span>
                   )}
+                  {messages && messages.length > 0 && (
+                    <ExportCsvButton
+                      data={messages}
+                      columns={citizenMessagesCsvColumns}
+                      filename="mes-demarches-citoyen"
+                      buttonLabel="Exporter (CSV)"
+                    />
+                  )}
                 </div>
               </div>
 
               {messages && messages.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
+                <div className="mb-3 flex flex-wrap gap-2 items-center">
                   <Input
                     value={requestSearch}
                     onChange={(e) => setRequestSearch(e.target.value)}
                     placeholder="Rechercher par référence ou mot-clé…"
                     className="h-8 max-w-xs text-xs"
                   />
+                  <Select value={requestPriorityFilter} onValueChange={setRequestPriorityFilter}>
+                    <SelectTrigger className="h-8 w-[140px] text-xs">
+                      <SelectValue placeholder="Toutes priorités" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes priorités</SelectItem>
+                      <SelectItem value="urgente">Urgentes / Médicales</SelectItem>
+                      <SelectItem value="haute">Haute</SelectItem>
+                      <SelectItem value="normale">Normale</SelectItem>
+                      <SelectItem value="basse">Basse</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={requestSort} onValueChange={setRequestSort}>
+                    <SelectTrigger className="h-8 w-[140px] text-xs">
+                      <SelectValue placeholder="Trier par" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="priority">Par priorité</SelectItem>
+                      <SelectItem value="recent">Plus récents</SelectItem>
+                      <SelectItem value="oldest">Plus anciens</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Select value={requestStatusFilter} onValueChange={setRequestStatusFilter}>
-                    <SelectTrigger className="h-8 w-[150px] text-xs">
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
                       <SelectValue placeholder="Tous les statuts" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1345,7 +1506,7 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                     </SelectContent>
                   </Select>
                   <Select value={requestTypeFilter} onValueChange={setRequestTypeFilter}>
-                    <SelectTrigger className="h-8 w-[150px] text-xs">
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
                       <SelectValue placeholder="Tous les types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1363,6 +1524,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                         setRequestSearch("");
                         setRequestStatusFilter("all");
                         setRequestTypeFilter("all");
+                        setRequestPriorityFilter("all");
+                        setRequestSort("priority");
                       }}
                     >
                       Réinitialiser
@@ -1371,7 +1534,17 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                 </div>
               )}
 
-              {messagesError && <p role="alert" className="text-sm text-destructive">{messagesError}</p>}
+              {messagesError && (
+                <div className="py-2">
+                  <BusyPlatformAlert
+                    error={messagesError}
+                    onRetry={() => {
+                      setMessagesError(null);
+                      loadMessages();
+                    }}
+                  />
+                </div>
+              )}
               {messages && messages.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   Vous n&apos;avez envoyé aucun message pour le moment.
@@ -1388,6 +1561,8 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                       setRequestSearch("");
                       setRequestStatusFilter("all");
                       setRequestTypeFilter("all");
+                      setRequestPriorityFilter("all");
+                      setRequestSort("priority");
                     }}
                   >
                     Réinitialiser les filtres
@@ -1403,8 +1578,9 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                       className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 text-xs transition-colors hover:border-primary/40"
                     >
                       <div>
-                        <div className="font-semibold text-foreground flex items-center gap-2">
+                        <div className="font-semibold text-foreground flex flex-wrap items-center gap-2">
                           <span className="font-mono">{m.reference}</span>
+                          <PriorityBadge message={m} />
                           <span className="text-muted-foreground font-normal">• {m.subject}</span>
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
@@ -1436,11 +1612,21 @@ sur la Protection des Données et les protocoles de transparence de Nova Terra.
                   <CalendarCheck className="size-4 text-primary" />
                   Mes rendez-vous
                 </h3>
-                {appointments && (
-                  <span className="text-xs text-muted-foreground">
-                    {appointments.length} rendez-vous
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {appointments && appointments.length > 0 && (
+                    <ExportCsvButton
+                      data={appointments}
+                      columns={citizenAppointmentsCsvColumns}
+                      filename="mes-rendez-vous"
+                      buttonLabel="Exporter (CSV)"
+                    />
+                  )}
+                  {appointments && (
+                    <span className="text-xs text-muted-foreground">
+                      {appointments.length} rendez-vous
+                    </span>
+                  )}
+                </div>
               </div>
 
               {appointmentsError && <p className="text-xs text-destructive">{appointmentsError}</p>}

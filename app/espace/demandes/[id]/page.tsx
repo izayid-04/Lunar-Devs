@@ -11,8 +11,12 @@ import {
 } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Clock, MapPin, ThumbsUp, AlertTriangle, CheckCircle2, Download } from "lucide-react";
+import { printReceipt } from "@/lib/print-receipt";
+import { Button } from "@/components/ui/button";
+import { BusyPlatformAlert } from "@/components/ui/busy-platform-alert";
 import LoadingSpinner from "@/components/ui/snow-ball-loading-spinner";
-import { Clock, MapPin, ThumbsUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { PriorityBadge } from "@/components/ui/priority-badge";
 
 const STATUS_LABEL: Record<MessageStatus, string> = {
   nouveau: "Nouveau",
@@ -45,9 +49,15 @@ function DemandeContent() {
 
   if (error) {
     return (
-      <p role="alert" className="py-16 text-center text-sm text-destructive">
-        {error}
-      </p>
+      <div className="mx-auto w-full max-w-2xl py-12">
+        <BusyPlatformAlert
+          error={error}
+          onRetry={() => {
+            setError(null);
+            load();
+          }}
+        />
+      </div>
     );
   }
 
@@ -62,17 +72,29 @@ function DemandeContent() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm font-semibold text-primary">{message.reference}</span>
-        <Badge variant="outline" className={STATUS_CLASS[message.status]}>
-          {STATUS_LABEL[message.status]}
-        </Badge>
-        {message.type === "signalement" && (
-          <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 gap-1">
-            <AlertTriangle className="size-3" />
-            Signalement
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-sm font-semibold text-primary">{message.reference}</span>
+          <PriorityBadge message={message} />
+          <Badge variant="outline" className={STATUS_CLASS[message.status]}>
+            {STATUS_LABEL[message.status]}
           </Badge>
-        )}
+          {message.type === "signalement" && (
+            <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 gap-1">
+              <AlertTriangle className="size-3" />
+              Signalement
+            </Badge>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => printReceipt(message)}
+        >
+          <Download className="size-4" />
+          Télécharger l&apos;accusé de réception
+        </Button>
       </div>
 
       <h1 className="mt-3">{message.subject}</h1>

@@ -246,94 +246,161 @@ export default function AgentIdeasPage() {
             )}
 
             {!loading && !error && ideas && ideas.length > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[130px]">Référence</TableHead>
-                      <TableHead>Titre & Description</TableHead>
-                      <TableHead className="w-[150px]">Quartier</TableHead>
-                      <TableHead className="w-[180px]">Auteur</TableHead>
-                      <TableHead className="w-[130px]">Statut</TableHead>
-                      <TableHead className="w-[180px]">Note administrative</TableHead>
-                      <TableHead className="text-right w-[110px]">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ideas.map((idea) => {
-                      const cfg = STATUS_CONFIG[idea.status] || STATUS_CONFIG.soumise;
-                      const Icon = cfg.icon;
-                      return (
-                        <TableRow key={idea.id} className="hover:bg-muted/40">
-                          <TableCell className="font-mono text-xs font-semibold text-primary">
-                            {idea.reference}
-                            <span className="block text-[10px] text-muted-foreground font-normal">
-                              {new Date(idea.createdAt).toLocaleDateString("fr-FR")}
+              <>
+                {/* Cartes empilées sur mobile : un tableau large ne tient pas sur un écran de téléphone */}
+                <div className="block space-y-3 sm:hidden">
+                  {ideas.map((idea) => {
+                    const cfg = STATUS_CONFIG[idea.status] || STATUS_CONFIG.soumise;
+                    const Icon = cfg.icon;
+                    return (
+                      <Card key={idea.id}>
+                        <CardContent className="space-y-2 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-mono text-xs font-semibold text-primary">
+                              {idea.reference}
                             </span>
-                          </TableCell>
-                          <TableCell className="max-w-xs md:max-w-sm">
-                            <p className="font-semibold text-foreground text-sm leading-snug">
-                              {idea.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {idea.description}
-                            </p>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <MapPin className="size-3.5 text-primary shrink-0" />
-                              {idea.district || "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {idea.citizen ? (
-                              <div>
-                                <span className="font-medium text-foreground flex items-center gap-1">
-                                  <User className="size-3 text-muted-foreground" />
-                                  {idea.citizen.firstName} {idea.citizen.lastName}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground font-mono block">
-                                  {idea.citizen.email}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground italic">Habitant #{idea.citizenId || "—"}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
                             <Badge variant="outline" className={cn("gap-1 text-xs", cfg.badge)}>
                               <Icon className="size-3" />
                               {cfg.label}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-xs">
-                            {idea.adminNote ? (
-                              <p className="line-clamp-2 italic border-l-2 border-primary/30 pl-2">
-                                &ldquo;{idea.adminNote}&rdquo;
-                              </p>
-                            ) : (
-                              <span className="text-muted-foreground/60 italic">—</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground text-sm leading-snug">
+                              {idea.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
+                              {idea.description}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pt-1">
+                            {idea.district && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="size-3 text-primary shrink-0" />
+                                {idea.district}
+                              </span>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right">
+                            {idea.citizen ? (
+                              <span className="flex items-center gap-1">
+                                <User className="size-3 text-muted-foreground shrink-0" />
+                                {idea.citizen.firstName} {idea.citizen.lastName}
+                              </span>
+                            ) : (
+                              <span>Habitant #{idea.citizenId || "—"}</span>
+                            )}
+                            <span>{new Date(idea.createdAt).toLocaleDateString("fr-FR")}</span>
+                          </div>
+                          {idea.adminNote && (
+                            <div className="rounded bg-muted/50 p-2 text-xs italic text-muted-foreground border-l-2 border-primary/30">
+                              &ldquo;{idea.adminNote}&rdquo;
+                            </div>
+                          )}
+                          <div className="pt-2 flex justify-end">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => openStatusDialog(idea)}
-                              className="h-8 gap-1.5 text-xs"
-                              title="Modifier le statut et ajouter une note"
+                              className="h-8 gap-1.5 text-xs w-full sm:w-auto"
                             >
                               <Edit className="size-3.5" />
                               Instruire
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[130px]">Référence</TableHead>
+                        <TableHead>Titre & Description</TableHead>
+                        <TableHead className="w-[150px]">Quartier</TableHead>
+                        <TableHead className="w-[180px]">Auteur</TableHead>
+                        <TableHead className="w-[130px]">Statut</TableHead>
+                        <TableHead className="w-[180px]">Note administrative</TableHead>
+                        <TableHead className="text-right w-[110px]">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ideas.map((idea) => {
+                        const cfg = STATUS_CONFIG[idea.status] || STATUS_CONFIG.soumise;
+                        const Icon = cfg.icon;
+                        return (
+                          <TableRow key={idea.id} className="hover:bg-muted/40">
+                            <TableCell className="font-mono text-xs font-semibold text-primary">
+                              {idea.reference}
+                              <span className="block text-[10px] text-muted-foreground font-normal">
+                                {new Date(idea.createdAt).toLocaleDateString("fr-FR")}
+                              </span>
+                            </TableCell>
+                            <TableCell className="max-w-xs md:max-w-sm">
+                              <p className="font-semibold text-foreground text-sm leading-snug">
+                                {idea.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {idea.description}
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <MapPin className="size-3.5 text-primary shrink-0" />
+                                {idea.district || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {idea.citizen ? (
+                                <div>
+                                  <span className="font-medium text-foreground flex items-center gap-1">
+                                    <User className="size-3 text-muted-foreground" />
+                                    {idea.citizen.firstName} {idea.citizen.lastName}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground font-mono block">
+                                    {idea.citizen.email}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground italic">Habitant #{idea.citizenId || "—"}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn("gap-1 text-xs", cfg.badge)}>
+                                <Icon className="size-3" />
+                                {cfg.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-xs">
+                              {idea.adminNote ? (
+                                <p className="line-clamp-2 italic border-l-2 border-primary/30 pl-2">
+                                  &ldquo;{idea.adminNote}&rdquo;
+                                </p>
+                              ) : (
+                                <span className="text-muted-foreground/60 italic">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openStatusDialog(idea)}
+                                className="h-8 gap-1.5 text-xs"
+                                title="Modifier le statut et ajouter une note"
+                              >
+                                <Edit className="size-3.5" />
+                                Instruire
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
+
           </CardContent>
         </Card>
 
